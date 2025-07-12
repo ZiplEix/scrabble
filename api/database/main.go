@@ -28,6 +28,7 @@ func Init(dsn string) error {
 			}
 			time.Sleep(2 * time.Second)
 		}
+		return fmt.Errorf("failed to connect to PostgreSQL after retries: %w", err)
 	}
 	log.Printf("Connected to PostgreSQL successfully")
 	return nil
