@@ -2,7 +2,8 @@
 
 # Project Specific
 ## You can add your own rules here
-./tmp/
+tmp/
+.env.docker
 
 # General
 .env
