@@ -1,8 +1,9 @@
 import axios from "axios";
 import { user } from "./stores/user";
+import { env } from "$env/dynamic/public";
 
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL,
+    baseURL: env.PUBLIC_API_BASE_URL,
     withCredentials: false,
     headers: {
         'Content-Type': 'application/json'

@@ -22,11 +22,6 @@
 			error = err?.response?.data?.error || 'Register failed';
 		}
 	}
-
-	onMount(() => {
-		console.log('ENV:', import.meta.env);
-		console.log('Public API Base URL:', env.PUBLIC_API_BASE_URL);
-	})
 </script>
 
 <h1 class="text-2xl font-bold mb-4">Register</h1>
