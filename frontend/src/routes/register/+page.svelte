@@ -2,7 +2,8 @@
 	import { api } from '$lib/api';
 	import { user } from '$lib/stores/user';
 	import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
+  	import { onMount } from 'svelte';
+	import { env } from '$env/dynamic/public';
 
 	let username = '';
 	let password = '';
@@ -24,6 +25,7 @@
 
 	onMount(() => {
 		console.log('ENV:', import.meta.env);
+		console.log('Public API Base URL:', env.PUBLIC_API_BASE_URL);
 	})
 </script>
 
