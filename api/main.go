@@ -30,7 +30,7 @@ func setupCors(r *chi.Mux) {
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
-		MaxAge:           300, // pré-cache pendant 5 min
+		MaxAge:           300,
 	}))
 }
 
@@ -39,6 +39,7 @@ func main() {
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	setupCors(r)
 
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -53,8 +54,6 @@ func main() {
 	})
 
 	routes.SetupRoutes(r)
-
-	setupCors(r)
 
 	fmt.Println("Server is running on https://localhost:8080")
 	if err := http.ListenAndServe(":8888", r); err != nil {
