@@ -25,7 +25,15 @@ func init() {
 
 func setupCors(r *chi.Mux) {
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "https://scrabble.baptiste.zip", "http://scrabble.baptiste.zip"},
+		AllowedOrigins: []string{}, // ← vide !
+		// AllowOriginFunc: func(origin string) bool {
+		// 	fmt.Println("== Origin check:", origin)
+		// 	return origin == "https://scrabble.baptiste.zip"
+		// },
+		AllowOriginFunc: func(r *http.Request, origin string) bool {
+			fmt.Println("== Origin check:", origin)
+			return origin == "https://scrabble.baptiste.zip"
+		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
