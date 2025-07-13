@@ -19,5 +19,16 @@ services:
     depends_on:
       - db
 
+  front:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file:
+      - ./frontend/.env.docker
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
 volumes:
   postgres-db:
