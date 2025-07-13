@@ -25,7 +25,7 @@ func init() {
 
 func setupCors(r *chi.Mux) {
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "https://scrabble.baptiste.zip"},
+		AllowedOrigins:   []string{"http://localhost:5173", "https://scrabble.baptiste.zip", "http://scrabble.baptiste.zip"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -40,6 +40,18 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	setupCors(r)
+
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			fmt.Println("=== CORS DEBUG ===")
+			fmt.Println("Method:", req.Method)
+			fmt.Println("Origin:", req.Header.Get("Origin"))
+			fmt.Println("Host:", req.Host)
+			fmt.Println("URL:", req.URL)
+			fmt.Println("==================")
+			next.ServeHTTP(w, req)
+		})
+	})
 
 	routes.SetupRoutes(r)
 
