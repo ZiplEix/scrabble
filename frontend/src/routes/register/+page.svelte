@@ -2,6 +2,7 @@
 	import { api } from '$lib/api';
 	import { user } from '$lib/stores/user';
 	import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
 
 	let username = '';
 	let password = '';
@@ -20,6 +21,10 @@
 			error = err?.response?.data?.error || 'Register failed';
 		}
 	}
+
+	onMount(() => {
+		console.log('ENV:', import.meta.env);
+	})
 </script>
 
 <h1 class="text-2xl font-bold mb-4">Register</h1>
