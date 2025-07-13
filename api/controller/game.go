@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ZiplEix/scrabble/api/models/request"
+	"github.com/ZiplEix/scrabble/api/models/response"
 	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/go-chi/chi/v5"
@@ -89,4 +90,25 @@ func PlayMove(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "move played successfully",
 	})
+}
+
+func GetUserGames(w http.ResponseWriter, r *http.Request) {
+	userID, ok := utils.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	games, err := services.GetGamesByUserID(userID)
+	if err != nil {
+		http.Error(w, "Failed to get games: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := response.GamesListResponse{
+		Games: games,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }

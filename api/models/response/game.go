@@ -26,3 +26,14 @@ type MoveInfo struct {
 	Move     any       `json:"move"` // JSONB brut
 	PlayedAt time.Time `json:"played_at"`
 }
+
+type GameSummary struct {
+	ID                  string `json:"id"`
+	Name                string `json:"name"`
+	CurrentTurnUserID   int    `json:"current_turn_user_id"`
+	CurrentTurnUsername string `json:"current_turn_username"`
+}
+
+type GamesListResponse struct {
+	Games []GameSummary `json:"games"`
+}

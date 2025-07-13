@@ -254,3 +254,34 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 
 	return tx.Commit(context.Background())
 }
+
+func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
+	query := `
+		SELECT g.id, g.name, g.current_turn, u.username
+		FROM games g
+		JOIN users u ON u.id = g.current_turn
+		JOIN game_players gp ON gp.game_id = g.id
+		WHERE gp.player_id = $1
+		AND g.status = 'ongoing'
+		ORDER BY g.created_at DESC
+	`
+
+	rows, err := database.Query(query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query games: %w", err)
+	}
+	defer rows.Close()
+
+	var games []response.GameSummary
+
+	for rows.Next() {
+		var g response.GameSummary
+		err := rows.Scan(&g.ID, &g.Name, &g.CurrentTurnUserID, &g.CurrentTurnUsername)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan game row: %w", err)
+		}
+		games = append(games, g)
+	}
+
+	return games, nil
+}
