@@ -23,6 +23,8 @@ func checkEnv() {
 			panic(envVar + " is not set in the environment variables")
 		} else if value == "" {
 			panic(envVar + " is set but empty")
+		} else {
+			println(envVar + " is set to: " + value)
 		}
 	}
 }

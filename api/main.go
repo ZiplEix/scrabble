@@ -44,7 +44,7 @@ func main() {
 	routes.SetupRoutes(r)
 
 	fmt.Println("Server is running on https://localhost:8080")
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	if err := http.ListenAndServe(":8888", r); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)
 		os.Exit(1)
 	}
