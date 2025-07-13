@@ -39,7 +39,6 @@ func main() {
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	setupCors(r)
 
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -54,6 +53,8 @@ func main() {
 	})
 
 	routes.SetupRoutes(r)
+
+	setupCors(r)
 
 	fmt.Println("Server is running on https://localhost:8080")
 	if err := http.ListenAndServe(":8888", r); err != nil {
