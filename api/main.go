@@ -10,6 +10,7 @@ import (
 	"github.com/ZiplEix/scrabble/api/routes"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func init() {
@@ -22,11 +23,23 @@ func init() {
 	database.Migrate()
 }
 
+func setupCors(r *chi.Mux) {
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // pré-cache pendant 5 min
+	}))
+}
+
 func main() {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	setupCors(r)
 
 	routes.SetupRoutes(r)
 
