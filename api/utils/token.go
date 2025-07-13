@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -23,9 +22,6 @@ func GenerateToken(user dbModels.User) (string, error) {
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Hour * 72).Unix(),
 	})
-
-	jwtSecret := getJWTSecret()
-	fmt.Println("JWT_SECRET: ", jwtSecret) // Debugging line, remove in production
 
 	tokenString, err := token.SignedString(getJWTSecret())
 	if err != nil {
