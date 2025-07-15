@@ -66,24 +66,28 @@ func GetGame(w http.ResponseWriter, r *http.Request) {
 func PlayMove(w http.ResponseWriter, r *http.Request) {
 	userID, ok := utils.GetUserID(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
 		return
 	}
 
 	gameID := chi.URLParam(r, "id")
 	if gameID == "" {
-		http.Error(w, "missing game id", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "missing game id"})
 		return
 	}
 
 	var req request.PlayMoveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
 		return
 	}
 
 	if err := services.PlayMove(gameID, userID, req); err != nil {
-		http.Error(w, "failed to play move: "+err.Error(), http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "failed to play move: " + err.Error()})
 		return
 	}
 
