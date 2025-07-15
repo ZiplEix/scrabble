@@ -20,7 +20,9 @@ func init() {
 		panic(err)
 	}
 
-	database.Migrate()
+	if err := database.Migrate(); err != nil {
+		panic(err)
+	}
 }
 
 func setupCors(r *chi.Mux) {
