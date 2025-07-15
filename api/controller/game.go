@@ -41,6 +41,30 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func DeleteGame(w http.ResponseWriter, r *http.Request) {
+	userID, ok := utils.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized, no user_id", http.StatusUnauthorized)
+		return
+	}
+
+	gameID := chi.URLParam(r, "id")
+	if gameID == "" {
+		http.Error(w, "missing game id", http.StatusBadRequest)
+		return
+	}
+
+	err := services.DeleteGame(userID, gameID)
+	if err != nil {
+		http.Error(w, "failed to delete game: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent) // 204 No Content
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Game deleted successfully",
+	})
+}
+
 func GetGame(w http.ResponseWriter, r *http.Request) {
 	userID, ok := utils.GetUserID(r.Context())
 	if !ok {

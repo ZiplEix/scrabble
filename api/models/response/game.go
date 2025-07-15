@@ -28,10 +28,12 @@ type MoveInfo struct {
 }
 
 type GameSummary struct {
-	ID                  string `json:"id"`
-	Name                string `json:"name"`
-	CurrentTurnUserID   int    `json:"current_turn_user_id"`
-	CurrentTurnUsername string `json:"current_turn_username"`
+	ID                  string    `json:"id"`
+	Name                string    `json:"name"`
+	CurrentTurnUserID   int       `json:"current_turn_user_id"`
+	CurrentTurnUsername string    `json:"current_turn_username"`
+	LastPlayTime        time.Time `json:"last_play_time"`
+	IsYourGame          bool      `json:"is_your_game"`
 }
 
 type GamesListResponse struct {

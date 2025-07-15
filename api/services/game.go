@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,6 +72,41 @@ func CreateGame(userID int64, name string) (*uuid.UUID, error) {
 	}
 
 	return &gameID, nil
+}
+
+func DeleteGame(userID int64, gameID string) error {
+	var createdBy int64
+	err := database.QueryRow(`SELECT created_by FROM games WHERE id = $1`, gameID).Scan(&createdBy)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("game not found")
+		}
+		return err
+	}
+
+	if createdBy != userID {
+		return fmt.Errorf("unauthorized: you are not the creator of the game")
+	}
+
+	tx, err := database.Pool.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(context.Background())
+
+	if _, err := tx.Exec(context.Background(), `DELETE FROM game_moves WHERE game_id = $1`, gameID); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(context.Background(), `DELETE FROM game_players WHERE game_id = $1`, gameID); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(context.Background(), `DELETE FROM games WHERE id = $1`, gameID); err != nil {
+		return err
+	}
+
+	return tx.Commit(context.Background())
 }
 
 func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
@@ -416,13 +452,23 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 
 func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 	query := `
-		SELECT g.id, g.name, g.current_turn, u.username
+		SELECT
+			g.id,
+			g.name,
+			g.current_turn,
+			u.username,
+			COALESCE((
+				SELECT MAX(created_at)
+				FROM game_moves
+				WHERE game_id = g.id
+			), g.created_at) AS last_play_time,
+			(g.created_by = $1) AS is_your_game
 		FROM games g
 		JOIN users u ON u.id = g.current_turn
 		JOIN game_players gp ON gp.game_id = g.id
 		WHERE gp.player_id = $1
 		AND g.status = 'ongoing'
-		ORDER BY g.created_at DESC
+		ORDER BY last_play_time DESC
 	`
 
 	rows, err := database.Query(query, userID)
@@ -435,7 +481,7 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 
 	for rows.Next() {
 		var g response.GameSummary
-		err := rows.Scan(&g.ID, &g.Name, &g.CurrentTurnUserID, &g.CurrentTurnUsername)
+		err := rows.Scan(&g.ID, &g.Name, &g.CurrentTurnUserID, &g.CurrentTurnUsername, &g.LastPlayTime, &g.IsYourGame)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan game row: %w", err)
 		}
