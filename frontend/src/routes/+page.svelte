@@ -44,7 +44,7 @@
 		if (!newName) return;
 
 		try {
-			await api.put(`/game/${id}`, { name: newName });
+			await api.put(`/game/${id}/rename`, { new_name: newName });
 			// Met à jour localement
 			games = games.map(g => (g.id === id ? { ...g, name: newName } : g));
 		} catch (err) {

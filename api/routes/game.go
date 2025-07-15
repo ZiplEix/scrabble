@@ -13,5 +13,6 @@ func setupGameRoutes(r *chi.Mux) {
 		r.With(middleware.RequireAuth).Post("/{id}/play", controller.PlayMove)
 		r.With(middleware.RequireAuth).Get("/", controller.GetUserGames)
 		r.With(middleware.RequireAuth).Delete("/{id}", controller.DeleteGame)
+		r.With(middleware.RequireAuth).Put("/{id}/rename", controller.RenameGame)
 	})
 }

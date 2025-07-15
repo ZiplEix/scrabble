@@ -109,6 +109,28 @@ func DeleteGame(userID int64, gameID string) error {
 	return tx.Commit(context.Background())
 }
 
+func RenameGame(userID int64, gameID string, newName string) error {
+	var createdBy int64
+	err := database.QueryRow(`SELECT created_by FROM games WHERE id = $1`, gameID).Scan(&createdBy)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("game not found")
+		}
+		return err
+	}
+
+	if createdBy != userID {
+		return fmt.Errorf("unauthorized: you are not the creator of the game")
+	}
+
+	_, err = database.Query(`UPDATE games SET name = $1 WHERE id = $2`, newName, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to rename game: %w", err)
+	}
+
+	return nil
+}
+
 func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 	// 1. Vérifie que le joueur participe
 	checkQuery := `

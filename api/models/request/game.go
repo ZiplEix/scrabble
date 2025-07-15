@@ -4,6 +4,10 @@ type CreateGameRequest struct {
 	Name string `json:"name"`
 }
 
+type RenameGameRequest struct {
+	NewName string `json:"new_name"`
+}
+
 type PlayMoveRequest struct {
 	Word      string         `json:"word"` // ex: "CHAT"
 	StartX    int            `json:"x"`    // position de départ
