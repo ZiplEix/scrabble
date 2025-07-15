@@ -13,22 +13,24 @@
 		{#each row as cell, x}
 			{@const key = `${y},${x}`}
 			{@const type = specialCells.get(key)}
-			{@const bg =
-				type === "TW" ? "bg-red-500 text-white"
+			{@const pending = $pendingMove.find(p => p.x === x && p.y === y)}
+			{@const displayed = cell || pending?.letter || type}
+			{@const isPlacedLetter = cell !== "" && !pending}
+			{@const bg = isPlacedLetter
+				? "bg-yellow-100 text-yellow-800 font-bold"
+				: type === "TW" ? "bg-red-500 text-white"
 				: type === "DW" || type === "★" ? "bg-pink-400 text-white"
 				: type === "TL" ? "bg-blue-800 text-white"
 				: type === "DL" ? "bg-blue-300"
 				: "bg-white"}
 
-			{@const pending = $pendingMove.find(p => p.x === x && p.y === y)}
-			{@const displayed = cell || pending?.letter || type}
-
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			 <div
-				class={`aspect-square w-full text-center text-sm font-bold flex items-center justify-center border border-gray-300 ${bg}
+				class={`aspect-square w-full text-center text-sm flex items-center justify-center border border-gray-300
+					${bg}
 					${pending ? 'bg-red-200 text-red-700 font-extrabold' : ''}
-					cursor-pointer select-none`}
+					cursor-pointer select-none font-bold`}
 				on:click={() => {
 					dispatch('placeLetter', { x, y, cell });
 				}}
