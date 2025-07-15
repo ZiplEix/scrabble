@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/ZiplEix/scrabble/api/models/request"
@@ -29,9 +30,9 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gameID, err := services.CreateGame(userID, req.Name)
+	gameID, err := services.CreateGame(userID, req.Name, req.Players)
 	if err != nil {
-		http.Error(w, "failed to create game", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to create game: %v", err), http.StatusInternalServerError)
 		return
 	}
 

@@ -174,5 +174,26 @@
 				Annuler
 			</button>
 		</div>
+
+		<!-- Joueurs -->
+		<div class="w-full max-w-[95vw] mt-4">
+			<h3 class="text-lg font-semibold mb-2 text-center">Joueurs</h3>
+			<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+				{#each game.players as player}
+					<div
+						class="p-3 rounded border shadow flex justify-between items-center
+							{player.id === game.current_turn ? 'bg-green-100 border-green-400' : 'bg-white'}"
+					>
+						<div class="font-semibold">
+							{player.username}
+							{#if player.id === game.current_turn}
+								<span class="text-sm text-green-600 ml-1">(À toi)</span>
+							{/if}
+						</div>
+						<div class="font-bold text-lg">{player.score}</div>
+					</div>
+				{/each}
+			</div>
+		</div>
 	</div>
 {/if}

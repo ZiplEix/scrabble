@@ -1,7 +1,8 @@
 package request
 
 type CreateGameRequest struct {
-	Name string `json:"name"`
+	Name    string   `json:"name"`
+	Players []string `json:"players"` // liste des usernames, ex: ["Alice", "Bob"]
 }
 
 type RenameGameRequest struct {

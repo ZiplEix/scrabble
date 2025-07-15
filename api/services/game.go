@@ -33,13 +33,52 @@ func shuffleRunes(runes []rune) {
 	}
 }
 
-func CreateGame(userID int64, name string) (*uuid.UUID, error) {
+// func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, error) {
+// 	board := initEmptyBoard()
+
+// 	available := []rune(initialLetters)
+// 	shuffleRunes(available)
+
+// 	fmt.Println("Available letters:", string(available))
+
+// 	rack := drawLetters(&available, 7)
+
+// 	boardJSON, err := json.Marshal(board)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	availableStr := string(available)
+// 	gameID := uuid.New()
+
+// 	query := `
+// 		INSERT INTO games (id, name, created_by, current_turn, board, available_letters, created_at)
+// 		VALUES ($1, $2, $3, $3, $4, $5, $6)
+// 	`
+
+// 	_, err = database.Query(query, gameID, name, userID, boardJSON, availableStr, time.Now())
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	rackStr := string(rack)
+// 	query = `
+// 		INSERT INTO game_players (game_id, player_id, rack, position, score)
+// 		VALUES ($1, $2, $3, $4, $5)
+// 	`
+// 	_, err = database.Query(query, gameID, userID, rackStr, 0, 0)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return &gameID, nil
+// }
+
+func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, error) {
 	board := initEmptyBoard()
 
 	available := []rune(initialLetters)
 	shuffleRunes(available)
-
-	fmt.Println("Available letters:", string(available))
 
 	rack := drawLetters(&available, 7)
 
@@ -51,23 +90,81 @@ func CreateGame(userID int64, name string) (*uuid.UUID, error) {
 	availableStr := string(available)
 	gameID := uuid.New()
 
-	query := `
+	tx, err := database.Pool.Begin(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(context.Background())
+
+	// Création du jeu
+	_, err = tx.Exec(context.Background(), `
 		INSERT INTO games (id, name, created_by, current_turn, board, available_letters, created_at)
 		VALUES ($1, $2, $3, $3, $4, $5, $6)
-	`
-
-	_, err = database.Query(query, gameID, name, userID, boardJSON, availableStr, time.Now())
+	`, gameID, name, userID, boardJSON, availableStr, time.Now())
 	if err != nil {
 		return nil, err
 	}
 
+	// Ajouter le créateur en premier
 	rackStr := string(rack)
-	query = `
+	_, err = tx.Exec(context.Background(), `
 		INSERT INTO game_players (game_id, player_id, rack, position, score)
-		VALUES ($1, $2, $3, $4, $5)
-	`
-	_, err = database.Query(query, gameID, userID, rackStr, 0, 0)
+		VALUES ($1, $2, $3, 0, 0)
+	`, gameID, userID, rackStr)
 	if err != nil {
+		return nil, err
+	}
+
+	// Récupérer les IDs des autres joueurs
+	if len(usernames) > 0 {
+		query := `SELECT id, username FROM users WHERE username = ANY($1)`
+		rows, err := tx.Query(context.Background(), query, usernames)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		type player struct {
+			id   int64
+			name string
+		}
+		var otherPlayers []player
+
+		for rows.Next() {
+			var otherID int64
+			var uname string
+			if err := rows.Scan(&otherID, &uname); err != nil {
+				return nil, err
+			}
+			otherPlayers = append(otherPlayers, player{otherID, uname})
+		}
+
+		// 💡 Ici seulement on fait les autres tx.Exec
+		position := 1
+		for _, p := range otherPlayers {
+			rack := drawLetters(&available, 7)
+			rackStr := string(rack)
+
+			_, err := tx.Exec(context.Background(), `
+				INSERT INTO game_players (game_id, player_id, rack, position, score)
+				VALUES ($1, $2, $3, $4, 0)
+			`, gameID, p.id, rackStr, position)
+			if err != nil {
+				return nil, err
+			}
+			position++
+		}
+	}
+
+	// Mise à jour du sac de lettres
+	_, err = tx.Exec(context.Background(), `
+		UPDATE games SET available_letters = $1 WHERE id = $2
+	`, string(available), gameID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(context.Background()); err != nil {
 		return nil, err
 	}
 
@@ -451,15 +548,26 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 
 	// Tour suivant
-	var nextPlayerID int64
-	err = database.QueryRow(`
-		SELECT player_id FROM game_players
-		WHERE game_id = $1
-		ORDER BY position
-	`, gameID).Scan(&nextPlayerID) // Pour l'instant on force retour à joueur 0
+	var currentPosition int
+	err = tx.QueryRow(context.Background(), `
+		SELECT position FROM game_players
+		WHERE game_id = $1 AND player_id = $2
+	`, gameID, userID).Scan(&currentPosition)
 	if err != nil {
 		return err
 	}
+
+	var nextPlayerID int64
+	err = tx.QueryRow(context.Background(), `
+		SELECT player_id FROM game_players
+		WHERE game_id = $1 AND position = (
+			($2 + 1) % (SELECT COUNT(*) FROM game_players WHERE game_id = $1)
+		)
+	`, gameID, currentPosition).Scan(&nextPlayerID)
+	if err != nil {
+		return err
+	}
+
 	_, err = tx.Exec(context.Background(), `
 		UPDATE games SET current_turn = $1 WHERE id = $2
 	`, nextPlayerID, gameID)

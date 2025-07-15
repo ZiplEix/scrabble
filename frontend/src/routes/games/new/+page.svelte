@@ -6,6 +6,21 @@
 	let error = '';
 	let loading = false;
 
+	let newPlayer = '';
+	let players: string[] = [];
+
+	function addPlayer() {
+		const trimmed = newPlayer.trim();
+		if (trimmed && !players.includes(trimmed)) {
+			players = [...players, trimmed];
+			newPlayer = '';
+		}
+	}
+
+	function removePlayer(player: string) {
+		players = players.filter(p => p !== player);
+	}
+
 	async function createGame() {
 		error = '';
 		if (name.trim().length === 0) {
@@ -15,7 +30,10 @@
 
 		loading = true;
 		try {
-			const res = await api.post('/game', { name });
+			const res = await api.post('/game', {
+				name,
+				players,
+			});
 			const gameId = res.data.game_id;
 			goto(`/games/${gameId}`);
 		} catch (e: any) {
@@ -39,6 +57,43 @@
 			class="block w-full border rounded px-3 py-2"
 			autocomplete="off"
 		/>
+	</div>
+
+	<!-- Ajout de joueurs -->
+	<div>
+		<label class="block font-semibold mb-1">Ajouter des joueurs (par username)</label>
+		<div class="flex gap-2">
+			<input
+				type="text"
+				bind:value={newPlayer}
+				placeholder="ex: alice"
+				class="flex-grow border rounded px-3 py-2"
+			/>
+			<button
+				type="button"
+				on:click={addPlayer}
+				class="px-3 py-2 bg-blue-600 text-white rounded"
+			>
+				Ajouter
+			</button>
+		</div>
+
+		{#if players.length > 0}
+			<ul class="mt-3 space-y-1">
+				{#each players as player}
+					<li class="flex items-center justify-between bg-gray-100 px-3 py-1 rounded">
+						<span>{player}</span>
+						<button
+							type="button"
+							class="text-red-500 font-bold hover:underline"
+							on:click={() => removePlayer(player)}
+						>
+							✕
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</div>
 
 	{#if error}
