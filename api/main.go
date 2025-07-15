@@ -27,12 +27,11 @@ func init() {
 
 func setupCors(r *chi.Mux) {
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000", "https://scrabble.baptiste.zip", "http://scrabble.baptiste.zip"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "accept", "authorization", "content-type", "x-csrf-token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
-		MaxAge:           300,
+		AllowedOrigins: []string{"http://localhost:5173", "http://localhost:3000", "https://scrabble.baptiste.zip", "http://scrabble.baptiste.zip"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "accept", "authorization", "content-type", "x-csrf-token"},
+		ExposedHeaders: []string{"Link"},
+		MaxAge:         300,
 	}))
 }
 
