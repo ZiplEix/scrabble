@@ -43,11 +43,11 @@
 </script>
 
 <div class="relative border rounded p-4 hover:bg-gray-100 flex items-center justify-between">
-	<div class="flex-grow cursor-pointer" on:click={() => window.location.href = `/games/${game.id}`}>
+	<a href={`/games/${game.id}`} class="flex-grow cursor-pointer" >
 		<h2 class="text-lg font-semibold text-blue-600 hover:underline">{game.name}</h2>
 		<p class="text-sm text-gray-600 mb-1">Tour de : <strong>{game.current_turn_username}</strong></p>
 		<p class="text-xs text-gray-500">Dernier coup joué : {formatDate(game.last_play_time)}</p>
-	</div>
+	</a>
 
 	{#if game.is_your_game}
 		<div class="relative">
