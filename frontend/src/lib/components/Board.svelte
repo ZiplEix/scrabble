@@ -25,12 +25,12 @@
 
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div
-				class={`aspect-square w-full text-center text-sm font-bold flex items-center justify-center border border-gray-300 ${bg} cursor-pointer select-none`}
+			 <div
+				class={`aspect-square w-full text-center text-sm font-bold flex items-center justify-center border border-gray-300 ${bg}
+					${pending ? 'bg-red-200 text-red-700 font-extrabold' : ''}
+					cursor-pointer select-none`}
 				on:click={() => {
-					if (!cell) {
-						dispatch('placeLetter', { x, y, cell });
-					}
+					dispatch('placeLetter', { x, y, cell });
 				}}
 			>
 				{displayed}

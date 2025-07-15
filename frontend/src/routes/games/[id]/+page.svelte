@@ -34,6 +34,14 @@
 	}
 
 	function onPlaceLetter(x: number, y: number, cell: string) {
+		const currentMoves = get(pendingMove);
+		const existing = currentMoves.find((m) => m.x === x && m.y === y);
+
+		if (existing) {
+			pendingMove.set(currentMoves.filter((m) => !(m.x === x && m.y === y)));
+			return;
+		}
+
 		if (cell) return;
 		const letter = get(selectedLetter);
 		if (!letter) return;
