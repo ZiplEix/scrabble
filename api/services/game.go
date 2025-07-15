@@ -171,6 +171,31 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		return fmt.Errorf("invalid move: you don't have the required letters")
 	}
 
+	// 3.2 Vérifier que les lettres sont alignées (même ligne ou même colonne)
+	if len(req.Letters) == 0 {
+		return fmt.Errorf("no letters provided")
+	} else if len(req.Letters) > 7 {
+		return fmt.Errorf("cannot place more than 7 letters in one move")
+	}
+
+	sameRow := true
+	sameCol := true
+	firstX := req.Letters[0].X
+	firstY := req.Letters[0].Y
+
+	for _, l := range req.Letters {
+		if l.X != firstX {
+			sameCol = false
+		}
+		if l.Y != firstY {
+			sameRow = false
+		}
+	}
+
+	if !sameRow && !sameCol {
+		return fmt.Errorf("letters must be aligned in the same row or column")
+	}
+
 	// 4. Charger le plateau
 	var boardRaw []byte
 	err = database.QueryRow(`SELECT board FROM games WHERE id = $1`, gameID).Scan(&boardRaw)
