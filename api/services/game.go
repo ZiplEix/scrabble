@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/ZiplEix/scrabble/api/database"
@@ -22,10 +23,22 @@ func initEmptyBoard() [15][15]string {
 // Lettres classiques du scrabble français
 const initialLetters = "AAAAAAAAAEEEEEEEEEEEEIIIIIIIIONNNNNNRRRRRRTTTTTTLLLLSSSSUDDDGGGMMMBBCCPPFFHHVVJQKWXYZ"
 
+func shuffleRunes(runes []rune) {
+	rand.Seed(time.Now().UnixNano())
+	n := len(runes)
+	for i := n - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+}
+
 func CreateGame(userID int64, name string) (*uuid.UUID, error) {
 	board := initEmptyBoard()
 
 	available := []rune(initialLetters)
+	shuffleRunes(available)
+
+	fmt.Println("Available letters:", string(available))
 
 	rack := drawLetters(&available, 7)
 
