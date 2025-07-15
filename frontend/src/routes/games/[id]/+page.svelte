@@ -57,6 +57,54 @@
 			return true;
 		});
 	});
+
+	async function playMove() {
+		const move = get(pendingMove);
+		if (!move.length) return;
+
+		const sorted = [...move].sort((a, b) => a.x - b.x || a.y - b.y);
+		const sameRow = sorted.every((l) => l.y === sorted[0].y);
+		const sameCol = sorted.every((l) => l.x === sorted[0].x);
+
+		if (!sameRow && !sameCol) {
+			alert('Les lettres doivent être alignées horizontalement ou verticalement.');
+			return;
+		}
+
+		const direction = sameRow ? "H" : "V";
+		const startX = sorted[0].x;
+		const startY = sorted[0].y;
+
+		let word = ""
+		for (let i = 0; i < sorted.length; i++) {
+			word += sorted[i].letter.toUpperCase();
+		}
+
+		const body = {
+			word,
+			x: startX,
+			y: startY,
+			dir: direction,
+			letters: move.map((m) => ({
+				x: m.x,
+				y: m.y,
+				char: m.letter.toUpperCase()
+			})),
+		};
+
+		try {
+			await api.post(`/game/${gameId}/play`, body);
+
+			const res = await api.get(`/game/${gameId}`);
+			game = res.data;
+			originalRack = [...game!.your_rack];
+			pendingMove.set([]);
+			selectedLetter.set(null);
+		} catch (e: any) {
+			const msg = e?.response?.data?.error || 'Erreur lors de la validation du coup.';
+			alert(msg);
+		}
+	}
 </script>
 
 {#if loading}
@@ -73,6 +121,7 @@
 		<!-- Rack -->
 		<div class="flex justify-center gap-2 mt-6 flex-wrap max-w-[95vw]">
 			{#each $visibleRack as letter}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<div
 					role="button"
 					tabindex="0"
@@ -89,10 +138,7 @@
 		<div class="flex gap-4 mt-6">
 			<button
 				class="px-4 py-2 bg-green-600 text-white rounded shadow"
-				onclick={() => {
-					console.log('Coup à valider :', get(pendingMove));
-					// Appeler API ici
-				}}
+				onclick={playMove}
 			>
 				Valider le coup
 			</button>
