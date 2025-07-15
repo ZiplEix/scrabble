@@ -1,11 +1,10 @@
 <script lang="ts">
-  	import { createEventDispatcher } from 'svelte';
 	import GameItem from './GameItem.svelte';
   	import type { GameSummary } from '$lib/types/game_summary';
 
 	export let games: GameSummary[];
-
-	const dispatch = createEventDispatcher();
+	export let onDelete: (id: string) => Promise<void>;
+	export let onRename: (id: string, currentName: string)=> Promise<void>;
 </script>
 
 {#if games.length === 0}
@@ -15,8 +14,8 @@
 		{#each games as game}
 			<GameItem
 				{game}
-				on:delete={(e) => dispatch('delete', e.detail)}
-				on:rename={(e) => dispatch('rename', e.detail)}
+				{onDelete}
+				{onRename}
 			/>
 		{/each}
 	</div>

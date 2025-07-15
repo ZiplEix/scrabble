@@ -3,8 +3,8 @@
 	import { createEventDispatcher } from 'svelte';
 
 	export let game: GameSummary;
-
-	const dispatch = createEventDispatcher();
+	export let onDelete: (id: string) => Promise<void>;
+	export let onRename: (id: string, currentName: string)=> Promise<void>;
 
 	let menuOpen = false;
 
@@ -32,12 +32,12 @@
 	}
 
 	function renameGame() {
-		dispatch('rename', { id: game.id, currentName: game.name });
+		onRename(game.id, game.name)
 		menuOpen = false;
 	}
 
 	function deleteGame() {
-		dispatch('delete', { id: game.id });
+		onDelete(game.id)
 		menuOpen = false;
 	}
 </script>

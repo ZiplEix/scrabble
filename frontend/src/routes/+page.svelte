@@ -23,7 +23,7 @@
 		goto('/games/new');
 	}
 
-	async function deleteGame(id: string) {
+	async function onDeleteGame(id: string) {
 		if (!confirm('Voulez-vous vraiment supprimer cette partie ?')) return;
 
 		try {
@@ -39,7 +39,7 @@
 		return Promise.resolve(newName && newName.trim() !== '' ? newName.trim() : null);
 	}
 
-	async function renameGame({ id, currentName }: { id: string; currentName: string }) {
+	async function onRenameGame(id: string, currentName: string) {
 		const newName = await renameGamePrompt(currentName);
 		if (!newName) return;
 
@@ -65,8 +65,8 @@
 		<h2 class="text-xl font-semibold mb-2">Mes parties en cours</h2>
 		<GameList
 			{games}
-			on:delete={(e) => deleteGame(e.detail.id)}
-			on:rename={(e) => renameGame(e.detail)}
+			onDelete={onDeleteGame}
+			onRename={onRenameGame}
 		/>
 	</div>
 
