@@ -10,6 +10,7 @@ import (
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/models/response"
+	"github.com/ZiplEix/scrabble/api/word"
 	"github.com/google/uuid"
 )
 
@@ -329,6 +330,12 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 
 	fmt.Printf("New words formed: %v\n", words)
+
+	for _, w := range words {
+		if !word.WordExists(w) {
+			return fmt.Errorf("invalid word played: %s", w)
+		}
+	}
 
 	// 6. Recalculer le rack (retirer les lettres posées, tirer de nouvelles lettres)
 	newRack, err := updatePlayerRack(gameID, userID, rack, req.Letters)
