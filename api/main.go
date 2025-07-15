@@ -42,10 +42,15 @@ func main() {
 	r.Use(middleware.Recoverer)
 	setupCors(r)
 
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintln(w, "Bienvenue sur l'API")
+	})
+
 	routes.SetupRoutes(r)
 
-	fmt.Println("Server is running on https://localhost:8888")
-	if err := http.ListenAndServe(":8888", r); err != nil {
+	fmt.Println("Server is running on https://0.0.0.0:8888")
+	if err := http.ListenAndServe("0.0.0.0:8888", r); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)
 		os.Exit(1)
 	}
