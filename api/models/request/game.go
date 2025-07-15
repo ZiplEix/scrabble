@@ -14,6 +14,7 @@ type PlayMoveRequest struct {
 	StartY    int            `json:"y"`
 	Direction string         `json:"dir"`     // "H" ou "V"
 	Letters   []PlacedLetter `json:"letters"` // lettres posées ce tour
+	Score     int            `json:"score"`   // score du coup
 }
 
 type PlacedLetter struct {

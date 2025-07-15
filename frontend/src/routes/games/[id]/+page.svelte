@@ -5,6 +5,7 @@
 	import { get, derived } from 'svelte/store';
 	import Board from '$lib/components/Board.svelte';
 	import { pendingMove, selectedLetter } from '$lib/stores/pendingMove';
+  	import { computeWordValue } from '$lib/lettres_value';
 
 	let gameId = '';
 
@@ -12,6 +13,15 @@
 	let error = $state('');
 	let loading = $state(true);
 	let originalRack: string[] = [];
+
+	// $: moveScore = computeWordValue(get(pendingMove));
+	// let moveScore = $derived(computeWordValue(get(pendingMove)));
+	// let moveScore = pendingMove.subscribe((moves) => {
+	// 	return computeWordValue(moves);
+	// });
+	let moveScore = derived(pendingMove, (moves) => {
+		return computeWordValue(moves);
+	});
 
 	onMount(async () => {
 		gameId = $page.params.id;
@@ -98,6 +108,7 @@
 				y: m.y,
 				char: m.letter.toUpperCase()
 			})),
+			score: get(moveScore)
 		};
 
 		try {
@@ -125,6 +136,8 @@
 		<p>Tour de : <strong>{game.current_turn_username}</strong></p>
 
 		<Board game={game} on:placeLetter={(e) => onPlaceLetter(e.detail.x, e.detail.y, e.detail.cell)} />
+
+		<p class="mt-4">Score du coup : <strong>{$moveScore}</strong></p>
 
 		<!-- Rack -->
 		<div class="flex justify-center gap-2 mt-6 flex-wrap max-w-[95vw]">

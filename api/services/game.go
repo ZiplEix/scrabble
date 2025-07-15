@@ -400,8 +400,6 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		}
 	}
 
-	fmt.Printf("New words formed: %v\n", words)
-
 	for _, w := range words {
 		if !word.WordExists(w) {
 			return fmt.Errorf("invalid word played: %s", w)
@@ -417,8 +415,8 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	// 7. Encoder le nouveau plateau
 	newBoardJSON, _ := json.Marshal(board)
 
-	// 8. Calcul du score → placeholder (1 point par lettre)
-	moveScore := len(req.Letters)
+	// 8. Calcul du score
+	moveScore := req.Score
 
 	// 9. Enregistrer le coup
 	moveJSON, _ := json.Marshal(req)
