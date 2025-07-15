@@ -4,14 +4,9 @@
 	import { api } from '$lib/api';
 	import GameList from '$lib/components/GameList.svelte';
 	import { goto } from '$app/navigation';
+  	import type { GameSummary } from '$lib/types/game_summary';
 
-	let games: {
-		id: string;
-		name: string;
-		current_turn_username: string;
-		last_play_time: string;
-		is_your_game: boolean;
-	}[] = [];
+	let games: GameSummary[] = [];
 
 	onMount(async () => {
 		if ($user) {

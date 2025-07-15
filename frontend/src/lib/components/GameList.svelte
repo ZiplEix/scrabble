@@ -1,14 +1,9 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  	import { createEventDispatcher } from 'svelte';
 	import GameItem from './GameItem.svelte';
+  	import type { GameSummary } from '$lib/types/game_summary';
 
-	export let games: {
-		id: string;
-		name: string;
-		current_turn_username: string;
-		last_play_time: string;
-		is_your_game: boolean;
-	}[];
+	export let games: GameSummary[];
 
 	const dispatch = createEventDispatcher();
 </script>
