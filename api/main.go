@@ -25,15 +25,7 @@ func init() {
 
 func setupCors(r *chi.Mux) {
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{}, // ← vide !
-		// AllowOriginFunc: func(origin string) bool {
-		// 	fmt.Println("== Origin check:", origin)
-		// 	return origin == "https://scrabble.baptiste.zip"
-		// },
-		AllowOriginFunc: func(r *http.Request, origin string) bool {
-			fmt.Println("== Origin check:", origin)
-			return origin == "https://scrabble.baptiste.zip"
-		},
+		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000", "https://scrabble.baptiste.zip", "http://scrabble.baptiste.zip"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -49,21 +41,9 @@ func main() {
 	r.Use(middleware.Recoverer)
 	setupCors(r)
 
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			fmt.Println("=== CORS DEBUG ===")
-			fmt.Println("Method:", req.Method)
-			fmt.Println("Origin:", req.Header.Get("Origin"))
-			fmt.Println("Host:", req.Host)
-			fmt.Println("URL:", req.URL)
-			fmt.Println("==================")
-			next.ServeHTTP(w, req)
-		})
-	})
-
 	routes.SetupRoutes(r)
 
-	fmt.Println("Server is running on https://localhost:8080")
+	fmt.Println("Server is running on https://localhost:8888")
 	if err := http.ListenAndServe(":8888", r); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)
 		os.Exit(1)
