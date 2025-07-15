@@ -208,6 +208,56 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		return fmt.Errorf("failed to decode board")
 	}
 
+	// 4.2 Vérifier placement valide (centre ou contact avec mot existant)
+	isFirstMove := true
+	for y := 0; y < 15 && isFirstMove; y++ {
+		for x := 0; x < 15 && isFirstMove; x++ {
+			if board[y][x] != "" {
+				isFirstMove = false
+			}
+		}
+	}
+
+	if isFirstMove {
+		// Doit contenir la case centrale
+		found := false
+		for _, l := range req.Letters {
+			if l.X == 7 && l.Y == 7 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("first move must cover the center cell")
+		}
+	} else {
+		// Doit toucher une lettre déjà posée
+		touchesExisting := false
+		for _, l := range req.Letters {
+			adjacent := [][2]int{
+				{l.X - 1, l.Y},
+				{l.X + 1, l.Y},
+				{l.X, l.Y - 1},
+				{l.X, l.Y + 1},
+			}
+			for _, letter := range adjacent {
+				x := letter[0]
+				y := letter[1]
+				if x >= 0 && x < 15 && y >= 0 && y < 15 && board[y][x] != "" {
+					touchesExisting = true
+					break
+				}
+			}
+			if touchesExisting {
+				break
+			}
+		}
+
+		if !touchesExisting {
+			return fmt.Errorf("word must connect to existing letters")
+		}
+	}
+
 	// 5. Appliquer les lettres sur le plateau
 	for _, l := range req.Letters {
 		if board[l.Y][l.X] != "" {
