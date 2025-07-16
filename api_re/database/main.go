@@ -13,9 +13,21 @@ import (
 
 var Pool *pgxpool.Pool
 
+type pgxLogTracer struct{}
+
+func (t *pgxLogTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
+	fmt.Println("Running query:", data.SQL, "Args:", data.Args)
+	return ctx
+}
+
+func (t *pgxLogTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
+	fmt.Println("Query executed successfully:")
+}
+
 func Init(dsn string) error {
 	var err error
 	Pool, err = pgxpool.New(context.Background(), dsn)
+	Pool.Config().ConnConfig.Tracer = &pgxLogTracer{}
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
