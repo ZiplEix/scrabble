@@ -33,47 +33,6 @@ func shuffleRunes(runes []rune) {
 	}
 }
 
-// func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, error) {
-// 	board := initEmptyBoard()
-
-// 	available := []rune(initialLetters)
-// 	shuffleRunes(available)
-
-// 	fmt.Println("Available letters:", string(available))
-
-// 	rack := drawLetters(&available, 7)
-
-// 	boardJSON, err := json.Marshal(board)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	availableStr := string(available)
-// 	gameID := uuid.New()
-
-// 	query := `
-// 		INSERT INTO games (id, name, created_by, current_turn, board, available_letters, created_at)
-// 		VALUES ($1, $2, $3, $3, $4, $5, $6)
-// 	`
-
-// 	_, err = database.Query(query, gameID, name, userID, boardJSON, availableStr, time.Now())
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	rackStr := string(rack)
-// 	query = `
-// 		INSERT INTO game_players (game_id, player_id, rack, position, score)
-// 		VALUES ($1, $2, $3, $4, $5)
-// 	`
-// 	_, err = database.Query(query, gameID, userID, rackStr, 0, 0)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &gameID, nil
-// }
-
 func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, error) {
 	board := initEmptyBoard()
 
@@ -90,14 +49,18 @@ func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, erro
 	availableStr := string(available)
 	gameID := uuid.New()
 
-	tx, err := database.Pool.Begin(context.Background())
+	tx, err := database.DB.BeginTx(context.Background(), nil)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			fmt.Printf("Failed to rollback transaction: %v\n", err)
+		}
+	}()
 
 	// Création du jeu
-	_, err = tx.Exec(context.Background(), `
+	_, err = tx.Exec(`
 		INSERT INTO games (id, name, created_by, current_turn, board, available_letters, created_at)
 		VALUES ($1, $2, $3, $3, $4, $5, $6)
 	`, gameID, name, userID, boardJSON, availableStr, time.Now())
@@ -107,7 +70,7 @@ func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, erro
 
 	// Ajouter le créateur en premier
 	rackStr := string(rack)
-	_, err = tx.Exec(context.Background(), `
+	_, err = tx.Exec(`
 		INSERT INTO game_players (game_id, player_id, rack, position, score)
 		VALUES ($1, $2, $3, 0, 0)
 	`, gameID, userID, rackStr)
@@ -118,7 +81,7 @@ func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, erro
 	// Récupérer les IDs des autres joueurs
 	if len(usernames) > 0 {
 		query := `SELECT id, username FROM users WHERE username = ANY($1)`
-		rows, err := tx.Query(context.Background(), query, usernames)
+		rows, err := tx.Query(query, usernames)
 		if err != nil {
 			return nil, err
 		}
@@ -145,7 +108,7 @@ func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, erro
 			rack := drawLetters(&available, 7)
 			rackStr := string(rack)
 
-			_, err := tx.Exec(context.Background(), `
+			_, err := tx.Exec(`
 				INSERT INTO game_players (game_id, player_id, rack, position, score)
 				VALUES ($1, $2, $3, $4, 0)
 			`, gameID, p.id, rackStr, position)
@@ -157,14 +120,14 @@ func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, erro
 	}
 
 	// Mise à jour du sac de lettres
-	_, err = tx.Exec(context.Background(), `
+	_, err = tx.Exec(`
 		UPDATE games SET available_letters = $1 WHERE id = $2
 	`, string(available), gameID)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := tx.Commit(context.Background()); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -185,25 +148,29 @@ func DeleteGame(userID int64, gameID string) error {
 		return fmt.Errorf("unauthorized: you are not the creator of the game")
 	}
 
-	tx, err := database.Pool.Begin(context.Background())
+	tx, err := database.DB.BeginTx(context.Background(), nil)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			fmt.Printf("Failed to rollback transaction: %v\n", err)
+		}
+	}()
 
-	if _, err := tx.Exec(context.Background(), `DELETE FROM game_moves WHERE game_id = $1`, gameID); err != nil {
+	if _, err := tx.Exec(`DELETE FROM game_moves WHERE game_id = $1`, gameID); err != nil {
 		return err
 	}
 
-	if _, err := tx.Exec(context.Background(), `DELETE FROM game_players WHERE game_id = $1`, gameID); err != nil {
+	if _, err := tx.Exec(`DELETE FROM game_players WHERE game_id = $1`, gameID); err != nil {
 		return err
 	}
 
-	if _, err := tx.Exec(context.Background(), `DELETE FROM games WHERE id = $1`, gameID); err != nil {
+	if _, err := tx.Exec(`DELETE FROM games WHERE id = $1`, gameID); err != nil {
 		return err
 	}
 
-	return tx.Commit(context.Background())
+	return tx.Commit()
 }
 
 func RenameGame(userID int64, gameID string, newName string) error {
@@ -517,7 +484,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 
 	// 9. Enregistrer le coup
 	moveJSON, _ := json.Marshal(req)
-	_, err = database.Pool.Exec(context.Background(), `
+	_, err = database.Exec(`
 		INSERT INTO game_moves (game_id, player_id, move)
 		VALUES ($1, $2, $3)
 	`, gameID, userID, moveJSON)
@@ -526,20 +493,24 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 
 	// 10. Update du plateau, du sac, du rack, du score, du tour
-	tx, err := database.Pool.Begin(context.Background())
+	tx, err := database.DB.BeginTx(context.Background(), nil)
 	if err != nil {
-		return fmt.Errorf("failed to begin tx")
+		return err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			fmt.Printf("Failed to rollback transaction: %v\n", err)
+		}
+	}()
 
 	// Plateau
-	_, err = tx.Exec(context.Background(), `UPDATE games SET board = $1 WHERE id = $2`, newBoardJSON, gameID)
+	_, err = tx.Exec(`UPDATE games SET board = $1 WHERE id = $2`, newBoardJSON, gameID)
 	if err != nil {
 		return err
 	}
 
 	// Rack + score
-	_, err = tx.Exec(context.Background(), `
+	_, err = tx.Exec(`
 		UPDATE game_players SET rack = $1, score = score + $2
 		WHERE game_id = $3 AND player_id = $4
 	`, newRack, moveScore, gameID, userID)
@@ -549,7 +520,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 
 	// Tour suivant
 	var currentPosition int
-	err = tx.QueryRow(context.Background(), `
+	err = tx.QueryRow(`
 		SELECT position FROM game_players
 		WHERE game_id = $1 AND player_id = $2
 	`, gameID, userID).Scan(&currentPosition)
@@ -558,7 +529,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 
 	var nextPlayerID int64
-	err = tx.QueryRow(context.Background(), `
+	err = tx.QueryRow(`
 		SELECT player_id FROM game_players
 		WHERE game_id = $1 AND position = (
 			($2 + 1) % (SELECT COUNT(*) FROM game_players WHERE game_id = $1)
@@ -568,14 +539,14 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		return err
 	}
 
-	_, err = tx.Exec(context.Background(), `
+	_, err = tx.Exec(`
 		UPDATE games SET current_turn = $1 WHERE id = $2
 	`, nextPlayerID, gameID)
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit(context.Background())
+	return tx.Commit()
 }
 
 func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {

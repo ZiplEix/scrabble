@@ -3,18 +3,14 @@ package routes
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/labstack/echo/v4"
 )
 
-var nonImplementedHandler = func(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+var nonImplementedHandler = func(c echo.Context) error {
+	return c.String(http.StatusNotImplemented, "Not implemented")
 }
 
-func SetupRoutes(r *chi.Mux) {
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Welcome to the Scrabble API!"))
-	})
-
-	setupAuthRoutes(r)
-	setupGameRoutes(r)
+func SetupRoutes(e *echo.Echo) {
+	setupAuthRoutes(e)
+	setupGameRoutes(e)
 }

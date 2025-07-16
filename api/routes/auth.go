@@ -3,15 +3,15 @@ package routes
 import (
 	"github.com/ZiplEix/scrabble/api/controller"
 	"github.com/ZiplEix/scrabble/api/middleware"
-	"github.com/go-chi/chi/v5"
+	"github.com/labstack/echo/v4"
 )
 
-func setupAuthRoutes(r *chi.Mux) {
-	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", controller.Register)
-		r.Post("/login", controller.Login)
-		r.With(middleware.RequireAuth).Get("/profile", nonImplementedHandler)
-		// r.Get("/logout", nonImplementedHandler)
-		// r.Get("/profile", nonImplementedHandler)
-	})
+func setupAuthRoutes(e *echo.Echo) {
+	auth := e.Group("/auth")
+
+	auth.POST("/register", controller.Register)
+	auth.POST("/login", controller.Login)
+	auth.GET("/profile", nonImplementedHandler, middleware.RequireAuth)
+	// auth.GET("/logout", nonImplementedHandler)
+	// auth.GET("/profile", nonImplementedHandler)
 }

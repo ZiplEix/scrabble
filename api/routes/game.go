@@ -3,16 +3,16 @@ package routes
 import (
 	"github.com/ZiplEix/scrabble/api/controller"
 	"github.com/ZiplEix/scrabble/api/middleware"
-	"github.com/go-chi/chi/v5"
+	"github.com/labstack/echo/v4"
 )
 
-func setupGameRoutes(r *chi.Mux) {
-	r.Route("/game", func(r chi.Router) {
-		r.With(middleware.RequireAuth).Post("/", controller.CreateGame)
-		r.With(middleware.RequireAuth).Get("/{id}", controller.GetGame)
-		r.With(middleware.RequireAuth).Post("/{id}/play", controller.PlayMove)
-		r.With(middleware.RequireAuth).Get("/", controller.GetUserGames)
-		r.With(middleware.RequireAuth).Delete("/{id}", controller.DeleteGame)
-		r.With(middleware.RequireAuth).Put("/{id}/rename", controller.RenameGame)
-	})
+func setupGameRoutes(e *echo.Echo) {
+	g := e.Group("/game", middleware.RequireAuth)
+
+	g.POST("", controller.CreateGame)
+	g.DELETE("/:id", controller.DeleteGame)
+	g.GET("/:id", controller.GetGame)
+	g.POST("/:id/play", controller.PlayMove)
+	g.GET("", controller.GetUserGames)
+	g.PUT("/:id/rename", controller.RenameGame)
 }

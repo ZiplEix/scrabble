@@ -2,47 +2,83 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/lib/pq"
 )
 
-var Pool *pgxpool.Pool
+var DB *sql.DB
 
 func Init(dsn string) error {
 	var err error
-	Pool, err = pgxpool.New(context.Background(), dsn)
+	DB, err = sql.Open("postgres", dsn)
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return fmt.Errorf("failed to open DB: %w", err)
 	}
 
-	if err := Pool.Ping(context.Background()); err != nil {
-		for i := range 5 {
-			log.Printf("Failed to connect to PostgreSQL, retrying in 2 seconds... (%d/5)", i+1)
-			if err := Pool.Ping(context.Background()); err == nil {
-				log.Println("Connected to PostgreSQL after retry")
-				return nil
-			}
-			time.Sleep(2 * time.Second)
+	// Configure la taille max des connexions (optionnel)
+	DB.SetMaxOpenConns(25)
+	DB.SetMaxIdleConns(25)
+	DB.SetConnMaxLifetime(5 * time.Minute)
+
+	// Retry ping avec timeout
+	for i := 0; i < 5; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		err = DB.PingContext(ctx)
+		cancel()
+		if err == nil {
+			log.Println("Connected to PostgreSQL successfully")
+			return nil
 		}
-		return fmt.Errorf("failed to connect to PostgreSQL after retries: %w", err)
+		log.Printf("Failed to connect to PostgreSQL, retrying in 2 seconds... (%d/5)", i+1)
+		time.Sleep(2 * time.Second)
 	}
-	log.Printf("Connected to PostgreSQL successfully")
-	return nil
+	return fmt.Errorf("failed to connect to PostgreSQL after retries: %w", err)
 }
 
-func Query(query string, args ...any) (pgx.Rows, error) {
-	rows, err := Pool.Query(context.Background(), query, args...)
+func Query(query string, args ...any) (*sql.Rows, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database connection is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	return rows, nil
 }
 
-func QueryRow(query string, args ...any) pgx.Row {
-	row := Pool.QueryRow(context.Background(), query, args...)
-	return row
+func QueryRow(query string, args ...any) *sql.Row {
+	if DB == nil {
+		log.Fatal("database connection is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return DB.QueryRowContext(ctx, query, args...)
+}
+
+func Exec(query string, args ...any) (sql.Result, error) {
+	log.Printf("Exec query: %s, args: %v\n", query, args)
+	if DB == nil {
+		return nil, fmt.Errorf("database connection is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		log.Printf("Exec error: %v", err)
+		return nil, fmt.Errorf("failed to execute statement: %w", err)
+	}
+	log.Printf("Exec successfully executed query: %s", query)
+	return result, nil
 }

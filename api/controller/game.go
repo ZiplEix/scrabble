@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -9,165 +8,136 @@ import (
 	"github.com/ZiplEix/scrabble/api/models/response"
 	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/ZiplEix/scrabble/api/utils"
-	"github.com/go-chi/chi/v5"
+	"github.com/labstack/echo/v4"
 )
 
-func CreateGame(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserID(r.Context())
+func CreateGame(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
 	if !ok {
-		http.Error(w, "unauthorized, no user_id", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized, no user_id")
 	}
 
 	var req request.CreateGameRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
 	if req.Name == "" {
-		http.Error(w, "game name is required", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "game name is required")
 	}
 
 	gameID, err := services.CreateGame(userID, req.Name, req.Players)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to create game: %v", err), http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to create game: %v", err))
 	}
 
-	json.NewEncoder(w).Encode(map[string]any{
+	return c.JSON(http.StatusOK, map[string]any{
 		"message": "Game created",
 		"game_id": gameID,
 	})
 }
 
-func DeleteGame(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserID(r.Context())
+func DeleteGame(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
 	if !ok {
-		http.Error(w, "unauthorized, no user_id", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized, no user_id")
 	}
 
-	gameID := chi.URLParam(r, "id")
+	gameID := c.Param("id")
 	if gameID == "" {
-		http.Error(w, "missing game id", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "missing game id")
 	}
 
-	err := services.DeleteGame(userID, gameID)
-	if err != nil {
-		http.Error(w, "failed to delete game: "+err.Error(), http.StatusInternalServerError)
-		return
+	if err := services.DeleteGame(userID, gameID); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete game: "+err.Error())
 	}
-	w.WriteHeader(http.StatusNoContent) // 204 No Content
-	json.NewEncoder(w).Encode(map[string]string{
+
+	return c.JSON(http.StatusNoContent, map[string]string{
 		"message": "Game deleted successfully",
 	})
 }
 
-func RenameGame(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserID(r.Context())
+func RenameGame(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
 	if !ok {
-		http.Error(w, "unauthorized, no user_id", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized, no user_id")
 	}
 
-	gameID := chi.URLParam(r, "id")
+	gameID := c.Param("id")
 	if gameID == "" {
-		http.Error(w, "missing game id", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "missing game id")
 	}
 
 	var req request.RenameGameRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
-	err := services.RenameGame(userID, gameID, req.NewName)
-	if err != nil {
-		http.Error(w, "failed to delete game: "+err.Error(), http.StatusInternalServerError)
-		return
+	if err := services.RenameGame(userID, gameID, req.NewName); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to rename game: "+err.Error())
 	}
-	w.WriteHeader(http.StatusNoContent) // 204 No Content
-	json.NewEncoder(w).Encode(map[string]string{
+
+	return c.JSON(http.StatusOK, map[string]string{
 		"message": "Game renamed successfully",
 	})
 }
 
-func GetGame(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserID(r.Context())
+func GetGame(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
 	if !ok {
-		http.Error(w, "unauthorized, no user_id", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized, no user_id")
 	}
 
-	gameID := chi.URLParam(r, "id")
+	gameID := c.Param("id")
 	if gameID == "" {
-		http.Error(w, "missing game id", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "missing game id")
 	}
 
 	game, err := services.GetGameDetails(userID, gameID)
 	if err != nil {
-		http.Error(w, "failed to load game: "+err.Error(), http.StatusForbidden)
-		return
+		return echo.NewHTTPError(http.StatusForbidden, "failed to load game: "+err.Error())
 	}
 
-	json.NewEncoder(w).Encode(game)
+	return c.JSON(http.StatusOK, game)
 }
 
-func PlayMove(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserID(r.Context())
+func PlayMove(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 	}
 
-	gameID := chi.URLParam(r, "id")
+	gameID := c.Param("id")
 	if gameID == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "missing game id"})
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "missing game id")
 	}
 
 	var req request.PlayMoveRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
 	if err := services.PlayMove(gameID, userID, req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "failed to play move: " + err.Error()})
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "failed to play move: "+err.Error())
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
+	return c.JSON(http.StatusOK, map[string]string{
 		"message": "move played successfully",
 	})
 }
 
-func GetUserGames(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserID(r.Context())
+func GetUserGames(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 	}
 
 	games, err := services.GetGamesByUserID(userID)
 	if err != nil {
-		http.Error(w, "Failed to get games: "+err.Error(), http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get games: "+err.Error())
 	}
 
-	resp := response.GamesListResponse{
+	return c.JSON(http.StatusOK, response.GamesListResponse{
 		Games: games,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	})
 }

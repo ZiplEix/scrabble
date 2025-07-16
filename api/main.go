@@ -8,9 +8,8 @@ import (
 	"github.com/ZiplEix/scrabble/api/config"
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/routes"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func init() {
@@ -25,35 +24,24 @@ func init() {
 	}
 }
 
-func setupCors(r *chi.Mux) {
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"http://localhost:5173", "http://localhost:3000", "https://scrabble.baptiste.zip", "http://scrabble.baptiste.zip"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "accept", "authorization", "content-type", "x-csrf-token"},
-		ExposedHeaders: []string{"Link"},
-		MaxAge:         300,
-	}))
-}
-
 func main() {
-	r := chi.NewRouter()
+	e := echo.New()
 
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	setupCors(r)
+	e.Use(middleware.RemoveTrailingSlash())
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintln(w, "Bienvenue sur l'API")
+	e.Use(middleware.CORS())
+
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Bienvenue sur l'API")
 	})
 
-	routes.SetupRoutes(r)
+	routes.SetupRoutes(e)
 
 	fmt.Println("Server is running on https://0.0.0.0:8888")
-	if err := http.ListenAndServe("0.0.0.0:8888", r); err != nil {
+	if err := e.Start("0.0.0.0:8888"); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("Server stopped")
-	os.Exit(0)
 }

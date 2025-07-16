@@ -1,27 +1,24 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo/v4"
 )
 
-type contextKey string
+const UserIDKey = "user_id"
 
-const UserIDKey contextKey = "user_id"
-
-func RequireAuth(next http.Handler) http.Handler {
+func RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	secret := []byte(os.Getenv("JWT_SECRET"))
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
+	return func(c echo.Context) error {
+		authHeader := c.Request().Header.Get("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "unauthorized, no auth bearer token", http.StatusUnauthorized)
-			return
+			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized, no auth bearer token")
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
@@ -34,25 +31,23 @@ func RequireAuth(next http.Handler) http.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			// http.Error(w, "unauthorized, non valid token", http.StatusUnauthorized)
-			http.Error(w, fmt.Sprintf("unauthorized, non valid token: %v", err), http.StatusUnauthorized)
-			return
+			return echo.NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("unauthorized, non valid token: %v", err))
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
-			return
+			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token claims")
 		}
 
 		userIDFloat, ok := claims["user_id"].(float64)
 		if !ok {
-			http.Error(w, "Invalid token payload", http.StatusUnauthorized)
-			return
+			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token payload")
 		}
 		userID := int64(userIDFloat)
 
-		ctx := context.WithValue(r.Context(), UserIDKey, userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+		// Injecte l'ID utilisateur dans le contexte Echo
+		c.Set(UserIDKey, userID)
+
+		return next(c)
+	}
 }
