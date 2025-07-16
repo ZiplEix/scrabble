@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -14,6 +15,8 @@ import (
 var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 func Register(c echo.Context) error {
+	fmt.Println("Register endpoint hit")
+
 	var req request.RegisterRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")

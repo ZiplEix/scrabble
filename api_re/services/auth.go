@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ZiplEix/scrabble/api/database"
@@ -11,6 +12,8 @@ import (
 )
 
 func CreateUser(username, password string) (*dbModels.User, error) {
+	fmt.Println("Creating user:", username)
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
