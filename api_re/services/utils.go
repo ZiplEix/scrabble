@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -63,8 +62,7 @@ func updatePlayerRack(gameID string, userID int64, rack string, played []request
 	newLetters := drawLetters(&availableRunes, drawCount)
 
 	// 3. Mettre à jour le sac
-	_, err = database.Pool.Exec(context.Background(),
-		`UPDATE games SET available_letters = $1 WHERE id = $2`, string(availableRunes), gameID)
+	_, err = database.Exec(`UPDATE games SET available_letters = $1 WHERE id = $2`, string(availableRunes), gameID)
 	if err != nil {
 		return "", err
 	}
