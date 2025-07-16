@@ -36,7 +36,14 @@ func Init(dsn string) error {
 }
 
 func Query(query string, args ...any) (pgx.Rows, error) {
-	rows, err := Pool.Query(context.Background(), query, args...)
+	if Pool == nil {
+		return nil, fmt.Errorf("database connection pool is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -44,14 +51,33 @@ func Query(query string, args ...any) (pgx.Rows, error) {
 }
 
 func QueryRow(query string, args ...any) pgx.Row {
-	row := Pool.QueryRow(context.Background(), query, args...)
+	if Pool == nil {
+		log.Fatal("database connection pool is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	row := Pool.QueryRow(ctx, query, args...)
 	return row
 }
 
 func Exec(query string, args ...any) (pgconn.CommandTag, error) {
-	result, err := Pool.Exec(context.Background(), query, args...)
+	log.Printf("Exec query: %s, args: %v\n", query, args)
+
+	if Pool == nil {
+		return pgconn.CommandTag{}, fmt.Errorf("database connection pool is not initialized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := Pool.Exec(ctx, query, args...)
 	if err != nil {
+		log.Printf("Exec error: %v\n", err)
 		return pgconn.CommandTag{}, fmt.Errorf("failed to execute statement: %w", err)
 	}
+
+	log.Printf("Exec success: %v\n", result)
 	return result, nil
 }
