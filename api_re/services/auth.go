@@ -26,11 +26,10 @@ func CreateUser(username, password string) (*dbModels.User, error) {
 		VALUES ($1, $2, $3)
 	`
 
-	rows, err := database.Query(query, username, string(hashed), time.Now())
+	_, err = database.Exec(query, username, string(hashed), time.Now())
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	fmt.Println("User created successfully:", username)
 

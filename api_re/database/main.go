@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -45,4 +46,12 @@ func Query(query string, args ...any) (pgx.Rows, error) {
 func QueryRow(query string, args ...any) pgx.Row {
 	row := Pool.QueryRow(context.Background(), query, args...)
 	return row
+}
+
+func Exec(query string, args ...any) (pgconn.CommandTag, error) {
+	result, err := Pool.Exec(context.Background(), query, args...)
+	if err != nil {
+		return pgconn.CommandTag{}, fmt.Errorf("failed to execute statement: %w", err)
+	}
+	return result, nil
 }
