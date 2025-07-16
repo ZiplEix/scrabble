@@ -84,12 +84,25 @@ func Exec(query string, args ...any) (pgconn.CommandTag, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	result, err := Pool.Exec(ctx, query, args...)
-	if err != nil {
-		log.Printf("Exec error: %v\n", err)
-		return pgconn.CommandTag{}, fmt.Errorf("failed to execute statement: %w", err)
+	done := make(chan struct{})
+	var err error
+
+	go func() {
+		_, err = Pool.Exec(ctx, query, args...)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		if err != nil {
+			log.Printf("Exec error: %v", err)
+			return pgconn.CommandTag{}, fmt.Errorf("failed to execute statement: %w", err)
+		}
+	case <-ctx.Done():
+		log.Println("Context timeout hit BEFORE Exec returned!")
+		return pgconn.CommandTag{}, fmt.Errorf("context timeout before exec: %w", ctx.Err())
 	}
 
-	log.Printf("Exec success: %v\n", result)
-	return result, nil
+	log.Printf("Exec successfully executed query: %s", query)
+	return pgconn.CommandTag{}, nil
 }
