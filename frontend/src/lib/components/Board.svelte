@@ -17,18 +17,18 @@
 			{@const isPlacedLetter = cell !== "" && !pending}
 			{@const bg = isPlacedLetter
 				? "bg-yellow-100 text-yellow-800 font-bold rounded"
-				: type === "TW" ? "bg-red-500 text-white"
-				: type === "DW" || type === "★" ? "bg-pink-300 text-white"
-				: type === "TL" ? "bg-blue-800 text-white"
-				: type === "DL" ? "bg-blue-300"
-				: "bg-green-800"}
+				: type === "TW" ? "bg-red-400 text-white"
+				: type === "DW" || type === "★" ? "bg-pink-300"
+				: type === "TL" ? "bg-blue-500 text-white"
+				: type === "DL" ? "bg-blue-200"
+				: "bg-green-200"}
 
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			 <div
 				class={`aspect-square w-full text-center text-sm flex items-center justify-center border border-gray-300
 					${bg}
-					${pending ? 'bg-red-200 text-red-700 font-extrabold rounded' : ''}
+					${pending ? 'bg-yellow-100 text-red-700 font-extrabold rounded' : ''}
 					cursor-pointer select-none font-bold`}
 				on:click={() => {
 					onPlaceLetter(x, y, cell);
