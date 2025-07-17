@@ -17,7 +17,7 @@
 
 	onMount(async () => {
 		try {
-			const res = await api.get('/report/me');
+			const res = await api.get('/report');
 			reports = res.data;
 		} catch (err: any) {
 			error = 'Impossible de charger les tickets.';

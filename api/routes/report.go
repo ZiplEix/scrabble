@@ -9,15 +9,14 @@ import (
 func setupReportRoutes(e *echo.Echo) {
 	r := e.Group("/report", middleware.RequireAuth)
 
-	r.GET("/:id", controller.GetReportByID)
-	r.GET("", controller.GetAllReports)
 	r.POST("", controller.CreateReport)
-
-	r.PATCH("/:id", controller.UpdateReport)
-	r.PUT("/:id/resolve", controller.ResolveReport)         // set the status of the report to "resolved"
-	r.PUT("/:id/reject", controller.RejectReport)           // set the status of the report to "rejected"
-	r.PUT("/:id/progress", controller.UpdateReportProgress) // set the status of the report to "in_progress"
-	r.DELETE("/:id", controller.DeleteReport)
-
 	r.GET("/me", controller.GetMyReports)
+	r.GET("/:id", controller.GetReportByID)
+
+	r.GET("", controller.GetAllReports, middleware.RequireAdmin)
+	r.PATCH("/:id", controller.UpdateReport, middleware.RequireAdmin)
+	r.PUT("/:id/resolve", controller.ResolveReport, middleware.RequireAdmin)         // set the status of the report to "resolved"
+	r.PUT("/:id/reject", controller.RejectReport, middleware.RequireAdmin)           // set the status of the report to "rejected"
+	r.PUT("/:id/progress", controller.UpdateReportProgress, middleware.RequireAdmin) // set the status of the report to "in_progress"
+	r.DELETE("/:id", controller.DeleteReport, middleware.RequireAdmin)
 }
