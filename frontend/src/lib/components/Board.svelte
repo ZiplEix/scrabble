@@ -1,7 +1,6 @@
 <script lang="ts">
     import { specialCells } from '$lib/cells';
 	import { pendingMove } from '$lib/stores/pendingMove';
-	import { createEventDispatcher } from 'svelte';
 
 	export let game: any;
 	export let onPlaceLetter: (x: number, y: number, cell: string) => void;
