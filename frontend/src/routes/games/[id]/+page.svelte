@@ -122,6 +122,10 @@
 	}
 
 	async function drawNewRack() {
+		const ok = confirm('Êtes-vous sûr de vouloir changer toutes vos lettres ? Cela remplacera vos lettres actuelles et passera votre tour.');
+
+		if (!ok) return;
+
 		try {
 			const res = await api.get(`/game/${gameId}/new_rack`);
 			const newRack = res.data;
