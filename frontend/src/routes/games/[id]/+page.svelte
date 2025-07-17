@@ -13,12 +13,8 @@
 	let error = $state('');
 	let loading = $state(true);
 	let originalRack: string[] = [];
+	let showScores = $state(false);
 
-	// $: moveScore = computeWordValue(get(pendingMove));
-	// let moveScore = $derived(computeWordValue(get(pendingMove)));
-	// let moveScore = pendingMove.subscribe((moves) => {
-	// 	return computeWordValue(moves);
-	// });
 	let moveScore = derived(pendingMove, (moves) => {
 		return computeWordValue(moves);
 	});
@@ -120,7 +116,7 @@
 			pendingMove.set([]);
 			selectedLetter.set(null);
 		} catch (e: any) {
-			const msg = e?.response?.data?.error || 'Erreur lors de la validation du coup.';
+			const msg = e?.response?.data?.message || 'Erreur lors de la validation du coup.';
 			alert(msg);
 		}
 	}
@@ -131,16 +127,42 @@
 {:else if error}
 	<p class="text-center text-red-600 mt-8">{error}</p>
 {:else if game}
-	<div class="flex flex-col items-center gap-4 mt-6 px-2">
-		<h2 class="text-xl font-semibold">{game.name}</h2>
-		<p>Tour de : <strong>{game.current_turn_username}</strong></p>
+	<!-- Header: nom + tour + bouton classement -->
+	<div class="px-4 pt-3 pb-1 w-full flex justify-between items-center">
+		<div>
+			<h2 class="text-lg font-semibold text-gray-800">{game.name}</h2>
+			<p class="text-sm text-gray-600">Tour de : <strong>{game.current_turn_username}</strong></p>
+		</div>
+		<!-- Actions: classement + report -->
+		<div class="flex flex-col items-end gap-2">
+			<button
+				class="text-xs bg-gray-200 px-3 py-1 rounded shadow hover:bg-gray-300"
+				onclick={() => showScores = true}
+			>
+				Classement 🏆
+			</button>
+			<a
+				href="/report"
+				class="text-xs bg-gray-200 px-3 py-1 rounded shadow hover:bg-gray-300 text-center"
+			>
+				🛠️ Suggestions / raporter un bug
+			</a>
+		</div>
+	</div>
 
-		<Board game={game} on:placeLetter={(e) => onPlaceLetter(e.detail.x, e.detail.y, e.detail.cell)} />
-
-		<p class="mt-4">Score du coup : <strong>{$moveScore}</strong></p>
+	<!-- Plateau + rack -->
+	<div class="flex flex-col items-center justify-center w-full gap-2 px-2"
+    	style="min-height: calc(100vh - 220px);">
+		<!-- Plateau -->
+		<div class="max-w-[95vw] w-full aspect-square">
+			<Board
+				game={game}
+				{onPlaceLetter}
+			/>
+		</div>
 
 		<!-- Rack -->
-		<div class="flex justify-center gap-2 mt-6 flex-wrap max-w-[95vw]">
+		<div class="flex justify-center gap-1 mt-2 flex-wrap max-w-[95vw]">
 			{#each $visibleRack as letter}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<div
@@ -154,46 +176,41 @@
 				</div>
 			{/each}
 		</div>
+	</div>
 
-		<!-- Actions -->
-		<div class="flex gap-4 mt-6">
-			<button
-				class="px-4 py-2 bg-green-600 text-white rounded shadow"
-				onclick={playMove}
-			>
-				Valider le coup
+	<!-- Actions sticky -->
+	<div class="fixed bottom-0 left-0 w-full bg-white border-t shadow-inner px-4 py-3 flex justify-between items-center">
+		<span class="text-sm font-medium">Score : <strong>{$moveScore}</strong></span>
+		<div class="flex gap-3">
+			<button class="bg-green-600 text-white px-4 py-2 rounded shadow" onclick={playMove}>
+				Valider
 			</button>
-
-			<button
-				class="px-4 py-2 bg-gray-400 text-white rounded shadow"
-				onclick={() => {
-					pendingMove.set([]);
-					selectedLetter.set(null);
-				}}
-			>
+			<button class="bg-gray-400 text-white px-4 py-2 rounded shadow" onclick={() => {
+				pendingMove.set([]); selectedLetter.set(null);
+			}}>
 				Annuler
 			</button>
 		</div>
+	</div>
 
-		<!-- Joueurs -->
-		<div class="w-full max-w-[95vw] mt-4">
-			<h3 class="text-lg font-semibold mb-2 text-center">Joueurs</h3>
-			<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-				{#each game.players as player}
-					<div
-						class="p-3 rounded border shadow flex justify-between items-center
-							{player.id === game.current_turn ? 'bg-green-100 border-green-400' : 'bg-white'}"
-					>
-						<div class="font-semibold">
-							{player.username}
-							{#if player.id === game.current_turn}
-								<span class="text-sm text-green-600 ml-1">(À toi)</span>
-							{/if}
+	<!-- Modal classement -->
+	{#if showScores}
+		<div class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+			<div class="bg-white rounded-lg shadow-lg w-[90vw] max-w-sm p-6">
+				<h3 class="text-lg font-semibold mb-4 text-center">Classement</h3>
+				<div class="flex flex-col gap-2">
+					{#each game.players as player}
+						<div class="flex justify-between items-center p-2 rounded border
+							{player.id === game.current_turn ? 'bg-green-100 border-green-400' : 'bg-gray-50'}">
+							<span>{player.username}</span>
+							<span class="font-bold">{player.score}</span>
 						</div>
-						<div class="font-bold text-lg">{player.score}</div>
-					</div>
-				{/each}
+					{/each}
+				</div>
+				<button class="mt-6 w-full bg-gray-300 py-2 rounded hover:bg-gray-400" onclick={() => showScores = false}>
+					Fermer
+				</button>
 			</div>
 		</div>
-	</div>
+	{/if}
 {/if}

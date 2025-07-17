@@ -4,11 +4,10 @@
 	import { createEventDispatcher } from 'svelte';
 
 	export let game: any;
-
-	const dispatch = createEventDispatcher();
+	export let onPlaceLetter: (x: number, y: number, cell: string) => void;
 </script>
 
-<div class="grid grid-cols-15 gap-[1px] border border-gray-400 w-full max-w-[95vw] mx-auto bg-black">
+<div class="grid grid-cols-15 gap-[1px] border border-amber-500 w-full max-w-[95vw] mx-auto bg-amber-500">
 	{#each game.board as row, y}
 		{#each row as cell, x}
 			{@const key = `${y},${x}`}
@@ -17,22 +16,22 @@
 			{@const displayed = cell || pending?.letter || type}
 			{@const isPlacedLetter = cell !== "" && !pending}
 			{@const bg = isPlacedLetter
-				? "bg-yellow-100 text-yellow-800 font-bold"
+				? "bg-yellow-100 text-yellow-800 font-bold rounded"
 				: type === "TW" ? "bg-red-500 text-white"
-				: type === "DW" || type === "★" ? "bg-pink-400 text-white"
+				: type === "DW" || type === "★" ? "bg-pink-300 text-white"
 				: type === "TL" ? "bg-blue-800 text-white"
 				: type === "DL" ? "bg-blue-300"
-				: "bg-white"}
+				: "bg-green-800"}
 
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			 <div
 				class={`aspect-square w-full text-center text-sm flex items-center justify-center border border-gray-300
 					${bg}
-					${pending ? 'bg-red-200 text-red-700 font-extrabold' : ''}
+					${pending ? 'bg-red-200 text-red-700 font-extrabold rounded' : ''}
 					cursor-pointer select-none font-bold`}
 				on:click={() => {
-					dispatch('placeLetter', { x, y, cell });
+					onPlaceLetter(x, y, cell);
 				}}
 			>
 				{displayed}
