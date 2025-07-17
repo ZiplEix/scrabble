@@ -44,48 +44,42 @@
 	}
 </script>
 
-<h1 class="text-2xl font-bold mb-6">Créer une nouvelle partie</h1>
+<main class="max-w-sm mx-auto px-4 py-8">
+	<h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Créer une nouvelle partie</h1>
 
-<form on:submit|preventDefault={createGame} class="max-w-md space-y-4">
-	<div>
-		<label for="name" class="block font-semibold mb-1">Nom de la partie</label>
+	<form on:submit|preventDefault={createGame} class="flex flex-col gap-4">
 		<input
-			id="name"
+			class="border rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
 			type="text"
-			bind:value={name}
 			placeholder="Nom de la partie"
-			class="block w-full border rounded px-3 py-2"
-			autocomplete="off"
+			bind:value={name}
+			required
 		/>
-	</div>
 
-	<!-- Ajout de joueurs -->
-	<div>
-		<label class="block font-semibold mb-1">Ajouter des joueurs (par username)</label>
 		<div class="flex gap-2">
 			<input
+				class="border rounded px-4 py-3 text-sm flex-grow focus:outline-none focus:ring-2 focus:ring-green-500"
 				type="text"
+				placeholder="Ajouter un joueur (ex: alice)"
 				bind:value={newPlayer}
-				placeholder="ex: alice"
-				class="flex-grow border rounded px-3 py-2"
 			/>
 			<button
 				type="button"
 				on:click={addPlayer}
-				class="px-3 py-2 bg-blue-600 text-white rounded"
+				class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 text-sm font-semibold rounded"
 			>
 				Ajouter
 			</button>
 		</div>
 
 		{#if players.length > 0}
-			<ul class="mt-3 space-y-1">
+			<ul class="space-y-2">
 				{#each players as player}
-					<li class="flex items-center justify-between bg-gray-100 px-3 py-1 rounded">
+					<li class="flex justify-between items-center bg-gray-100 px-3 py-2 rounded text-sm">
 						<span>{player}</span>
 						<button
 							type="button"
-							class="text-red-500 font-bold hover:underline"
+							class="text-red-500 hover:text-red-700 font-bold"
 							on:click={() => removePlayer(player)}
 						>
 							✕
@@ -94,17 +88,17 @@
 				{/each}
 			</ul>
 		{/if}
-	</div>
 
-	{#if error}
-		<p class="text-red-600">{error}</p>
-	{/if}
+		{#if error}
+			<p class="text-sm text-red-600 text-center">{error}</p>
+		{/if}
 
-	<button
-		type="submit"
-		class="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
-		disabled={loading}
-	>
-		{loading ? 'Création...' : 'Créer la partie'}
-	</button>
-</form>
+		<button
+			type="submit"
+			class="bg-green-600 hover:bg-green-700 text-white rounded py-3 font-semibold transition disabled:opacity-50"
+			disabled={loading}
+		>
+			{loading ? 'Création...' : 'Créer la partie'}
+		</button>
+	</form>
+</main>
