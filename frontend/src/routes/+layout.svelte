@@ -1,7 +1,8 @@
 <script lang="ts">
-	import '../app.css';
+    import Navbar from '$lib/components/Navbar.svelte';
+    import '../app.css';
 
-	let { children } = $props();
+    let { children } = $props();
 </script>
 
 <svelte:head>
@@ -20,5 +21,8 @@
   <meta name="twitter:description" content="Un Scrabble en ligne simple et rapide à jouer entre amis." />
   <meta name="twitter:image" content="https://scrabble.baptiste.zip/og-image.png" />
 </svelte:head>
+
+<!-- NAVBAR -->
+<Navbar />
 
 {@render children()}
