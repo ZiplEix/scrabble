@@ -163,7 +163,7 @@
 				href="/report"
 				class="text-xs bg-gray-200 px-3 py-1 rounded shadow hover:bg-gray-300 text-center"
 			>
-				🛠️ Suggestions / raporter un bug
+				🛠️ reporter un bug
 			</a>
 		</div>
 	</div>
