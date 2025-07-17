@@ -1,5 +1,6 @@
 <script lang="ts">
     import { specialCells } from '$lib/cells';
+  import { letterValues } from '$lib/lettres_value';
 	import { pendingMove } from '$lib/stores/pendingMove';
 
 	export let game: any;
@@ -15,25 +16,31 @@
 			{@const displayed = cell || pending?.letter || type}
 			{@const isPlacedLetter = cell !== "" && !pending}
 			{@const bg = isPlacedLetter
-				? "bg-yellow-100 text-yellow-800 font-bold rounded"
-				: type === "TW" ? "bg-red-400 text-white"
-				: type === "DW" || type === "★" ? "bg-pink-300"
-				: type === "TL" ? "bg-blue-500 text-white"
-				: type === "DL" ? "bg-blue-200"
-				: "bg-green-200"}
+				? "bg-white text-yellow-800 rounded font-bold"
+				: type === "TW" ? "bg-red-500 text-white text-xs"
+				: type === "DW" || type === "★" ? "bg-pink-300 text-xs"
+				: type === "TL" ? "bg-blue-700 text-white text-xs"
+				: type === "DL" ? "bg-blue-400 text-xs"
+				: "bg-green-600"}
 
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			 <div
-				class={`aspect-square w-full text-center text-sm flex items-center justify-center border border-gray-300
+			<div
+				class={`relative aspect-square w-full text-center flex items-center justify-center border border-gray-300
+					cursor-pointer select-none overflow-hidden
 					${bg}
-					${pending ? 'bg-yellow-100 text-red-700 font-extrabold rounded' : ''}
-					cursor-pointer select-none font-bold`}
+					${pending ? 'bg-white text-red-700 font-extrabold rounded' : ''}`}
 				on:click={() => {
 					onPlaceLetter(x, y, cell);
 				}}
 			>
-				{displayed}
+				<span>{displayed}</span>
+
+				{#if /^[A-Z]$/.test(displayed)}
+					<span class="absolute bottom-[-1.5px] right-[0px] text-[8px] text-gray-600">
+						{letterValues[displayed]}
+					</span>
+				{/if}
 			</div>
 		{/each}
 	{/each}

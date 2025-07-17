@@ -5,7 +5,7 @@
 	import { get, derived } from 'svelte/store';
 	import Board from '$lib/components/Board.svelte';
 	import { pendingMove, selectedLetter } from '$lib/stores/pendingMove';
-  	import { computeWordValue } from '$lib/lettres_value';
+  	import { computeWordValue, letterValues } from '$lib/lettres_value';
 
 	let gameId = '';
 
@@ -190,11 +190,12 @@
 				<div
 					role="button"
 					tabindex="0"
-					class="w-12 h-12 rounded shadow text-center text-lg font-bold flex items-center justify-center border cursor-pointer
+					class="relative w-12 h-12 rounded shadow text-center text-lg font-bold flex items-center justify-center border cursor-pointer
 						{ $selectedLetter === letter ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
 					onclick={() => onSelectLetter(letter)}
 				>
 					{letter}
+					<span class="absolute bottom-0.5 right-1 text-xs font-normal text-gray-600">{letterValues[letter]}</span>
 				</div>
 			{/each}
 		</div>
