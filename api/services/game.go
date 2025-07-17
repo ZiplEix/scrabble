@@ -15,6 +15,7 @@ import (
 	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/ZiplEix/scrabble/api/word"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // Plateau vide 15x15
@@ -73,7 +74,7 @@ func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, erro
 	// Récupérer les IDs des autres joueurs
 	if len(usernames) > 0 {
 		query := `SELECT id, username FROM users WHERE username = ANY($1)`
-		rows, err := tx.Query(query, usernames)
+		rows, err := tx.Query(query, pq.Array(usernames))
 		if err != nil {
 			return nil, err
 		}

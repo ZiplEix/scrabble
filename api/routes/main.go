@@ -13,4 +13,5 @@ var nonImplementedHandler = func(c echo.Context) error {
 func SetupRoutes(e *echo.Echo) {
 	setupAuthRoutes(e)
 	setupGameRoutes(e)
+	setupReportRoutes(e)
 }

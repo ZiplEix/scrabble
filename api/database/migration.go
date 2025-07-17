@@ -7,6 +7,10 @@ func Migrate() error {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
+	if err := migrateAddUserRole(); err != nil {
+		return fmt.Errorf("migration failed: %w", err)
+	}
+
 	if err := createGameTable(); err != nil {
 		return fmt.Errorf("migration failed: %w", err)
 	}
@@ -16,6 +20,10 @@ func Migrate() error {
 	}
 
 	if err := createGameMovesTable(); err != nil {
+		return fmt.Errorf("migration failed: %w", err)
+	}
+
+	if err := createReportTable(); err != nil {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
@@ -36,6 +44,19 @@ func createUserTable() error {
 	_, err := Query(query)
 	if err != nil {
 		return fmt.Errorf("failed to create users table: %w", err)
+	}
+	return nil
+}
+
+func migrateAddUserRole() error {
+	query := `
+		ALTER TABLE users
+		ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
+	`
+
+	_, err := Query(query)
+	if err != nil {
+		return fmt.Errorf("failed to alter users table to add role column: %w", err)
 	}
 	return nil
 }
@@ -94,6 +115,49 @@ func createGameMovesTable() error {
 	_, err := Query(query)
 	if err != nil {
 		return fmt.Errorf("failed to create game_moves table: %w", err)
+	}
+	return nil
+}
+
+func createReportTable() error {
+	query := `
+		CREATE TABLE IF NOT EXISTS reports (
+			id SERIAL PRIMARY KEY,
+			user_id INT REFERENCES users(id) ON DELETE SET NULL,
+			title TEXT NOT NULL,
+			content TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'open', -- open, in_progress, resolved, rejected
+			priority TEXT DEFAULT 'normal',     -- optional: low, normal, high, urgent
+			type TEXT DEFAULT 'bug',            -- optional: bug, suggestion, feedback, etc.
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+		);
+
+		CREATE OR REPLACE FUNCTION update_updated_at_column()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			NEW.updated_at = NOW();
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_update_report_updated_at'
+			) THEN
+				CREATE TRIGGER trigger_update_report_updated_at
+				BEFORE UPDATE ON reports
+				FOR EACH ROW
+				EXECUTE FUNCTION update_updated_at_column();
+			END IF;
+		END;
+		$$;
+	`
+
+	_, err := Query(query)
+	if err != nil {
+		return fmt.Errorf("failed to create reports table: %w", err)
 	}
 	return nil
 }

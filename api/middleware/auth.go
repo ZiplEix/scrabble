@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ZiplEix/scrabble/api/database"
+	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
@@ -47,6 +49,27 @@ func RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 
 		// Injecte l'ID utilisateur dans le contexte Echo
 		c.Set(UserIDKey, userID)
+
+		return next(c)
+	}
+}
+
+func RequireAdmin(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		userID, ok := utils.GetUserID(c)
+		if !ok {
+			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized, no user_id in context")
+		}
+
+		var role string
+		err := database.DB.QueryRow("SELECT role FROM users WHERE id = $1", userID).Scan(&role)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "failed to check user role")
+		}
+
+		if role != "admin" {
+			return echo.NewHTTPError(http.StatusForbidden, "admin access required")
+		}
 
 		return next(c)
 	}
