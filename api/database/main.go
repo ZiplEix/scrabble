@@ -25,7 +25,7 @@ func Init(dsn string) error {
 	DB.SetConnMaxLifetime(5 * time.Minute)
 
 	// Retry ping avec timeout
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		err = DB.PingContext(ctx)
 		cancel()
@@ -44,7 +44,7 @@ func Query(query string, args ...any) (*sql.Rows, error) {
 		return nil, fmt.Errorf("database connection is not initialized")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	rows, err := DB.QueryContext(ctx, query, args...)
@@ -59,7 +59,7 @@ func QueryRow(query string, args ...any) *sql.Row {
 		log.Fatal("database connection is not initialized")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	return DB.QueryRowContext(ctx, query, args...)
@@ -71,7 +71,7 @@ func Exec(query string, args ...any) (sql.Result, error) {
 		return nil, fmt.Errorf("database connection is not initialized")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	result, err := DB.ExecContext(ctx, query, args...)
