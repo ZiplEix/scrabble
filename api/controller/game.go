@@ -126,6 +126,25 @@ func PlayMove(c echo.Context) error {
 	})
 }
 
+func GetNewRack(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	gameID := c.Param("id")
+	if gameID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "missing game id")
+	}
+
+	newRack, err := services.GetNewRack(userID, gameID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get new rack: "+err.Error())
+	}
+
+	return c.JSON(http.StatusOK, newRack)
+}
+
 func GetUserGames(c echo.Context) error {
 	userID, ok := utils.GetUserID(c)
 	if !ok {

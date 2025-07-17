@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/models/response"
+	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/ZiplEix/scrabble/api/word"
 	"github.com/google/uuid"
 )
@@ -24,22 +25,13 @@ func initEmptyBoard() [15][15]string {
 // Lettres classiques du scrabble français
 const initialLetters = "AAAAAAAAAEEEEEEEEEEEEIIIIIIIIONNNNNNRRRRRRTTTTTTLLLLSSSSUDDDGGGMMMBBCCPPFFHHVVJQKWXYZ"
 
-func shuffleRunes(runes []rune) {
-	rand.Seed(time.Now().UnixNano())
-	n := len(runes)
-	for i := n - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-}
-
 func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, error) {
 	board := initEmptyBoard()
 
 	available := []rune(initialLetters)
-	shuffleRunes(available)
+	utils.ShuffleRunes(available)
 
-	rack := drawLetters(&available, 7)
+	rack := utils.DrawLetters(&available, 7)
 
 	boardJSON, err := json.Marshal(board)
 	if err != nil {
@@ -547,6 +539,97 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 
 	return tx.Commit()
+}
+
+func GetNewRack(userID int64, gameID string) ([]string, error) {
+	tx, err := database.DB.BeginTx(context.Background(), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			fmt.Printf("Failed to rollback transaction: %v\n", err)
+		}
+	}()
+
+	// Vérifier que c'est au tour du joueur
+	var currentTurn int64
+	err = tx.QueryRow(`SELECT current_turn FROM games WHERE id = $1`, gameID).Scan(&currentTurn)
+	if err != nil {
+		return nil, fmt.Errorf("game not found")
+	}
+	if currentTurn != userID {
+		return nil, fmt.Errorf("not your turn")
+	}
+
+	// Récupérer l'ancien rack du joueur
+	var oldRack string
+	err = tx.QueryRow(`SELECT rack FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&oldRack)
+	if err != nil {
+		return nil, fmt.Errorf("player not in game")
+	}
+
+	// Récupérer le sac actuel
+	var bag string
+	err = tx.QueryRow(`SELECT available_letters FROM games WHERE id = $1`, gameID).Scan(&bag)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load bag")
+	}
+
+	newRack, updatedBag := utils.DrawLettersFromString(bag, 7)
+	if len(newRack) == 0 {
+		return nil, fmt.Errorf("no letters left in the bag")
+	}
+
+	newBag := updatedBag + oldRack
+
+	// Update le rack du joueur
+	_, err = tx.Exec(`
+		UPDATE game_players SET rack = $1
+		WHERE game_id = $2 AND player_id = $3
+	`, strings.Join(newRack, ""), gameID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update rack")
+	}
+
+	// Update le sac
+	_, err = tx.Exec(`UPDATE games SET available_letters = $1 WHERE id = $2`, newBag, gameID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update bag")
+	}
+
+	// Calculer le joueur suivant
+	var currentPosition int
+	err = tx.QueryRow(`
+		SELECT position FROM game_players
+		WHERE game_id = $1 AND player_id = $2
+	`, gameID, userID).Scan(&currentPosition)
+	if err != nil {
+		return nil, err
+	}
+
+	var nextPlayerID int64
+	err = tx.QueryRow(`
+		SELECT player_id FROM game_players
+		WHERE game_id = $1 AND position = (
+			($2 + 1) % (SELECT COUNT(*) FROM game_players WHERE game_id = $1)
+		)
+	`, gameID, currentPosition).Scan(&nextPlayerID)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = tx.Exec(`UPDATE games SET current_turn = $1 WHERE id = $2`, nextPlayerID, gameID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return newRack, nil
 }
 
 func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {

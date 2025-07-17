@@ -120,6 +120,24 @@
 			alert(msg);
 		}
 	}
+
+	async function drawNewRack() {
+		try {
+			const res = await api.get(`/game/${gameId}/new_rack`);
+			const newRack = res.data;
+			if (newRack.length === 0) {
+				alert('Plus de lettres disponibles dans le sac.');
+				return;
+			}
+			originalRack = newRack;
+			pendingMove.set([]);
+			selectedLetter.set(null);
+		} catch (e: any) {
+			const msg = e?.response?.data?.message || 'Erreur lors du tirage d\'un nouveau rack.';
+			console.error(e);
+			alert(msg);
+		}
+	}
 </script>
 
 {#if loading}
@@ -189,6 +207,9 @@
 				pendingMove.set([]); selectedLetter.set(null);
 			}}>
 				Annuler
+			</button>
+			<button class="bg-orange-500 text-white px-4 py-2 rounded shadow" onclick={drawNewRack}>
+				🔁rack
 			</button>
 		</div>
 	</div>
