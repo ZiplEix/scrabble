@@ -8,9 +8,9 @@
 </script>
 
 {#if games.length === 0}
-	<p class="text-gray-600 italic">Aucune partie en cours.</p>
+	<p class="text-center text-gray-500 italic mt-6">Aucune partie en cours.</p>
 {:else}
-	<div class="space-y-3">
+	<div class="flex flex-col gap-3">
 		{#each games as game}
 			<GameItem
 				{game}
