@@ -190,7 +190,7 @@
 				<div
 					role="button"
 					tabindex="0"
-					class="w-10 h-10 rounded shadow text-center text-lg font-bold flex items-center justify-center border cursor-pointer
+					class="w-12 h-12 rounded shadow text-center text-lg font-bold flex items-center justify-center border cursor-pointer
 						{ $selectedLetter === letter ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
 					onclick={() => onSelectLetter(letter)}
 				>
