@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/SherClockHolmes/webpush-go"
@@ -12,6 +13,18 @@ type Subscription struct {
 	Endpoint       string            `json:"endpoint"`
 	ExpirationTime *int64            `json:"expirationTime"`
 	Keys           map[string]string `json:"keys"` // p256dh, auth
+}
+
+func SendNotificationToUserByID(userID int64, payload string) error {
+	sub, err := GetPushSubscription(userID)
+	if err != nil {
+		return err
+	}
+	if sub == nil {
+		return fmt.Errorf("no push subscription found for user ID %d", userID)
+	}
+
+	return SendNotification(*sub, payload)
 }
 
 func SendNotification(sub Subscription, message string) error {

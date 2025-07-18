@@ -35,17 +35,12 @@ func PushSubscribe(c echo.Context) error {
 }
 
 func SendTest(c echo.Context) error {
-	sub, err := utils.GetPushSubscription(3) // <- ID de l’utilisateur
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "no push subscription found"})
-	}
-
 	payload, _ := json.Marshal(map[string]string{
 		"title": "Test Notification",
 		"body":  "Hello depuis le serveur 😄",
 	})
 
-	err = utils.SendNotification(*sub, string(payload))
+	err := utils.SendNotificationToUserByID(3, string(payload))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to send notification"})
 	}
