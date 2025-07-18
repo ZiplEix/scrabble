@@ -40,7 +40,7 @@ func SendTest(c echo.Context) error {
 		Body:  "Hello depuis le serveur 😄",
 	}
 
-	err := utils.SendNotificationToUserByID(3, payload)
+	err := utils.SendNotificationToUserByID(1, payload)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to send notification"})
 	}
