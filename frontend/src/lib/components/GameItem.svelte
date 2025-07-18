@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { user } from '$lib/stores/user';
   	import type { GameSummary } from '$lib/types/game_summary';
+  import { get } from 'svelte/store';
 
 	export let game: GameSummary;
 	export let onDelete: (id: string) => Promise<void>;
@@ -42,6 +44,13 @@
 </script>
 
 <div class="relative bg-slate-50 rounded shadow-md p-4 flex flex-col gap-2">
+	<!-- Pastille statut tour -->
+	{#if get(user)?.username === game.current_turn_username}
+		<div class="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-green-500" title="C'est votre tour"></div>
+	{:else}
+		<div class="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-orange-400" title="Tour de l'autre joueur"></div>
+	{/if}
+
 	<a href={`/games/${game.id}`} class="flex flex-col gap-1">
 		<h2 class="text-xl font-bold text-green-700">{game.name}</h2>
 		<p class="text-sm text-gray-600">Tour de : <span class="font-medium">{game.current_turn_username}</span></p>
