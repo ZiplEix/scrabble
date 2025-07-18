@@ -11,7 +11,8 @@
 		error = '';
 		try {
 			const res = await api.post('/auth/login', { username, password });
-			user.set({ username, token: res.data.token });
+			const userNameToStore = username.trim().toLowerCase();
+			user.set({ username: userNameToStore, token: res.data.token });
 			goto('/');
 		} catch (err: any) {
 			error = err?.response?.data?.error || 'Échec de la connexion';
