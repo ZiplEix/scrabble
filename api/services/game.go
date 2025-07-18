@@ -216,6 +216,7 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	game.RemainingLetters = len(avail)
 	_ = json.Unmarshal(boardJSON, &game.Board)
 
 	// 3. Récupère ton rack
@@ -473,7 +474,8 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	newBoardJSON, _ := json.Marshal(board)
 
 	// 8. Calcul du score
-	moveScore := req.Score
+	// moveScore := req.Score
+	moveScore := computeMoveScore(board, req.Letters)
 
 	// 9. Enregistrer le coup
 	moveJSON, _ := json.Marshal(req)
@@ -672,4 +674,21 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 	}
 
 	return games, nil
+}
+
+func SimulateScore(gameID string, userID int64, letters []request.PlacedLetter) (int, error) {
+	if len(letters) == 0 {
+		return 0, nil
+	}
+	if err := validatePlayerInGame(gameID, userID); err != nil {
+		return 0, err
+	}
+	board, err := loadBoard(gameID)
+	if err != nil {
+		return 0, err
+	}
+	if err := applyLetters(&board, letters); err != nil {
+		return 0, err
+	}
+	return computeMoveScore(board, letters), nil
 }

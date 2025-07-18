@@ -160,3 +160,26 @@ func GetUserGames(c echo.Context) error {
 		Games: games,
 	})
 }
+
+func SimulateScore(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	gameID := c.Param("id")
+
+	var body struct {
+		Letters []request.PlacedLetter `json:"letters"`
+	}
+	if err := c.Bind(&body); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid body")
+	}
+
+	score, err := services.SimulateScore(gameID, userID, body.Letters)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, map[string]int{"score": score})
+}
