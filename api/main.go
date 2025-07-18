@@ -28,7 +28,10 @@ func main() {
 	e := echo.New()
 
 	e.Use(middleware.RemoveTrailingSlash())
-	e.Use(middleware.Logger())
+	// e.Use(middleware.Logger())
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: `[${time_rfc3339}] ${status} | ${latency_human} | ${method} ${uri} | IP: ${remote_ip} | UA: ${user_agent}` + "\n",
+	}))
 	e.Use(middleware.Recover())
 
 	e.Use(middleware.CORS())
