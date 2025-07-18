@@ -27,6 +27,10 @@ func Migrate() error {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
+	if err := createPushSubscriptionTable(); err != nil {
+		return fmt.Errorf("migration failed: %w", err)
+	}
+
 	fmt.Println("Database migration completed successfully")
 	return nil
 }
@@ -158,6 +162,21 @@ func createReportTable() error {
 	_, err := Query(query)
 	if err != nil {
 		return fmt.Errorf("failed to create reports table: %w", err)
+	}
+	return nil
+}
+
+func createPushSubscriptionTable() error {
+	query := `
+		CREATE TABLE IF NOT EXISTS push_subscriptions (
+			user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+			subscription JSONB NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW()
+		);
+	`
+	_, err := Query(query)
+	if err != nil {
+		return fmt.Errorf("failed to create push_subscriptions table: %w", err)
 	}
 	return nil
 }

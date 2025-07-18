@@ -3,9 +3,12 @@
   	import { onMount } from 'svelte';
 	import LoginedPage from './LoginedPage.svelte';
 	import NoLoginPage from './NoLoginPage.svelte';
+  	import { browser } from '$app/environment';
+  import { subscribeToPush } from '$lib/push';
 
 	let deferredPrompt: any = null;
 	let canInstall = false;
+	let showBanner = false;
 
 	onMount(() => {
 		window.addEventListener('beforeinstallprompt', (e) => {
@@ -13,6 +16,10 @@
 			deferredPrompt = e;
 			canInstall = true;
 		});
+
+		if ('Notification' in window && Notification.permission === 'default') {
+			showBanner = true;
+		}
 	});
 
 	async function installApp() {
@@ -24,6 +31,16 @@
 			}
 			deferredPrompt = null;
 			canInstall = false;
+		}
+	}
+
+	async function askNotificationPermission() {
+		const permission = await Notification.requestPermission();
+		console.log("Permission:", permission);
+		showBanner = false;
+
+		if (permission === "granted") {
+			await subscribeToPush();
 		}
 	}
 </script>
@@ -45,6 +62,19 @@
 			</button>
 		</div>
 	{/if}
+
+	{#if browser && showBanner}
+		<div class="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-2 rounded flex justify-between items-center shadow">
+			<p>Souhaitez-vous activer les notifications ?</p>
+			<button
+				class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded ml-4 text-sm"
+				on:click={askNotificationPermission}
+			>
+				Activer
+			</button>
+		</div>
+	{/if}
+
 	{#if !$user}
 		<NoLoginPage />
 	{:else}
