@@ -277,7 +277,10 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 }
 
 func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
-	// 1. Vérifier que l'utilisateur est bien dans la partie et que c'est à son tour
+	// 1. Vérification de l'appartenance au jeu et du tour
+	if err := validatePlayerInGame(gameID, userID); err != nil {
+		return err
+	}
 	var currentTurn int64
 	err := database.QueryRow(`SELECT current_turn FROM games WHERE id = $1`, gameID).Scan(&currentTurn)
 	if err != nil {
@@ -287,32 +290,27 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		return fmt.Errorf("not your turn")
 	}
 
-	// 2. Récupérer le rack du joueur
+	// 2. Récupération du rack
 	var rack string
-	err = database.QueryRow(`
-		SELECT rack FROM game_players WHERE game_id = $1 AND player_id = $2
-	`, gameID, userID).Scan(&rack)
+	err = database.QueryRow(`SELECT rack FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&rack)
 	if err != nil {
 		return fmt.Errorf("player not in game")
 	}
 
-	// 3. Vérifier que les lettres posées sont bien disponibles dans le rack
 	if !rackContains(rack, req.Letters) {
 		return fmt.Errorf("invalid move: you don't have the required letters")
 	}
-
-	// 3.2 Vérifier que les lettres sont alignées (même ligne ou même colonne)
 	if len(req.Letters) == 0 {
 		return fmt.Errorf("no letters provided")
 	} else if len(req.Letters) > 7 {
 		return fmt.Errorf("cannot place more than 7 letters in one move")
 	}
 
+	// 3. Vérification alignement
 	sameRow := true
 	sameCol := true
 	firstX := req.Letters[0].X
 	firstY := req.Letters[0].Y
-
 	for _, l := range req.Letters {
 		if l.X != firstX {
 			sameCol = false
@@ -321,24 +319,17 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 			sameRow = false
 		}
 	}
-
 	if !sameRow && !sameCol {
 		return fmt.Errorf("letters must be aligned in the same row or column")
 	}
 
-	// 4. Charger le plateau
-	var boardRaw []byte
-	err = database.QueryRow(`SELECT board FROM games WHERE id = $1`, gameID).Scan(&boardRaw)
+	// 4. Chargement du plateau
+	board, err := loadBoard(gameID)
 	if err != nil {
-		return fmt.Errorf("failed to load board")
+		return err
 	}
 
-	var board [15][15]string
-	if err := json.Unmarshal(boardRaw, &board); err != nil {
-		return fmt.Errorf("failed to decode board")
-	}
-
-	// 4.2 Vérifier placement valide (centre ou contact avec mot existant)
+	// 5. Vérification placement (centre ou contact)
 	isFirstMove := true
 	for y := 0; y < 15 && isFirstMove; y++ {
 		for x := 0; x < 15 && isFirstMove; x++ {
@@ -349,7 +340,6 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 
 	if isFirstMove {
-		// Doit contenir la case centrale
 		found := false
 		for _, l := range req.Letters {
 			if l.X == 7 && l.Y == 7 {
@@ -361,18 +351,10 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 			return fmt.Errorf("first move must cover the center cell")
 		}
 	} else {
-		// Doit toucher une lettre déjà posée
 		touchesExisting := false
 		for _, l := range req.Letters {
-			adjacent := [][2]int{
-				{l.X - 1, l.Y},
-				{l.X + 1, l.Y},
-				{l.X, l.Y - 1},
-				{l.X, l.Y + 1},
-			}
-			for _, letter := range adjacent {
-				x := letter[0]
-				y := letter[1]
+			for _, d := range [][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
+				x, y := l.X+d[0], l.Y+d[1]
 				if x >= 0 && x < 15 && y >= 0 && y < 15 && board[y][x] != "" {
 					touchesExisting = true
 					break
@@ -382,56 +364,34 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 				break
 			}
 		}
-
 		if !touchesExisting {
 			return fmt.Errorf("word must connect to existing letters")
 		}
 	}
 
-	// 5. Appliquer les lettres sur le plateau
-	for _, l := range req.Letters {
-		if board[l.Y][l.X] != "" {
-			return fmt.Errorf("cell already occupied")
-		}
-		board[l.Y][l.X] = l.Char
+	// 6. Appliquer les lettres
+	if err := applyLetters(&board, req.Letters); err != nil {
+		return err
 	}
 
-	// 5.1 Extraire les nouveaux mots formés
-	type Pos struct{ X, Y int }
+	// 7. Validation des mots
 	letterMap := make(map[Pos]string)
 	for _, l := range req.Letters {
 		letterMap[Pos{l.X, l.Y}] = l.Char
 	}
-
 	visited := make(map[Pos]bool)
 	words := []string{}
-
-	dirs := []struct {
-		dx, dy int
-	}{
-		{1, 0},
-		{0, 1},
-	}
-
+	dirs := []struct{ dx, dy int }{{1, 0}, {0, 1}}
 	for _, l := range req.Letters {
 		for _, dir := range dirs {
 			startX, startY := l.X, l.Y
-
-			// Remonter jusqu'au début du mot
 			for {
-				nx := startX - dir.dx
-				ny := startY - dir.dy
-				if nx < 0 || nx >= 15 || ny < 0 || ny >= 15 {
+				nx, ny := startX-dir.dx, startY-dir.dy
+				if nx < 0 || nx >= 15 || ny < 0 || ny >= 15 || board[ny][nx] == "" {
 					break
 				}
-				if board[ny][nx] == "" {
-					break
-				}
-				startX = nx
-				startY = ny
+				startX, startY = nx, ny
 			}
-
-			// Parcourir le mot complet
 			word := ""
 			hasAtLeastTwo := false
 			x, y := startX, startY
@@ -447,7 +407,6 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 				x += dir.dx
 				y += dir.dy
 			}
-
 			if len(word) > 1 && hasAtLeastTwo {
 				pos := Pos{startX, startY}
 				if !visited[pos] {
@@ -457,37 +416,27 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 			}
 		}
 	}
-
 	for _, w := range words {
 		if !word.WordExists(w) {
 			return fmt.Errorf("invalid word played: %s", w)
 		}
 	}
 
-	// 6. Recalculer le rack (retirer les lettres posées, tirer de nouvelles lettres)
+	// 8. Recalcul rack et score
 	newRack, err := updatePlayerRack(gameID, userID, rack, req.Letters)
 	if err != nil {
 		return fmt.Errorf("failed to update rack: %v", err)
 	}
-
-	// 7. Encoder le nouveau plateau
-	newBoardJSON, _ := json.Marshal(board)
-
-	// 8. Calcul du score
-	// moveScore := req.Score
 	moveScore := computeMoveScore(board, req.Letters)
 
-	// 9. Enregistrer le coup
+	// 9. Enregistrement du coup
 	moveJSON, _ := json.Marshal(req)
-	_, err = database.Exec(`
-		INSERT INTO game_moves (game_id, player_id, move)
-		VALUES ($1, $2, $3)
-	`, gameID, userID, moveJSON)
+	_, err = database.Exec(`INSERT INTO game_moves (game_id, player_id, move) VALUES ($1, $2, $3)`, gameID, userID, moveJSON)
 	if err != nil {
 		return fmt.Errorf("failed to insert move")
 	}
 
-	// 10. Update du plateau, du sac, du rack, du score, du tour
+	// 10. Mise à jour transactionnelle
 	tx, err := database.DB.BeginTx(context.Background(), nil)
 	if err != nil {
 		return err
@@ -498,51 +447,301 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		}
 	}()
 
-	// Plateau
+	newBoardJSON, _ := json.Marshal(board)
 	_, err = tx.Exec(`UPDATE games SET board = $1 WHERE id = $2`, newBoardJSON, gameID)
 	if err != nil {
 		return err
 	}
-
-	// Rack + score
-	_, err = tx.Exec(`
-		UPDATE game_players SET rack = $1, score = score + $2
-		WHERE game_id = $3 AND player_id = $4
-	`, newRack, moveScore, gameID, userID)
+	_, err = tx.Exec(`UPDATE game_players SET rack = $1, score = score + $2 WHERE game_id = $3 AND player_id = $4`, newRack, moveScore, gameID, userID)
 	if err != nil {
 		return err
 	}
 
-	// Tour suivant
 	var currentPosition int
-	err = tx.QueryRow(`
-		SELECT position FROM game_players
-		WHERE game_id = $1 AND player_id = $2
-	`, gameID, userID).Scan(&currentPosition)
+	err = tx.QueryRow(`SELECT position FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&currentPosition)
 	if err != nil {
 		return err
 	}
-
 	var nextPlayerID int64
-	err = tx.QueryRow(`
-		SELECT player_id FROM game_players
-		WHERE game_id = $1 AND position = (
-			($2 + 1) % (SELECT COUNT(*) FROM game_players WHERE game_id = $1)
-		)
-	`, gameID, currentPosition).Scan(&nextPlayerID)
+	err = tx.QueryRow(`SELECT player_id FROM game_players WHERE game_id = $1 AND position = (($2 + 1) % (SELECT COUNT(*) FROM game_players WHERE game_id = $1))`, gameID, currentPosition).Scan(&nextPlayerID)
 	if err != nil {
 		return err
 	}
-
-	_, err = tx.Exec(`
-		UPDATE games SET current_turn = $1 WHERE id = $2
-	`, nextPlayerID, gameID)
+	_, err = tx.Exec(`UPDATE games SET current_turn = $1 WHERE id = $2`, nextPlayerID, gameID)
 	if err != nil {
 		return err
 	}
 
 	return tx.Commit()
 }
+
+// func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
+// 	// 1. Vérifier que l'utilisateur est bien dans la partie et que c'est à son tour
+// 	var currentTurn int64
+// 	err := database.QueryRow(`SELECT current_turn FROM games WHERE id = $1`, gameID).Scan(&currentTurn)
+// 	if err != nil {
+// 		return fmt.Errorf("game not found")
+// 	}
+// 	if currentTurn != userID {
+// 		return fmt.Errorf("not your turn")
+// 	}
+
+// 	// 2. Récupérer le rack du joueur
+// 	var rack string
+// 	err = database.QueryRow(`
+// 		SELECT rack FROM game_players WHERE game_id = $1 AND player_id = $2
+// 	`, gameID, userID).Scan(&rack)
+// 	if err != nil {
+// 		return fmt.Errorf("player not in game")
+// 	}
+
+// 	// 3. Vérifier que les lettres posées sont bien disponibles dans le rack
+// 	if !rackContains(rack, req.Letters) {
+// 		return fmt.Errorf("invalid move: you don't have the required letters")
+// 	}
+
+// 	// 3.2 Vérifier que les lettres sont alignées (même ligne ou même colonne)
+// 	if len(req.Letters) == 0 {
+// 		return fmt.Errorf("no letters provided")
+// 	} else if len(req.Letters) > 7 {
+// 		return fmt.Errorf("cannot place more than 7 letters in one move")
+// 	}
+
+// 	sameRow := true
+// 	sameCol := true
+// 	firstX := req.Letters[0].X
+// 	firstY := req.Letters[0].Y
+
+// 	for _, l := range req.Letters {
+// 		if l.X != firstX {
+// 			sameCol = false
+// 		}
+// 		if l.Y != firstY {
+// 			sameRow = false
+// 		}
+// 	}
+
+// 	if !sameRow && !sameCol {
+// 		return fmt.Errorf("letters must be aligned in the same row or column")
+// 	}
+
+// 	// 4. Charger le plateau
+// 	var boardRaw []byte
+// 	err = database.QueryRow(`SELECT board FROM games WHERE id = $1`, gameID).Scan(&boardRaw)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to load board")
+// 	}
+
+// 	var board [15][15]string
+// 	if err := json.Unmarshal(boardRaw, &board); err != nil {
+// 		return fmt.Errorf("failed to decode board")
+// 	}
+
+// 	// 4.2 Vérifier placement valide (centre ou contact avec mot existant)
+// 	isFirstMove := true
+// 	for y := 0; y < 15 && isFirstMove; y++ {
+// 		for x := 0; x < 15 && isFirstMove; x++ {
+// 			if board[y][x] != "" {
+// 				isFirstMove = false
+// 			}
+// 		}
+// 	}
+
+// 	if isFirstMove {
+// 		// Doit contenir la case centrale
+// 		found := false
+// 		for _, l := range req.Letters {
+// 			if l.X == 7 && l.Y == 7 {
+// 				found = true
+// 				break
+// 			}
+// 		}
+// 		if !found {
+// 			return fmt.Errorf("first move must cover the center cell")
+// 		}
+// 	} else {
+// 		// Doit toucher une lettre déjà posée
+// 		touchesExisting := false
+// 		for _, l := range req.Letters {
+// 			adjacent := [][2]int{
+// 				{l.X - 1, l.Y},
+// 				{l.X + 1, l.Y},
+// 				{l.X, l.Y - 1},
+// 				{l.X, l.Y + 1},
+// 			}
+// 			for _, letter := range adjacent {
+// 				x := letter[0]
+// 				y := letter[1]
+// 				if x >= 0 && x < 15 && y >= 0 && y < 15 && board[y][x] != "" {
+// 					touchesExisting = true
+// 					break
+// 				}
+// 			}
+// 			if touchesExisting {
+// 				break
+// 			}
+// 		}
+
+// 		if !touchesExisting {
+// 			return fmt.Errorf("word must connect to existing letters")
+// 		}
+// 	}
+
+// 	// 5. Appliquer les lettres sur le plateau
+// 	for _, l := range req.Letters {
+// 		if board[l.Y][l.X] != "" {
+// 			return fmt.Errorf("cell already occupied")
+// 		}
+// 		board[l.Y][l.X] = l.Char
+// 	}
+
+// 	// 5.1 Extraire les nouveaux mots formés
+// 	type Pos struct{ X, Y int }
+// 	letterMap := make(map[Pos]string)
+// 	for _, l := range req.Letters {
+// 		letterMap[Pos{l.X, l.Y}] = l.Char
+// 	}
+
+// 	visited := make(map[Pos]bool)
+// 	words := []string{}
+
+// 	dirs := []struct {
+// 		dx, dy int
+// 	}{
+// 		{1, 0},
+// 		{0, 1},
+// 	}
+
+// 	for _, l := range req.Letters {
+// 		for _, dir := range dirs {
+// 			startX, startY := l.X, l.Y
+
+// 			// Remonter jusqu'au début du mot
+// 			for {
+// 				nx := startX - dir.dx
+// 				ny := startY - dir.dy
+// 				if nx < 0 || nx >= 15 || ny < 0 || ny >= 15 {
+// 					break
+// 				}
+// 				if board[ny][nx] == "" {
+// 					break
+// 				}
+// 				startX = nx
+// 				startY = ny
+// 			}
+
+// 			// Parcourir le mot complet
+// 			word := ""
+// 			hasAtLeastTwo := false
+// 			x, y := startX, startY
+// 			for x >= 0 && x < 15 && y >= 0 && y < 15 {
+// 				letter := board[y][x]
+// 				if letter == "" {
+// 					break
+// 				}
+// 				word += letter
+// 				if _, ok := letterMap[Pos{x, y}]; ok {
+// 					hasAtLeastTwo = true
+// 				}
+// 				x += dir.dx
+// 				y += dir.dy
+// 			}
+
+// 			if len(word) > 1 && hasAtLeastTwo {
+// 				pos := Pos{startX, startY}
+// 				if !visited[pos] {
+// 					words = append(words, word)
+// 					visited[pos] = true
+// 				}
+// 			}
+// 		}
+// 	}
+
+// 	for _, w := range words {
+// 		if !word.WordExists(w) {
+// 			return fmt.Errorf("invalid word played: %s", w)
+// 		}
+// 	}
+
+// 	// 6. Recalculer le rack (retirer les lettres posées, tirer de nouvelles lettres)
+// 	newRack, err := updatePlayerRack(gameID, userID, rack, req.Letters)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to update rack: %v", err)
+// 	}
+
+// 	// 7. Encoder le nouveau plateau
+// 	newBoardJSON, _ := json.Marshal(board)
+
+// 	// 8. Calcul du score
+// 	// moveScore := req.Score
+// 	moveScore := computeMoveScore(board, req.Letters)
+
+// 	// 9. Enregistrer le coup
+// 	moveJSON, _ := json.Marshal(req)
+// 	_, err = database.Exec(`
+// 		INSERT INTO game_moves (game_id, player_id, move)
+// 		VALUES ($1, $2, $3)
+// 	`, gameID, userID, moveJSON)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to insert move")
+// 	}
+
+// 	// 10. Update du plateau, du sac, du rack, du score, du tour
+// 	tx, err := database.DB.BeginTx(context.Background(), nil)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer func() {
+// 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+// 			fmt.Printf("Failed to rollback transaction: %v\n", err)
+// 		}
+// 	}()
+
+// 	// Plateau
+// 	_, err = tx.Exec(`UPDATE games SET board = $1 WHERE id = $2`, newBoardJSON, gameID)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// Rack + score
+// 	_, err = tx.Exec(`
+// 		UPDATE game_players SET rack = $1, score = score + $2
+// 		WHERE game_id = $3 AND player_id = $4
+// 	`, newRack, moveScore, gameID, userID)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// Tour suivant
+// 	var currentPosition int
+// 	err = tx.QueryRow(`
+// 		SELECT position FROM game_players
+// 		WHERE game_id = $1 AND player_id = $2
+// 	`, gameID, userID).Scan(&currentPosition)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	var nextPlayerID int64
+// 	err = tx.QueryRow(`
+// 		SELECT player_id FROM game_players
+// 		WHERE game_id = $1 AND position = (
+// 			($2 + 1) % (SELECT COUNT(*) FROM game_players WHERE game_id = $1)
+// 		)
+// 	`, gameID, currentPosition).Scan(&nextPlayerID)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	_, err = tx.Exec(`
+// 		UPDATE games SET current_turn = $1 WHERE id = $2
+// 	`, nextPlayerID, gameID)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return tx.Commit()
+// }
 
 func GetNewRack(userID int64, gameID string) ([]string, error) {
 	tx, err := database.DB.BeginTx(context.Background(), nil)
