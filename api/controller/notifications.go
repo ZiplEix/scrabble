@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/ZiplEix/scrabble/api/services"
@@ -42,7 +43,7 @@ func SendTest(c echo.Context) error {
 
 	err := utils.SendNotificationToUserByID(1, payload)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to send notification"})
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": fmt.Sprintf("failed to send test notification: %v", err)})
 	}
 
 	return c.NoContent(http.StatusOK)
