@@ -25,6 +25,7 @@
 	"dependencies": {
 		"@vite-pwa/sveltekit": "^1.0.0",
 		"axios": "^1.10.0",
+		"svelte-dnd-action": "^0.9.63",
 		"vite-plugin-pwa": "^1.0.1"
 	}
 }

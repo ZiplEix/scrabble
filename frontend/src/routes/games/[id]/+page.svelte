@@ -2,22 +2,19 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { page } from '$app/stores';
-	import { get, derived } from 'svelte/store';
+	import { get, derived, writable } from 'svelte/store';
 	import Board from '$lib/components/Board.svelte';
 	import { pendingMove, selectedLetter } from '$lib/stores/pendingMove';
-  	import { computeWordValue, letterValues } from '$lib/lettres_value';
+	import { letterValues } from '$lib/lettres_value';
+	import { dndzone } from 'svelte-dnd-action';
 
 	let gameId = '';
-
 	let game = $state<GameInfo | null>(null);
 	let error = $state('');
 	let loading = $state(true);
-	let originalRack: string[] = [];
+	type RackLetter = { id: string; char: string };
+	let originalRack = writable<RackLetter[]>([]);
 	let showScores = $state(false);
-
-	// let moveScore = derived(pendingMove, (moves) => {
-	// 	return computeWordValue(moves);
-	// });
 
 	let moveScore = derived(
 		[pendingMove, page],
@@ -44,7 +41,11 @@
 		try {
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
-			originalRack = [...game!.your_rack];
+			// originalRack.set([...game!.your_rack]);
+			originalRack.set(game!.your_rack.split('').map((char, i) => ({
+				id: `${i}-${char}-${crypto.randomUUID()}`,
+				char
+			})));
 		} catch (e: any) {
 			error = e?.response?.data?.error || 'Erreur lors du chargement de la partie';
 		} finally {
@@ -78,17 +79,20 @@
 	}
 
 	const placedLetters = derived(pendingMove, (moves) => moves.map((m) => m.letter));
-	const visibleRack = derived(placedLetters, (used) => {
-		const usedCopy = [...used];
-		return originalRack.filter((l) => {
-			const idx = usedCopy.indexOf(l);
-			if (idx !== -1) {
-				usedCopy.splice(idx, 1);
-				return false;
-			}
-			return true;
-		});
-	});
+	const visibleRack = derived(
+		[originalRack, placedLetters],
+		([$rack, $used]) => {
+			const usedCopy = [...$used];
+			return $rack.filter((l) => {
+				const idx = usedCopy.indexOf(l.char);
+				if (idx !== -1) {
+					usedCopy.splice(idx, 1);
+					return false;
+				}
+				return true;
+			});
+		}
+	);
 
 	async function playMove() {
 		const move = get(pendingMove);
@@ -106,31 +110,26 @@
 		const direction = sameRow ? "H" : "V";
 		const startX = sorted[0].x;
 		const startY = sorted[0].y;
-
-		let word = ""
-		for (let i = 0; i < sorted.length; i++) {
-			word += sorted[i].letter.toUpperCase();
-		}
+		let word = sorted.map(l => l.letter.toUpperCase()).join("");
 
 		const body = {
 			word,
 			x: startX,
 			y: startY,
 			dir: direction,
-			letters: move.map((m) => ({
-				x: m.x,
-				y: m.y,
-				char: m.letter.toUpperCase()
-			})),
+			letters: move.map((m) => ({ x: m.x, y: m.y, char: m.letter.toUpperCase() })),
 			score: get(moveScore)
 		};
 
 		try {
 			await api.post(`/game/${gameId}/play`, body);
-
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
-			originalRack = [...game!.your_rack];
+			// originalRack.set([...game!.your_rack]);
+			originalRack.set(game!.your_rack.split('').map((char, i) => ({
+				id: `${i}-${char}-${crypto.randomUUID()}`,
+				char
+			})));
 			pendingMove.set([]);
 			selectedLetter.set(null);
 		} catch (e: any) {
@@ -141,7 +140,6 @@
 
 	async function drawNewRack() {
 		const ok = confirm('Êtes-vous sûr de vouloir changer toutes vos lettres ? Cela remplacera vos lettres actuelles et passera votre tour.');
-
 		if (!ok) return;
 
 		try {
@@ -151,7 +149,7 @@
 				alert('Plus de lettres disponibles dans le sac.');
 				return;
 			}
-			originalRack = newRack;
+			originalRack.set(newRack);
 			pendingMove.set([]);
 			selectedLetter.set(null);
 		} catch (e: any) {
@@ -197,24 +195,34 @@
 		<!-- Plateau -->
 		<div class="max-w-[95vw] w-full aspect-square">
 			<Board
-				game={game}
+				{game}
 				{onPlaceLetter}
 			/>
 		</div>
 
 		<!-- Rack -->
-		<div class="flex justify-center gap-1 mt-2 flex-wrap max-w-[95vw]">
-			{#each $visibleRack as letter}
+		<div
+			class="flex justify-center gap-1 mt-2 flex-wrap max-w-[95vw]"
+			use:dndzone={{
+				items: $visibleRack,
+				flipDurationMs: 150,
+				dropFromOthersDisabled: true,
+				dragDisabled: false,
+			}}
+			onconsider={({ detail }) => originalRack.set(detail.items)}
+			onfinalize={({ detail }) => originalRack.set(detail.items)}
+		>
+			{#each $visibleRack as item (item.id)}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<div
 					role="button"
 					tabindex="0"
 					class="relative w-12 h-12 rounded shadow text-center text-lg font-bold flex items-center justify-center border cursor-pointer
-						{ $selectedLetter === letter ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
-					onclick={() => onSelectLetter(letter)}
+						{ $selectedLetter === item.char ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
+					onclick={() => onSelectLetter(item.char)}
 				>
-					{letter}
-					<span class="absolute bottom-0.5 right-1 text-xs font-normal text-gray-600">{letterValues[letter]}</span>
+					{item.char}
+					<span class="absolute bottom-0.5 right-1 text-xs font-normal text-gray-600">{letterValues[item.char]}</span>
 				</div>
 			{/each}
 		</div>

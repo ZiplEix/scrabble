@@ -1,6 +1,6 @@
 <script lang="ts">
     import { specialCells } from '$lib/cells';
-  import { letterValues } from '$lib/lettres_value';
+  	import { letterValues } from '$lib/lettres_value';
 	import { pendingMove } from '$lib/stores/pendingMove';
 
 	export let game: any;
