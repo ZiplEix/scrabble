@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/models/response"
@@ -20,6 +21,11 @@ func Register(c echo.Context) error {
 	var req request.RegisterRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
+	username := strings.ToLower(strings.TrimSpace(req.Username))
+	if username == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "username is required")
 	}
 
 	user, err := services.CreateUser(req.Username, req.Password)
@@ -41,7 +47,9 @@ func Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
-	user, err := services.VerifyUser(req.Username, req.Password)
+	username := strings.ToLower(strings.TrimSpace(req.Username))
+
+	user, err := services.VerifyUser(username, req.Password)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized, failed to verify user")
 	}
