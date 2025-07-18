@@ -11,7 +11,11 @@
         if (browser) {
             registerSW(() => {
                 if (confirm("Une nouvelle version est disponible. Voulez-vous recharger ?")) {
-                    window.location.reload();
+                    navigator.serviceWorker.getRegistration().then(reg => {
+                        if (reg?.waiting) {
+                            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    });
                 }
             });
         }
