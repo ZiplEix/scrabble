@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/models/response"
@@ -26,7 +27,12 @@ func CreateGame(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "game name is required")
 	}
 
-	gameID, err := services.CreateGame(userID, req.Name, req.Players)
+	var usernames []string
+	for _, player := range req.Players {
+		usernames = append(usernames, strings.ToLower(strings.TrimSpace(player)))
+	}
+
+	gameID, err := services.CreateGame(userID, req.Name, usernames)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to create game: %v", err))
 	}
