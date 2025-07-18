@@ -17,4 +17,5 @@ func setupGameRoutes(e *echo.Echo) {
 	g.PUT("/:id/rename", controller.RenameGame)
 	g.GET("/:id/new_rack", controller.GetNewRack)
 	g.POST("/:id/simulate_score", controller.SimulateScore)
+	g.POST("/:id/pass", controller.PassTurn)
 }

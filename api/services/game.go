@@ -436,7 +436,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		return fmt.Errorf("failed to insert move")
 	}
 
-	// 10. Mise à jour transactionnelle
+	// 10. Mise à jour transactionnelle et met le pass_count à 0
 	tx, err := database.DB.BeginTx(context.Background(), nil)
 	if err != nil {
 		return err
@@ -448,7 +448,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}()
 
 	newBoardJSON, _ := json.Marshal(board)
-	_, err = tx.Exec(`UPDATE games SET board = $1 WHERE id = $2`, newBoardJSON, gameID)
+	_, err = tx.Exec(`UPDATE games SET board = $1, pass_count = 0 WHERE id = $2`, newBoardJSON, gameID)
 	if err != nil {
 		return err
 	}
@@ -648,4 +648,75 @@ func SimulateScore(gameID string, userID int64, letters []request.PlacedLetter) 
 		return 0, err
 	}
 	return computeMoveScore(board, letters), nil
+}
+
+func PassTurn(userID int64, gameID string) error {
+	// Vérifie que c’est bien à ce joueur de jouer
+	var currentTurn int64
+	err := database.QueryRow(`SELECT current_turn FROM games WHERE id = $1`, gameID).Scan(&currentTurn)
+	if err != nil {
+		return errors.New("game not found")
+	}
+	if currentTurn != userID {
+		return errors.New("not your turn")
+	}
+
+	// Enregistre un "coup" vide
+	passMove := map[string]any{"type": "pass"}
+	moveJSON, _ := json.Marshal(passMove)
+	_, err = database.Exec(`INSERT INTO game_moves (game_id, player_id, move) VALUES ($1, $2, $3)`, gameID, userID, moveJSON)
+	if err != nil {
+		return errors.New("failed to record pass")
+	}
+
+	// Commence la transaction pour changer de tour et mettre à jour le compteur
+	tx, err := database.DB.BeginTx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Incrémente pass_count
+	_, err = tx.Exec(`UPDATE games SET pass_count = pass_count + 1 WHERE id = $1`, gameID)
+	if err != nil {
+		return err
+	}
+
+	// Récupère position du joueur
+	var position int
+	err = tx.QueryRow(`SELECT position FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&position)
+	if err != nil {
+		return err
+	}
+
+	// Détermine prochain joueur
+	var nextPlayer int64
+	err = tx.QueryRow(`
+		SELECT player_id FROM game_players
+		WHERE game_id = $1 AND position = (($2 + 1) % (SELECT COUNT(*) FROM game_players WHERE game_id = $1))
+	`, gameID, position).Scan(&nextPlayer)
+	if err != nil {
+		return err
+	}
+
+	// Met à jour le joueur courant
+	_, err = tx.Exec(`UPDATE games SET current_turn = $1 WHERE id = $2`, nextPlayer, gameID)
+	if err != nil {
+		return err
+	}
+
+	// Vérifie si la partie est terminée (ex : 2 passes consécutives pour 2 joueurs, ou plus si tu veux)
+	var passCount int
+	err = tx.QueryRow(`SELECT pass_count FROM games WHERE id = $1`, gameID).Scan(&passCount)
+	if err != nil {
+		return err
+	}
+	if passCount >= 2*2 { // 2 passes chacun dans une partie à 2
+		_, err = tx.Exec(`UPDATE games SET status = 'ended' WHERE id = $1`, gameID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }

@@ -15,6 +15,10 @@ func Migrate() error {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
+	if err := migrateAddPassCount(); err != nil {
+		return fmt.Errorf("migration failed: %w", err)
+	}
+
 	if err := createGamePlayersTable(); err != nil {
 		return fmt.Errorf("migration failed: %w", err)
 	}
@@ -82,6 +86,18 @@ func createGameTable() error {
 	_, err := Query(query)
 	if err != nil {
 		return fmt.Errorf("failed to create users table: %w", err)
+	}
+	return nil
+}
+
+func migrateAddPassCount() error {
+	query := `
+		ALTER TABLE games
+		ADD COLUMN IF NOT EXISTS pass_count INT NOT NULL DEFAULT 0;
+	`
+	_, err := Query(query)
+	if err != nil {
+		return fmt.Errorf("failed to add pass_count to games: %w", err)
 	}
 	return nil
 }

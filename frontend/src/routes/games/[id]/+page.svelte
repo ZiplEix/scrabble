@@ -41,7 +41,6 @@
 		try {
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
-			// originalRack.set([...game!.your_rack]);
 			originalRack.set(game!.your_rack.split('').map((char, i) => ({
 				id: `${i}-${char}-${crypto.randomUUID()}`,
 				char
@@ -125,7 +124,6 @@
 			await api.post(`/game/${gameId}/play`, body);
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
-			// originalRack.set([...game!.your_rack]);
 			originalRack.set(game!.your_rack.split('').map((char, i) => ({
 				id: `${i}-${char}-${crypto.randomUUID()}`,
 				char
@@ -144,17 +142,34 @@
 
 		try {
 			const res = await api.get(`/game/${gameId}/new_rack`);
-			const newRack = res.data;
+			const newRack = res.data as string[];
+			console.log('Nouveau rack:', newRack);
 			if (newRack.length === 0) {
 				alert('Plus de lettres disponibles dans le sac.');
 				return;
 			}
-			originalRack.set(newRack);
+			originalRack.set(newRack.map((char, i) => ({
+				id: `${i}-${char}-${crypto.randomUUID()}`,
+				char
+			})));
 			pendingMove.set([]);
 			selectedLetter.set(null);
 		} catch (e: any) {
 			const msg = e?.response?.data?.message || 'Erreur lors du tirage d\'un nouveau rack.';
 			console.error(e);
+			alert(msg);
+		}
+	}
+
+	async function passTurn() {
+		const ok = confirm('Êtes-vous sûr de vouloir passer votre tour ?');
+		if (!ok) return;
+		try {
+			await api.post(`/game/${gameId}/pass`);
+			const res = await api.get(`/game/${gameId}`);
+			game = res.data;
+		} catch (e: any) {
+			const msg = e?.response?.data?.message || 'Erreur lors du passage du tour.';
 			alert(msg);
 		}
 	}
@@ -168,7 +183,7 @@
 	<!-- Header: nom + tour + bouton classement -->
 	<div class="px-4 pt-3 pb-1 w-full flex justify-between items-center">
 		<div>
-			<h2 class="text-lg font-semibold text-gray-800">{game.name}</h2>
+			<h2 class="text-xl font-bold text-gray-800">{game.name}</h2>
 			<p class="text-sm text-gray-600">Tour de : <strong>{game.current_turn_username}</strong></p>
 			<p class="text-xs text-gray-500">Lettres restantes : <strong>{game.remaining_letters}</strong></p>
 		</div>
@@ -189,9 +204,15 @@
 		</div>
 	</div>
 
+	<div class="text-center mt-2 mb-1">
+		<span class="inline-block bg-yellow-100 text-yellow-800 font-semibold text-lg px-4 py-2 rounded shadow">
+			Score du coup : <strong>{$moveScore}</strong>
+		</span>
+	</div>
+
 	<!-- Plateau + rack -->
 	<div class="flex flex-col items-center justify-center w-full gap-2 px-2"
-    	style="min-height: calc(100vh - 220px);">
+    	style="min-height: calc(100vh - 320px);">
 		<!-- Plateau -->
 		<div class="max-w-[95vw] w-full aspect-square">
 			<Board
@@ -230,22 +251,13 @@
 
 	<!-- Actions sticky -->
 	<div class="fixed bottom-0 left-0 w-full bg-white border-t shadow-inner px-4 py-3 flex justify-between items-center">
-		<span class="text-sm font-medium">
-			Score :
-			<strong>{$moveScore === undefined ? '...' : $moveScore}</strong>
-		</span>
 		<div class="flex gap-3">
-			<button class="bg-green-600 text-white px-4 py-2 rounded shadow" onclick={playMove}>
-				Valider
-			</button>
-			<button class="bg-gray-400 text-white px-4 py-2 rounded shadow" onclick={() => {
-				pendingMove.set([]); selectedLetter.set(null);
-			}}>
-				Annuler
-			</button>
-			<button class="bg-orange-500 text-white px-4 py-2 rounded shadow" onclick={drawNewRack}>
-				Échanger
-			</button>
+			<button class="bg-gray-400 text-white px-4 py-2 rounded shadow" onclick={() => { pendingMove.set([]); selectedLetter.set(null); }}>Annuler</button>
+			<button class="bg-red-500 text-white px-4 py-2 rounded shadow" onclick={passTurn}>Passer</button>
+		</div>
+		<div class="flex gap-3">
+			<button class="bg-orange-500 text-white px-4 py-2 rounded shadow" onclick={drawNewRack}>Échanger</button>
+			<button class="bg-green-600 text-white px-4 py-2 rounded shadow" onclick={playMove}>Valider</button>
 		</div>
 	</div>
 

@@ -189,3 +189,22 @@ func SimulateScore(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]int{"score": score})
 }
+
+func PassTurn(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	gameID := c.Param("id")
+	if gameID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "missing game id")
+	}
+
+	err := services.PassTurn(userID, gameID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	return c.NoContent(http.StatusOK)
+}
