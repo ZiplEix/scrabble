@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 
 	let name = '';
 	let error = '';
@@ -8,6 +9,28 @@
 
 	let newPlayer = '';
 	let players: string[] = [];
+
+	let suggestions: string[] = [];
+
+	let debounceTimeout: ReturnType<typeof setTimeout>;
+
+	$: if (newPlayer.length >= 2) {
+		clearTimeout(debounceTimeout);
+		debounceTimeout = setTimeout(async () => {
+			try {
+				const res = await api.get('/users/suggest?q=' + encodeURIComponent(newPlayer));
+				suggestions = res.data.map((u: any) => u.username);
+			} catch (e) {
+				suggestions = [];
+			}
+		}, 200);
+	} else {
+		suggestions = [];
+	}
+
+	onDestroy(() => {
+		clearTimeout(debounceTimeout);
+	});
 
 	function addPlayer() {
 		const trimmed = newPlayer.trim();
@@ -58,11 +81,18 @@
 
 		<div class="flex gap-2">
 			<input
+				list="user-suggestions"
 				class="border rounded px-4 py-3 text-sm flex-grow focus:outline-none focus:ring-2 focus:ring-green-500"
 				type="text"
 				placeholder="Ajouter un joueur (ex: alice)"
 				bind:value={newPlayer}
 			/>
+			<datalist id="user-suggestions">
+				{#each suggestions as user}
+					<option value={user} ></option>
+				{/each}
+			</datalist>
+
 			<button
 				type="button"
 				on:click={addPlayer}
