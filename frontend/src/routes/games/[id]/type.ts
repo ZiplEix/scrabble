@@ -21,4 +21,5 @@ type GameInfo = {
     current_turn: number;
     current_turn_username: string;
     status: string;
+    remaining_letters: number;
 };

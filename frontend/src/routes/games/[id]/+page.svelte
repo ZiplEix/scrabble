@@ -172,6 +172,7 @@
 		<div>
 			<h2 class="text-lg font-semibold text-gray-800">{game.name}</h2>
 			<p class="text-sm text-gray-600">Tour de : <strong>{game.current_turn_username}</strong></p>
+			<p class="text-xs text-gray-500">Lettres restantes : <strong>{game.remaining_letters}</strong></p>
 		</div>
 		<!-- Actions: classement + report -->
 		<div class="flex flex-col items-end gap-2">
