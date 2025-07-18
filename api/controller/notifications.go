@@ -35,12 +35,12 @@ func PushSubscribe(c echo.Context) error {
 }
 
 func SendTest(c echo.Context) error {
-	payload, _ := json.Marshal(map[string]string{
-		"title": "Test Notification",
-		"body":  "Hello depuis le serveur 😄",
-	})
+	payload := utils.NotificationPayload{
+		Title: "Test Notification",
+		Body:  "Hello depuis le serveur 😄",
+	}
 
-	err := utils.SendNotificationToUserByID(3, string(payload))
+	err := utils.SendNotificationToUserByID(3, payload)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to send notification"})
 	}

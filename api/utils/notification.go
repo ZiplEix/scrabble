@@ -15,7 +15,12 @@ type Subscription struct {
 	Keys           map[string]string `json:"keys"` // p256dh, auth
 }
 
-func SendNotificationToUserByID(userID int64, payload string) error {
+type NotificationPayload struct {
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
+func SendNotificationToUserByID(userID int64, payload NotificationPayload) error {
 	sub, err := GetPushSubscription(userID)
 	if err != nil {
 		return err
@@ -24,7 +29,12 @@ func SendNotificationToUserByID(userID int64, payload string) error {
 		return fmt.Errorf("no push subscription found for user ID %d", userID)
 	}
 
-	return SendNotification(*sub, payload)
+	payloadString, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal notification payload: %w", err)
+	}
+
+	return SendNotification(*sub, string(payloadString))
 }
 
 func SendNotification(sub Subscription, message string) error {
