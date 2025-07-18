@@ -36,7 +36,6 @@
 
 	async function askNotificationPermission() {
 		const permission = await Notification.requestPermission();
-		console.log("Permission:", permission);
 		showBanner = false;
 
 		if (permission === "granted") {
