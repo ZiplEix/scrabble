@@ -15,9 +15,27 @@
 	let originalRack: string[] = [];
 	let showScores = $state(false);
 
-	let moveScore = derived(pendingMove, (moves) => {
-		return computeWordValue(moves);
-	});
+	// let moveScore = derived(pendingMove, (moves) => {
+	// 	return computeWordValue(moves);
+	// });
+
+	let moveScore = derived(
+		[pendingMove, page],
+		([$moves, $page], set) => {
+			if (!$moves.length || !game) return set(0);
+			set(undefined);
+
+			api.post(`/game/${$page.params.id}/simulate_score`, {
+				letters: $moves.map(m => ({
+					x: m.x,
+					y: m.y,
+					char: m.letter.toUpperCase()
+				}))
+			})
+			.then(res => set(res.data.score))
+			.catch(() => set(0));
+		}
+	)
 
 	onMount(async () => {
 		gameId = $page.params.id;
@@ -203,7 +221,10 @@
 
 	<!-- Actions sticky -->
 	<div class="fixed bottom-0 left-0 w-full bg-white border-t shadow-inner px-4 py-3 flex justify-between items-center">
-		<span class="text-sm font-medium">Score : <strong>{$moveScore}</strong></span>
+		<span class="text-sm font-medium">
+			Score :
+			<strong>{$moveScore === undefined ? '...' : $moveScore}</strong>
+		</span>
 		<div class="flex gap-3">
 			<button class="bg-green-600 text-white px-4 py-2 rounded shadow" onclick={playMove}>
 				Valider
