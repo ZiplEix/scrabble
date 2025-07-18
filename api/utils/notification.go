@@ -24,7 +24,7 @@ type NotificationPayload struct {
 func SendNotificationToUserByID(userID int64, payload NotificationPayload) error {
 	sub, err := GetPushSubscription(userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get push subscription for user ID %d: %w", userID, err)
 	}
 	if sub == nil {
 		return fmt.Errorf("no push subscription found for user ID %d", userID)
