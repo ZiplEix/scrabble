@@ -1,50 +1,91 @@
 <script lang="ts">
-    import { specialCells } from '$lib/cells';
-  	import { letterValues } from '$lib/lettres_value';
+    import { derived } from 'svelte/store';
+	import { specialCells } from '$lib/cells';
 	import { pendingMove } from '$lib/stores/pendingMove';
+  	import { letterValues } from '$lib/lettres_value';
 
 	export let game: any;
 	export let onPlaceLetter: (x: number, y: number, cell: string) => void;
+
+	type DisplayCell = {
+		x: number;
+		y: number;
+		char: string;
+		points: number | null;
+		className: string;
+	};
+
+	const computedBoard = derived(pendingMove, ($pendingMove) => {
+		if (!game) return [];
+
+		return game.board.map((row: string[], y: number) =>
+			row.map((cell: string, x: number): DisplayCell => {
+				const key = `${y},${x}`;
+				const special = specialCells.get(key);
+				const pending = $pendingMove.find((p) => p.x === x && p.y === y);
+				const displayed = cell || pending?.letter || special || '';
+				const isPlacedLetter = cell !== "" && !pending;
+
+				let base = "relative aspect-square w-full text-center flex items-center justify-center border border-gray-300 cursor-pointer select-none overflow-hidden";
+				let color = "";
+
+				if (isPlacedLetter) {
+					color = "bg-white text-yellow-800 rounded font-bold";
+				} else if (pending) {
+					color = "bg-white text-red-700 font-extrabold rounded";
+				} else {
+					switch (special) {
+						case "TW":
+							color = "bg-red-500 text-white text-xs";
+							break;
+						case "DW":
+						case "★":
+							color = "bg-pink-300 text-xs";
+							break;
+						case "TL":
+							color = "bg-blue-700 text-white text-xs";
+							break;
+						case "DL":
+							color = "bg-blue-400 text-xs";
+							break;
+						default:
+							color = "bg-green-600";
+							break;
+					}
+				}
+
+				return {
+					x, y,
+					char: displayed,
+					points: /^[A-Z]$/.test(displayed) ? letterValues[displayed] : null,
+					className: `${base} ${color}`
+				};
+			})
+		);
+	});
 </script>
 
 <div class="grid grid-cols-15 gap-[1px] border border-amber-500 w-full max-w-[95vw] mx-auto bg-amber-500">
-	{#each game.board as row, y}
-		{#each row as cell, x}
-			{@const key = `${y},${x}`}
-			{@const type = specialCells.get(key)}
-			{@const pending = $pendingMove.find(p => p.x === x && p.y === y)}
-			{@const displayed = cell || pending?.letter || type}
-			{@const isPlacedLetter = cell !== "" && !pending}
-			{@const bg = isPlacedLetter
-				? "bg-white text-yellow-800 rounded font-bold"
-				: type === "TW" ? "bg-red-500 text-white text-xs"
-				: type === "DW" || type === "★" ? "bg-pink-300 text-xs"
-				: type === "TL" ? "bg-blue-700 text-white text-xs"
-				: type === "DL" ? "bg-blue-400 text-xs"
-				: "bg-green-600"}
-
+	{#each $computedBoard as row}
+		{#each row as cell (cell.x + '-' + cell.y)}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class={`relative aspect-square w-full text-center flex items-center justify-center border border-gray-300
-					cursor-pointer select-none overflow-hidden
-					${bg}
-					${pending ? 'bg-white text-red-700 font-extrabold rounded' : ''}`}
-				on:click={() => {
-					onPlaceLetter(x, y, cell);
-				}}
+				class={cell.className}
+				on:click={() => onPlaceLetter(cell.x, cell.y, game.board[cell.y][cell.x])}
 			>
-				<span>{displayed}</span>
+				<span>{cell.char}</span>
 
-				{#if /^[A-Z]$/.test(displayed)}
+				{#if cell.points !== null}
 					<span class="absolute bottom-[-1.5px] right-[0px] text-[8px] text-gray-600">
-						{letterValues[displayed]}
+						{cell.points}
 					</span>
 				{/if}
 			</div>
 		{/each}
 	{/each}
 </div>
+
 
 <style>
 	:global(.grid-cols-15) {
