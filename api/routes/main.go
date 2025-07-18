@@ -14,4 +14,5 @@ func SetupRoutes(e *echo.Echo) {
 	setupAuthRoutes(e)
 	setupGameRoutes(e)
 	setupReportRoutes(e)
+	setupUsersRoutes(e)
 }
