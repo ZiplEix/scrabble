@@ -1,25 +1,8 @@
 <script lang="ts">
     import Navbar from '$lib/components/Navbar.svelte';
-    import { onMount } from 'svelte';
     import '../app.css';
-    import { registerSW } from '$lib/serviceWorker';
-    import { browser } from '$app/environment';
 
     let { children } = $props();
-
-    onMount(() => {
-        if (browser) {
-            registerSW(() => {
-                if (confirm("Une nouvelle version est disponible. Voulez-vous recharger ?")) {
-                    navigator.serviceWorker.getRegistration().then(reg => {
-                        if (reg?.waiting) {
-                            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                        }
-                    });
-                }
-            });
-        }
-    });
 </script>
 
 <svelte:head>
