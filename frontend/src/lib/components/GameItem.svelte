@@ -46,9 +46,9 @@
 <div class="relative bg-slate-50 rounded shadow-md p-4 flex flex-col gap-2">
 	<!-- Pastille statut tour -->
 	{#if get(user)?.username === game.current_turn_username}
-		<div class="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-green-500" title="C'est votre tour"></div>
+		<div class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-orange-400" title="C'est votre tour"></div>
 	{:else}
-		<div class="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-orange-400" title="Tour de l'autre joueur"></div>
+		<div class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-green-500" title="Tour de l'autre joueur"></div>
 	{/if}
 
 	<a href={`/games/${game.id}`} class="flex flex-col gap-1">
