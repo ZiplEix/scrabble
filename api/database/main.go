@@ -44,10 +44,7 @@ func Query(query string, args ...any) (*sql.Rows, error) {
 		return nil, fmt.Errorf("database connection is not initialized")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rows, err := DB.QueryContext(ctx, query, args...)
+	rows, err := DB.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -59,10 +56,7 @@ func QueryRow(query string, args ...any) *sql.Row {
 		log.Fatal("database connection is not initialized")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	return DB.QueryRowContext(ctx, query, args...)
+	return DB.QueryRow(query, args...)
 }
 
 func Exec(query string, args ...any) (sql.Result, error) {
@@ -71,10 +65,7 @@ func Exec(query string, args ...any) (sql.Result, error) {
 		return nil, fmt.Errorf("database connection is not initialized")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	result, err := DB.ExecContext(ctx, query, args...)
+	result, err := DB.Exec(query, args...)
 	if err != nil {
 		log.Printf("Exec error: %v", err)
 		return nil, fmt.Errorf("failed to execute statement: %w", err)

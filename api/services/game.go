@@ -630,6 +630,10 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 		games = append(games, g)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over game rows: %w", err)
+	}
+
 	return games, nil
 }
 
