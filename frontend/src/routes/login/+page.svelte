@@ -15,7 +15,7 @@
 			user.set({ username: userNameToStore, token: res.data.token });
 			goto('/');
 		} catch (err: any) {
-			error = err?.response?.data?.error || 'Échec de la connexion';
+			error = err?.response?.data?.message || 'Échec de la connexion';
 		}
 	}
 </script>

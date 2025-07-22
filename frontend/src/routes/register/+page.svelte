@@ -14,7 +14,7 @@
 			user.set({ username, token: res.data.token });
 			goto('/');
 		} catch (err: any) {
-			error = err?.response?.data?.error || 'Échec de l’inscription';
+			error = err?.response?.data?.message || 'Échec de l’inscription';
 		}
 	}
 </script>
