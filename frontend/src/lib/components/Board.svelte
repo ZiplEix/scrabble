@@ -17,13 +17,14 @@
 		className: string;
 	};
 
-	const lastMoveCoords = (() => {
+	let lastMoveCoords = $derived((() => {
 		if (!game?.moves?.length) return [];
 		const last = game.moves[game.moves.length - 1];
 		return last
 			? (last.move.letters).map(m => ({ x: m.x, y: m.y }))
 			: [];
-	})();
+		})()
+	)
 
 	const computedBoard = derived(pendingMove, ($pendingMove) => {
 		if (!game) return [];
