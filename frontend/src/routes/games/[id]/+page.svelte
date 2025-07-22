@@ -7,6 +7,8 @@
 	import { pendingMove, selectedLetter } from '$lib/stores/pendingMove';
 	import { letterValues } from '$lib/lettres_value';
 	import { dndzone } from 'svelte-dnd-action';
+  import { flip } from 'svelte/animate';
+  import { cubicOut } from 'svelte/easing';
 
 	let gameId = '';
 	let game = $state<GameInfo | null>(null);
@@ -241,6 +243,7 @@
 					class="relative w-12 h-12 rounded shadow text-center text-lg font-bold flex items-center justify-center border cursor-pointer
 						{ $selectedLetter === item.char ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
 					onclick={() => onSelectLetter(item.char)}
+					animate:flip={{ duration: 200, easing: cubicOut }}
 				>
 					{item.char}
 					<span class="absolute bottom-0.5 right-1 text-xs font-normal text-gray-600">{letterValues[item.char]}</span>
