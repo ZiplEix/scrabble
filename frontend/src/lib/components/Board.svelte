@@ -4,8 +4,10 @@
 	import { pendingMove } from '$lib/stores/pendingMove';
   	import { letterValues } from '$lib/lettres_value';
 
-	export let game: any;
-	export let onPlaceLetter: (x: number, y: number, cell: string) => void;
+	let { game, onPlaceLetter }: {
+		game: GameInfo | null;
+		onPlaceLetter: (x: number, y: number, cell: string) => void;
+	} = $props();
 
 	type DisplayCell = {
 		x: number;
@@ -14,6 +16,14 @@
 		points: number | null;
 		className: string;
 	};
+
+	const lastMoveCoords = (() => {
+		if (!game?.moves?.length) return [];
+		const last = game.moves[game.moves.length - 1];
+		return last
+			? (last.move.letters).map(m => ({ x: m.x, y: m.y }))
+			: [];
+	})();
 
 	const computedBoard = derived(pendingMove, ($pendingMove) => {
 		if (!game) return [];
@@ -25,12 +35,15 @@
 				const pending = $pendingMove.find((p) => p.x === x && p.y === y);
 				const displayed = cell || pending?.letter || special || '';
 				const isPlacedLetter = cell !== "" && !pending;
+				const inLastTurn = lastMoveCoords.some(p => p.x === x && p.y === y);
 
 				let base = "relative aspect-square w-full text-center flex items-center justify-center border border-gray-300 cursor-pointer select-none overflow-hidden";
 				let color = "";
 
 				if (isPlacedLetter) {
-					color = "bg-white text-yellow-800 rounded font-bold";
+					color = inLastTurn
+						? "bg-orange-200 text-yellow-800 rounded font-bold"  // dernier coup
+						: "bg-white text-yellow-800 rounded font-bold";     // anciens coups
 				} else if (pending) {
 					color = "bg-white text-red-700 font-extrabold rounded";
 				} else {
@@ -72,7 +85,7 @@
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				class={cell.className}
-				on:click={() => onPlaceLetter(cell.x, cell.y, game.board[cell.y][cell.x])}
+				onclick={() => onPlaceLetter(cell.x, cell.y, game!.board[cell.y][cell.x])}
 			>
 				<span>{cell.char}</span>
 

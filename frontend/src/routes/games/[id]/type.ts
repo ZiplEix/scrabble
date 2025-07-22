@@ -5,9 +5,22 @@ type PlayerInfo = {
     position: number;
 };
 
+type MoveData = {
+    dir: 'H' | 'V';
+    letters: {
+        char: string;
+        x: number;
+        y: number;
+    }[];
+    score: number;
+    word: string;
+    x: number;
+    y: number;
+}
+
 type MoveInfo = {
     player_id: number;
-    move: any;
+    move: MoveData;
     played_at: string;
 };
 
