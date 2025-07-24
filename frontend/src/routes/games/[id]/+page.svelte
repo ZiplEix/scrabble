@@ -7,8 +7,10 @@
 	import { pendingMove, selectedLetter } from '$lib/stores/pendingMove';
 	import { letterValues } from '$lib/lettres_value';
 	import { dndzone } from 'svelte-dnd-action';
-  import { flip } from 'svelte/animate';
-  import { cubicOut } from 'svelte/easing';
+	import { flip } from 'svelte/animate';
+	import { cubicOut } from 'svelte/easing';
+	import { goto } from '$app/navigation';
+	import { user } from '$lib/stores/user';
 
 	let gameId = '';
 	let game = $state<GameInfo | null>(null);
@@ -17,6 +19,12 @@
 	type RackLetter = { id: string; char: string };
 	let originalRack = writable<RackLetter[]>([]);
 	let showScores = $state(false);
+
+	let sortedPlayers = $derived((() => {
+		return game
+			? [...game.players].sort((a, b) => b.score - a.score)
+			: [];
+	}))
 
 	let moveScore = derived(
 		[pendingMove, page],
@@ -43,6 +51,7 @@
 		try {
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
+			console.log('Game data:', $state.snapshot(game));
 			originalRack.set(game!.your_rack.split('').map((char, i) => ({
 				id: `${i}-${char}-${crypto.randomUUID()}`,
 				char
@@ -51,6 +60,10 @@
 			error = e?.response?.data?.error || 'Erreur lors du chargement de la partie';
 		} finally {
 			loading = false;
+
+			if (game?.status === 'ended') {
+				showScores = true;
+			}
 		}
 	});
 
@@ -175,6 +188,27 @@
 			alert(msg);
 		}
 	}
+
+	async function handleRematch() {
+		const defaultName = `${game!.name} – revanche`;
+		const newName = prompt('Nom de la nouvelle partie :', defaultName);
+		if (!newName) return;
+
+		const currentUsername = get(user)?.username;
+		const opponents = game!.players
+			.map(p => p.username)
+			.filter(u => u && u !== currentUsername);
+
+		try {
+			const res = await api.post('/game', {
+				name: newName,
+				players: opponents,
+			});
+      		goto(`/games/${res.data.game_id}`);
+    	} catch (err: any) {
+      		alert(err?.response?.data?.message || 'Impossible de créer la revanche.');
+    	}
+  	}
 </script>
 
 {#if loading}
@@ -208,7 +242,13 @@
 
 	<div class="text-center mt-2 mb-1">
 		<span class="inline-block bg-yellow-100 text-yellow-800 font-semibold text-lg px-4 py-2 rounded shadow">
-			Score du coup : <strong>{$moveScore}</strong>
+			{#if game?.status === 'ended'}
+				Partie terminée !
+				<br />
+				Vainqueur : <strong>{game.winner_username}</strong>
+			{:else}
+				Score du coup : <strong>{$moveScore}</strong>
+			{/if}
 		</span>
 	</div>
 
@@ -268,19 +308,46 @@
 	{#if showScores}
 		<div class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
 			<div class="bg-white rounded-lg shadow-lg w-[90vw] max-w-sm p-6">
-				<h3 class="text-lg font-semibold mb-4 text-center">Classement</h3>
+				{#if game?.status === 'ended'}
+					<h3 class="text-lg font-semibold mb-2 text-center">
+						🎉 Partie terminée – Vainqueur : <span class="text-green-600 font-semibold">{game.winner_username}</span>
+					</h3>
+					<p class="text-center text-sm text-gray-600 mb-4">
+						Terminée le {new Date(game.ended_at!).toLocaleString('fr-FR')}
+					</p>
+				{:else}
+					<h3 class="text-lg font-semibold mb-4 text-center">Classement</h3>
+				{/if}
 				<div class="flex flex-col gap-2">
-					{#each game.players as player}
+					{#each game.players as player, i}
 						<div class="flex justify-between items-center p-2 rounded border
 							{player.id === game.current_turn ? 'bg-green-100 border-green-400' : 'bg-gray-50'}">
-							<span>{player.username}</span>
+							<span>
+								{#if game?.status === 'ended'}
+									{i+1}.&nbsp;
+								{/if}
+								{player.username}
+							</span>
 							<span class="font-bold">{player.score}</span>
 						</div>
 					{/each}
 				</div>
-				<button class="mt-6 w-full bg-gray-300 py-2 rounded hover:bg-gray-400" onclick={() => showScores = false}>
-					Fermer
-				</button>
+				<div class="mt-6 flex gap-2">
+					{#if game?.status === 'ended'}
+						<button
+							class="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+							onclick={handleRematch}
+						>
+             				🔁 Rejouer
+           				</button>
+         			{/if}
+         			<button
+           				class="flex-1 bg-gray-300 py-2 rounded hover:bg-gray-400"
+           				onclick={() => showScores = false}
+         			>
+           				Fermer
+         			</button>
+       			</div>
 			</div>
 		</div>
 	{/if}

@@ -6,7 +6,8 @@
     import type { GameSummary } from "$lib/types/game_summary";
   	import { onMount } from "svelte";
 
-    let games: GameSummary[] = [];
+    let games: GameSummary[] = $state<GameSummary[]>([]);
+	let showFinished = $state(false);
 
 	onMount(async () => {
 		if ($user) {
@@ -18,6 +19,11 @@
 			}
 		}
 	});
+
+	let visibleGames = $derived(showFinished
+		? games
+		: games.filter(g => g.status === 'ongoing')
+	)
 
     function createGame() {
 		goto('/games/new');
@@ -51,13 +57,37 @@
 </script>
 
 <div class="mb-6">
-    <h2 class="text-xl font-semibold mb-2">Mes parties en cours</h2>
+    {#if !showFinished}
+     	<h2 class="text-xl font-semibold mb-2">Mes parties en cours</h2>
+   	{:else}
+     	<h2 class="text-xl font-semibold mb-2">Toutes mes parties</h2>
+   	{/if}
     <GameList
-        {games}
+        games={visibleGames}
         {onDelete}
         {onRename}
     />
 </div>
-<button on:click={createGame} class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+
+<!-- Bouton pour basculer l’affichage des terminées -->
+<div class="mb-6">
+	{#if !showFinished}
+		<button
+			class="text-sm text-blue-600 hover:underline"
+			onclick={() => showFinished = true}
+		>
+			Voir les parties terminées
+		</button>
+	{:else}
+		<button
+			class="text-sm text-blue-600 hover:underline"
+			onclick={() => showFinished = false}
+		>
+			Masquer les parties terminées
+		</button>
+	{/if}
+</div>
+
+<button onclick={createGame} class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
     Créer une nouvelle partie
 </button>

@@ -35,4 +35,6 @@ type GameInfo = {
     current_turn_username: string;
     status: string;
     remaining_letters: number;
+    winner_username?: string;
+    ended_at?: string;
 };
