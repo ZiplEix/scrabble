@@ -246,3 +246,82 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 
 	return nil
 }
+
+func EndGameBackTracker() error {
+	rows, err := database.Query(`
+        SELECT id, pass_count, available_letters
+        FROM games
+    `)
+	if err != nil {
+		return fmt.Errorf("failed to select games for backfill: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			gameID       string
+			passCount    int
+			availLetters string
+		)
+		if err := rows.Scan(&gameID, &passCount, &availLetters); err != nil {
+			return err
+		}
+
+		// Nombre de joueurs dans la partie
+		var playerCount int
+		if err := database.QueryRow(
+			`SELECT COUNT(*) FROM game_players WHERE game_id = $1`,
+			gameID,
+		).Scan(&playerCount); err != nil {
+			return err
+		}
+
+		// On ouvre une transaction pour appliquer finishGame
+		// tx, err := database.Begin()
+		tx, err := database.DB.Begin()
+		if err != nil {
+			return err
+		}
+
+		ended := false
+		var lastPlayerID int64
+
+		// 2.a) fin par passes successives ?
+		if passCount >= playerCount*2 {
+			ended = true
+			// lastPlayerID = 0 → finishGame fera juste les retraits de racks
+		} else if len(availLetters) == 0 {
+			// 2.b) fin par épuisement du sac + rack vide ?
+			// on recherche un joueur dont le rack est vide
+			err := tx.QueryRow(
+				`SELECT player_id FROM game_players WHERE game_id=$1 AND rack = '' LIMIT 1`,
+				gameID,
+			).Scan(&lastPlayerID)
+			if err != nil && err != sql.ErrNoRows {
+				tx.Rollback()
+				return err
+			}
+			if lastPlayerID != 0 {
+				ended = true
+			}
+		}
+
+		if ended {
+			// appliquer les pénalités et bonus, et écrire ended_at + winner_username
+			if err := finishGame(tx, gameID, lastPlayerID); err != nil {
+				tx.Rollback()
+				return err
+			}
+		} else {
+			// pas terminé → on annule la tx
+			tx.Rollback()
+			continue
+		}
+
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	}
+
+	return rows.Err()
+}
