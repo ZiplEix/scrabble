@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -172,4 +173,76 @@ func computeMoveScore(board [15][15]string, placed []request.PlacedLetter) int {
 		total += 50
 	}
 	return total
+}
+
+func rackPoints(rack string) int {
+	pts := 0
+	for _, c := range rack {
+		pts += word.LetterValues[strings.ToUpper(string(c))]
+	}
+	return pts
+}
+
+func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
+	rows, err := tx.Query(
+		`SELECT player_id, rack FROM game_players WHERE game_id = $1`, gameID,
+	)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	totalLeftover := 0
+	for rows.Next() {
+		var pid int64
+		var rack string
+		if err := rows.Scan(&pid, &rack); err != nil {
+			return err
+		}
+		lp := rackPoints(rack)
+		// retire les points non joués
+		if _, err := tx.Exec(
+			`UPDATE game_players SET score = score - $1 WHERE game_id = $2 AND player_id = $3`,
+			lp, gameID, pid,
+		); err != nil {
+			return err
+		}
+		// cumule pour le bonus
+		if pid != lastPlayerID {
+			totalLeftover += lp
+		}
+	}
+	// bonus pour le finisseur (si lastPlayerID != 0)
+	if lastPlayerID != 0 && totalLeftover > 0 {
+		if _, err := tx.Exec(
+			`UPDATE game_players SET score = score + $1 WHERE game_id = $2 AND player_id = $3`,
+			totalLeftover, gameID, lastPlayerID,
+		); err != nil {
+			return err
+		}
+	}
+
+	// on marque la partie terminée, stocke le vainqueur et l'heure
+	var winnerUsername sql.NullString
+	if lastPlayerID != 0 {
+		// on récupère le username du vainqueur
+		if err := tx.QueryRow(
+			`SELECT username FROM users WHERE id = $1`, lastPlayerID,
+		).Scan(&winnerUsername); err != nil {
+			return err
+		}
+	}
+	_, err = tx.Exec(
+		`UPDATE games
+           SET status           = 'ended',
+               winner_username  = $1,
+               ended_at         = now()
+         WHERE id = $2`,
+		winnerUsername.String, gameID,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

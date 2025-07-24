@@ -261,7 +261,6 @@ func GetNewRack(c echo.Context) error {
 func GetUserGames(c echo.Context) error {
 	userID, ok := utils.GetUserID(c)
 	if !ok {
-		// return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 		return c.JSON(http.StatusUnauthorized, echo.Map{
 			"error":   "unauthorized, no user_id",
 			"message": "Vous devez être connecté pour accéder à vos parties",

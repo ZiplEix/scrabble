@@ -201,23 +201,37 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 
 	// 2. Récupère info partie
 	gameQuery := `
-		SELECT id, name, board, available_letters, current_turn, status
-		FROM games
-		WHERE id = $1
-	`
+       SELECT id, name, board, available_letters,
+              current_turn, status,
+              winner_username, ended_at
+       FROM games
+       WHERE id = $1
+    `
 	var (
-		boardJSON []byte
-		avail     string
-		game      response.GameInfo
+		boardJSON      []byte
+		avail          string
+		game           response.GameInfo
+		winnerUsername sql.NullString
+		endedAt        sql.NullTime
 	)
 	err = database.QueryRow(gameQuery, gameID).Scan(
-		&game.ID, &game.Name, &boardJSON, &avail, &game.CurrentTurn, &game.Status,
+		&game.ID, &game.Name, &boardJSON, &avail,
+		&game.CurrentTurn, &game.Status,
+		&winnerUsername, &endedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
 	game.RemainingLetters = len(avail)
 	_ = json.Unmarshal(boardJSON, &game.Board)
+
+	// transfert dans le DTO
+	if winnerUsername.Valid {
+		game.WinnerUsername = winnerUsername.String
+	}
+	if endedAt.Valid {
+		game.EndedAt = &endedAt.Time
+	}
 
 	// 3. Récupère ton rack
 	err = database.QueryRow(`SELECT rack FROM game_players WHERE game_id=$1 AND player_id=$2`,
@@ -467,6 +481,18 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	if err != nil {
 		return err
 	}
+
+	// Si le rack du joueur est vide ET que le sac est vide, on termine la partie
+	var bag string
+	if err := tx.QueryRow(
+		`SELECT available_letters FROM games WHERE id = $1`, gameID,
+	).Scan(&bag); err != nil {
+		return err
+	}
+	if len(newRack) == 0 && len(bag) == 0 {
+		return finishGame(tx, gameID, userID)
+	}
+	// Sinon, passe au joueur suivant
 	_, err = tx.Exec(`UPDATE games SET current_turn = $1 WHERE id = $2`, nextPlayerID, gameID)
 	if err != nil {
 		return err
@@ -597,6 +623,7 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 		SELECT
 			g.id,
 			g.name,
+			g.status,
 			g.current_turn,
 			u.username,
 			COALESCE((
@@ -609,9 +636,8 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 		JOIN users u ON u.id = g.current_turn
 		JOIN game_players gp ON gp.game_id = g.id
 		WHERE gp.player_id = $1
-		AND g.status = 'ongoing'
 		ORDER BY last_play_time DESC
-	`
+   	`
 
 	rows, err := database.Query(query, userID)
 	if err != nil {
@@ -623,7 +649,15 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 
 	for rows.Next() {
 		var g response.GameSummary
-		err := rows.Scan(&g.ID, &g.Name, &g.CurrentTurnUserID, &g.CurrentTurnUsername, &g.LastPlayTime, &g.IsYourGame)
+		err := rows.Scan(
+			&g.ID,
+			&g.Name,
+			&g.Status,
+			&g.CurrentTurnUserID,
+			&g.CurrentTurnUsername,
+			&g.LastPlayTime,
+			&g.IsYourGame,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan game row: %w", err)
 		}
@@ -709,17 +743,34 @@ func PassTurn(userID int64, gameID string) error {
 		return err
 	}
 
-	// Vérifie si la partie est terminée (ex : 2 passes consécutives pour 2 joueurs, ou plus si tu veux)
-	var passCount int
-	err = tx.QueryRow(`SELECT pass_count FROM games WHERE id = $1`, gameID).Scan(&passCount)
-	if err != nil {
+	// // Vérifie si la partie est terminée (ex : 2 passes consécutives pour 2 joueurs, ou plus si tu veux)
+	// var passCount int
+	// err = tx.QueryRow(`SELECT pass_count FROM games WHERE id = $1`, gameID).Scan(&passCount)
+	// if err != nil {
+	// 	return err
+	// }
+	// if passCount >= 2*2 { // 2 passes chacun dans une partie à 2
+	// 	_, err = tx.Exec(`UPDATE games SET status = 'ended' WHERE id = $1`, gameID)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+
+	// Fin de partie si chaque joueur a passé deux fois
+	var passCount, playerCount int
+	if err := tx.QueryRow(
+		`SELECT pass_count FROM games WHERE id = $1`, gameID,
+	).Scan(&passCount); err != nil {
 		return err
 	}
-	if passCount >= 2*2 { // 2 passes chacun dans une partie à 2
-		_, err = tx.Exec(`UPDATE games SET status = 'ended' WHERE id = $1`, gameID)
-		if err != nil {
-			return err
-		}
+	if err := tx.QueryRow(
+		`SELECT COUNT(*) FROM game_players WHERE game_id = $1`, gameID,
+	).Scan(&playerCount); err != nil {
+		return err
+	}
+	if passCount >= playerCount*2 {
+		// on retire les racks sans bonus
+		return finishGame(tx, gameID, 0)
 	}
 
 	return tx.Commit()

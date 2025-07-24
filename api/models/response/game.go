@@ -13,6 +13,8 @@ type GameInfo struct {
 	CurrentTurnName  string       `json:"current_turn_username"`
 	Status           string       `json:"status"`
 	RemainingLetters int          `json:"remaining_letters"`
+	WinnerUsername   string       `json:"winner_username,omitempty"`
+	EndedAt          *time.Time   `json:"ended_at,omitempty"`
 }
 
 type PlayerInfo struct {
@@ -31,6 +33,7 @@ type MoveInfo struct {
 type GameSummary struct {
 	ID                  string    `json:"id"`
 	Name                string    `json:"name"`
+	Status              string    `json:"status"`
 	CurrentTurnUserID   int       `json:"current_turn_user_id"`
 	CurrentTurnUsername string    `json:"current_turn_username"`
 	LastPlayTime        time.Time `json:"last_play_time"`

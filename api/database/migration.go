@@ -19,6 +19,10 @@ func Migrate() error {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
+	if err := migrateAddGameEndInfo(); err != nil {
+		return fmt.Errorf("migration failed: %w", err)
+	}
+
 	if err := createGamePlayersTable(); err != nil {
 		return fmt.Errorf("migration failed: %w", err)
 	}
@@ -98,6 +102,19 @@ func migrateAddPassCount() error {
 	_, err := Query(query)
 	if err != nil {
 		return fmt.Errorf("failed to add pass_count to games: %w", err)
+	}
+	return nil
+}
+
+func migrateAddGameEndInfo() error {
+	query := `
+        ALTER TABLE games
+        ADD COLUMN IF NOT EXISTS winner_username TEXT,
+        ADD COLUMN IF NOT EXISTS ended_at TIMESTAMP;
+    `
+	_, err := Query(query)
+	if err != nil {
+		return fmt.Errorf("failed to add end-of-game info to games table: %w", err)
 	}
 	return nil
 }
