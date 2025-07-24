@@ -11,6 +11,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { goto } from '$app/navigation';
 	import { user } from '$lib/stores/user';
+  import { gameStore } from '$lib/stores/game';
 
 	let gameId = '';
 	let game = $state<GameInfo | null>(null);
@@ -51,6 +52,7 @@
 		try {
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
+			gameStore.set(game);
 			console.log('Game data:', $state.snapshot(game));
 			originalRack.set(game!.your_rack.split('').map((char, i) => ({
 				id: `${i}-${char}-${crypto.randomUUID()}`,
@@ -139,6 +141,7 @@
 			await api.post(`/game/${gameId}/play`, body);
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
+			gameStore.set(game);
 			originalRack.set(game!.your_rack.split('').map((char, i) => ({
 				id: `${i}-${char}-${crypto.randomUUID()}`,
 				char
@@ -183,6 +186,7 @@
 			await api.post(`/game/${gameId}/pass`);
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
+			gameStore.set(game);
 		} catch (e: any) {
 			const msg = e?.response?.data?.message || 'Erreur lors du passage du tour.';
 			alert(msg);
@@ -236,6 +240,12 @@
 				class="text-xs bg-gray-200 px-3 py-1 rounded shadow hover:bg-gray-300 text-center"
 			>
 				🛠️ reporter un bug
+			</a>
+			<a
+				href={`/games/${gameId}/history`}
+				class="text-xs bg-gray-200 px-3 py-1 rounded shadow hover:bg-gray-300"
+			>
+				Historique 📜
 			</a>
 		</div>
 	</div>
