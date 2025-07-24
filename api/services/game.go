@@ -743,19 +743,6 @@ func PassTurn(userID int64, gameID string) error {
 		return err
 	}
 
-	// // Vérifie si la partie est terminée (ex : 2 passes consécutives pour 2 joueurs, ou plus si tu veux)
-	// var passCount int
-	// err = tx.QueryRow(`SELECT pass_count FROM games WHERE id = $1`, gameID).Scan(&passCount)
-	// if err != nil {
-	// 	return err
-	// }
-	// if passCount >= 2*2 { // 2 passes chacun dans une partie à 2
-	// 	_, err = tx.Exec(`UPDATE games SET status = 'ended' WHERE id = $1`, gameID)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
 	// Fin de partie si chaque joueur a passé deux fois
 	var passCount, playerCount int
 	if err := tx.QueryRow(
