@@ -263,7 +263,7 @@
 	</div>
 
 	<!-- Plateau + rack -->
-	<div class="flex flex-col items-center justify-center w-full gap-2 px-2"
+	<div class="flex flex-col items-center mt-6 w-full gap-2 px-2"
     	style="min-height: calc(100vh - 320px);">
 		<!-- Plateau -->
 		<div class="max-w-[95vw] w-full aspect-square">
