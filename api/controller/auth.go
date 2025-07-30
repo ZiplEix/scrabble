@@ -13,8 +13,6 @@ import (
 )
 
 func Register(c echo.Context) error {
-	fmt.Println("Register endpoint hit")
-
 	var req request.RegisterRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{

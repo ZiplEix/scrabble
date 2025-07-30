@@ -60,7 +60,6 @@ func QueryRow(query string, args ...any) *sql.Row {
 }
 
 func Exec(query string, args ...any) (sql.Result, error) {
-	log.Printf("Exec query: %s, args: %v\n", query, args)
 	if DB == nil {
 		return nil, fmt.Errorf("database connection is not initialized")
 	}
@@ -70,6 +69,5 @@ func Exec(query string, args ...any) (sql.Result, error) {
 		log.Printf("Exec error: %v", err)
 		return nil, fmt.Errorf("failed to execute statement: %w", err)
 	}
-	log.Printf("Exec successfully executed query: %s", query)
 	return result, nil
 }
