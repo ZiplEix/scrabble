@@ -65,16 +65,22 @@
 				<div class="flex items-center justify-between">
 					<div class="flex items-baseline space-x-2">
 						<span class="text-sm text-gray-500">#{idx + 1}</span>
-						<span class="font-semibold text-gray-800">{move.move.word}</span>
-						<span
-							class="text-xs uppercase px-2 py-0.5 bg-blue-100 text-blue-800 rounded"
-						>
-							{move.move.dir}
-						</span>
+						{#if !move.move.type}
+							<span class="font-semibold text-gray-800">{move.move.word}</span>
+							<span
+								class="text-xs uppercase px-2 py-0.5 bg-blue-100 text-blue-800 rounded"
+							>
+								{move.move.dir}
+							</span>
+						{/if}
 					</div>
-					<span class="text-sm font-bold text-green-600">
-						+{move.move.score}
-					</span>
+					{#if move.move.score}
+						<span class="text-sm font-bold text-green-600">
+							+{move.move.score}
+						</span>
+					{:else}
+						<span class="text-sm font-bold">Pass</span>
+					{/if}
 				</div>
 
 				<!-- Joueur + date -->
