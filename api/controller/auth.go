@@ -84,3 +84,31 @@ func Login(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, response.AuthResponse{Token: tokenString})
 }
+
+func ChangePassword(c echo.Context) error {
+	var req request.ChangePasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error":   fmt.Sprintf("invalid request: %v", err),
+			"message": "Requête invalide, veuillez vérifier les données saisies",
+		})
+	}
+
+	username := strings.ToLower(strings.TrimSpace(req.Username))
+	if username == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error":   "username is required",
+			"message": "Le nom d'utilisateur est requis",
+		})
+	}
+
+	err := services.UpdateUserPassword(username, req.NewPassword)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error":   fmt.Sprintf("failed to change password for user %s: %v", username, err),
+			"message": "Erreur lors du changement de mot de passe, veuillez réessayer plus tard",
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{"message": "Mot de passe changé avec succès"})
+}

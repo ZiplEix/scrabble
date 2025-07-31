@@ -54,3 +54,23 @@ func VerifyUser(username, password string) (*dbModels.User, error) {
 
 	return &user, nil
 }
+
+func UpdateUserPassword(username, newPassword string) error {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		UPDATE users
+		SET password = $1
+		WHERE username = $2
+	`
+
+	_, err = database.Exec(query, string(hashed), username)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
