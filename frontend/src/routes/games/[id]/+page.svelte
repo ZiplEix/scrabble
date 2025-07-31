@@ -11,9 +11,9 @@
 	import { cubicOut } from 'svelte/easing';
 	import { goto } from '$app/navigation';
 	import { user } from '$lib/stores/user';
-  import { gameStore } from '$lib/stores/game';
+  	import { gameStore } from '$lib/stores/game';
 
-	let gameId = '';
+	let gameId = $state<string | null>(null);
 	let game = $state<GameInfo | null>(null);
 	let error = $state('');
 	let loading = $state(true);
@@ -275,7 +275,7 @@
 
 		<!-- Rack -->
 		<div
-			class="flex justify-center gap-1 mt-2 flex-wrap max-w-[95vw]"
+			class="flex justify-center gap-1 mt-2 flex-wrap max-w-[95vw] w-full"
 			use:dndzone={{
 				items: $visibleRack,
 				flipDurationMs: 150,
