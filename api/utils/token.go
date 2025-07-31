@@ -6,6 +6,7 @@ import (
 
 	dbModels "github.com/ZiplEix/scrabble/api/models/database"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 func getJWTSecret() []byte {
@@ -25,6 +26,7 @@ func GenerateToken(user dbModels.User) (string, error) {
 
 	tokenString, err := token.SignedString(getJWTSecret())
 	if err != nil {
+		zap.L().Error("failed to sign token", zap.Error(err), zap.String("username", user.Username))
 		return "", err
 	}
 	return tokenString, nil

@@ -10,6 +10,7 @@ import (
 	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
 func CreateGame(c echo.Context) error {
@@ -158,6 +159,7 @@ func GetGame(c echo.Context) error {
 func PlayMove(c echo.Context) error {
 	userID, ok := utils.GetUserID(c)
 	if !ok {
+		zap.L().Error("unauthorized, no user_id")
 		return c.JSON(http.StatusUnauthorized, echo.Map{
 			"error":   "unauthorized, no user_id",
 			"message": "Vous devez être connecté pour jouer un coup",
@@ -166,6 +168,7 @@ func PlayMove(c echo.Context) error {
 
 	gameID := c.Param("id")
 	if gameID == "" {
+		zap.L().Error("missing game id")
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   "missing game id",
 			"message": "L'ID de la partie est requis pour jouer un coup",
@@ -174,6 +177,7 @@ func PlayMove(c echo.Context) error {
 
 	var req request.PlayMoveRequest
 	if err := c.Bind(&req); err != nil {
+		zap.L().Error("invalid play move payload", zap.Error(err), zap.String("payload", fmt.Sprintf("%+v", req)))
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("invalid request: %v", err),
 			"message": "Requête invalide, veuillez vérifier les données saisies",

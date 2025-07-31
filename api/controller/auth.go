@@ -10,11 +10,13 @@ import (
 	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
 func Register(c echo.Context) error {
 	var req request.RegisterRequest
 	if err := c.Bind(&req); err != nil {
+		zap.L().Error("invalid registration payload", zap.Error(err), zap.String("payload", fmt.Sprintf("%+v", req)))
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("invalid request: %v", err),
 			"message": "Requête invalide, veuillez vérifier les données saisies",
@@ -23,6 +25,7 @@ func Register(c echo.Context) error {
 
 	username := strings.ToLower(strings.TrimSpace(req.Username))
 	if username == "" {
+		zap.L().Error("username is required", zap.String("username", username))
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   "username is required",
 			"message": "Le nom d'utilisateur est requis",
@@ -58,6 +61,7 @@ func Register(c echo.Context) error {
 func Login(c echo.Context) error {
 	var req request.LoginRequest
 	if err := c.Bind(&req); err != nil {
+		zap.L().Error("invalid login payload", zap.Error(err), zap.String("payload", fmt.Sprintf("%+v", req)))
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("invalid request: %v", err),
 			"message": "Requête invalide, veuillez vérifier les données saisies",
@@ -88,6 +92,7 @@ func Login(c echo.Context) error {
 func ChangePassword(c echo.Context) error {
 	var req request.ChangePasswordRequest
 	if err := c.Bind(&req); err != nil {
+		zap.L().Error("invalid change password payload", zap.Error(err), zap.String("payload", fmt.Sprintf("%+v", req)))
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("invalid request: %v", err),
 			"message": "Requête invalide, veuillez vérifier les données saisies",
@@ -96,6 +101,7 @@ func ChangePassword(c echo.Context) error {
 
 	username := strings.ToLower(strings.TrimSpace(req.Username))
 	if username == "" {
+		zap.L().Error("username is required", zap.String("username", username))
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   "username is required",
 			"message": "Le nom d'utilisateur est requis",

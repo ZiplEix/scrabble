@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Unity-Technologies/echozap"
 	"github.com/ZiplEix/scrabble/api/config"
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/routes"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -25,14 +27,19 @@ func init() {
 }
 
 func main() {
+	zlog, _ := zap.NewProduction()
+	defer zlog.Sync()
+	zap.ReplaceGlobals(zlog)
+
 	e := echo.New()
 
-	e.Use(middleware.RemoveTrailingSlash())
-	// e.Use(middleware.Logger())
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: `[${time_rfc3339}] ${status} | ${latency_human} | ${method} ${uri} | IP: ${remote_ip} | UA: ${user_agent}` + "\n",
-	}))
+	e.Use(middleware.RequestID())
+
+	e.Use(echozap.ZapLogger(zlog))
+
 	e.Use(middleware.Recover())
+
+	e.Use(middleware.RemoveTrailingSlash())
 
 	e.Use(middleware.CORS())
 
@@ -41,6 +48,8 @@ func main() {
 	})
 
 	routes.SetupRoutes(e)
+
+	zap.L().Info("Starting server on https://0.0.0.0:8888", zap.String("address", "0.0.0.0:8888"))
 
 	fmt.Println("Server is running on https://0.0.0.0:8888")
 	if err := e.Start("0.0.0.0:8888"); err != nil {

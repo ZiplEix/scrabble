@@ -11,6 +11,7 @@ import (
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/word"
+	"go.uber.org/zap"
 )
 
 func drawLetters(available *[]rune, count int) []rune {
@@ -80,6 +81,7 @@ func validatePlayerInGame(gameID string, userID int64) error {
 	var dummy int
 	err := database.QueryRow(`SELECT 1 FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&dummy)
 	if err != nil {
+		zap.L().Error("failed to validate player in game", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
 		return errors.New("unauthorized or game not found")
 	}
 	return nil
@@ -89,10 +91,12 @@ func loadBoard(gameID string) ([15][15]string, error) {
 	var boardRaw []byte
 	err := database.QueryRow(`SELECT board FROM games WHERE id = $1`, gameID).Scan(&boardRaw)
 	if err != nil {
+		zap.L().Error("failed to load game board", zap.Error(err), zap.String("game_id", gameID))
 		return [15][15]string{}, errors.New("failed to load board")
 	}
 	var board [15][15]string
 	if err := json.Unmarshal(boardRaw, &board); err != nil {
+		zap.L().Error("failed to unmarshal game board", zap.Error(err), zap.String("game_id", gameID))
 		return board, errors.New("invalid board data")
 	}
 	return board, nil
@@ -188,6 +192,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		`SELECT player_id, rack FROM game_players WHERE game_id = $1`, gameID,
 	)
 	if err != nil {
+		zap.L().Error("failed to query game players", zap.Error(err), zap.String("game_id", gameID))
 		return err
 	}
 	defer rows.Close()
@@ -197,6 +202,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		var pid int64
 		var rack string
 		if err := rows.Scan(&pid, &rack); err != nil {
+			zap.L().Error("failed to scan game player", zap.Error(err), zap.String("game_id", gameID), zap.Int64("player_id", pid))
 			return err
 		}
 		lp := rackPoints(rack)
@@ -205,6 +211,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 			`UPDATE game_players SET score = score - $1 WHERE game_id = $2 AND player_id = $3`,
 			lp, gameID, pid,
 		); err != nil {
+			zap.L().Error("failed to update game player score", zap.Error(err), zap.String("game_id", gameID), zap.Int64("player_id", pid))
 			return err
 		}
 		// cumule pour le bonus
@@ -218,6 +225,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 			`UPDATE game_players SET score = score + $1 WHERE game_id = $2 AND player_id = $3`,
 			totalLeftover, gameID, lastPlayerID,
 		); err != nil {
+			zap.L().Error("failed to update last player score", zap.Error(err), zap.String("game_id", gameID), zap.Int64("last_player_id", lastPlayerID))
 			return err
 		}
 	}
@@ -229,6 +237,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		if err := tx.QueryRow(
 			`SELECT username FROM users WHERE id = $1`, lastPlayerID,
 		).Scan(&winnerUsername); err != nil {
+			zap.L().Error("failed to get winner username", zap.Error(err), zap.Int64("last_player_id", lastPlayerID))
 			return err
 		}
 	}
@@ -241,6 +250,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		winnerUsername.String, gameID,
 	)
 	if err != nil {
+		zap.L().Error("failed to update game status", zap.Error(err), zap.String("game_id", gameID))
 		return err
 	}
 
