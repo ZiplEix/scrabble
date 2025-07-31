@@ -188,37 +188,47 @@ func rackPoints(rack string) int {
 }
 
 func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
+	type leftover struct {
+		pid int64
+		lp  int
+	}
+	var lefts []leftover
+
 	rows, err := tx.Query(
-		`SELECT player_id, rack FROM game_players WHERE game_id = $1`, gameID,
+		`SELECT player_id, rack FROM game_players WHERE game_id = $1`,
+		gameID,
 	)
 	if err != nil {
-		zap.L().Error("failed to query game players", zap.Error(err), zap.String("game_id", gameID))
 		return err
 	}
-	defer rows.Close()
-
-	totalLeftover := 0
 	for rows.Next() {
 		var pid int64
 		var rack string
 		if err := rows.Scan(&pid, &rack); err != nil {
-			zap.L().Error("failed to scan game player", zap.Error(err), zap.String("game_id", gameID), zap.Int64("player_id", pid))
+			rows.Close()
 			return err
 		}
-		lp := rackPoints(rack)
-		// retire les points non joués
+		lefts = append(lefts, leftover{pid, rackPoints(rack)})
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	totalLeftover := 0
+	for _, l := range lefts {
 		if _, err := tx.Exec(
-			`UPDATE game_players SET score = score - $1 WHERE game_id = $2 AND player_id = $3`,
-			lp, gameID, pid,
+			`UPDATE game_players SET score = score - $1
+		WHERE game_id = $2 AND player_id = $3`,
+			l.lp, gameID, l.pid,
 		); err != nil {
-			zap.L().Error("failed to update game player score", zap.Error(err), zap.String("game_id", gameID), zap.Int64("player_id", pid))
-			return err
+			return fmt.Errorf("failed to update game player %d: %w", l.pid, err)
 		}
-		// cumule pour le bonus
-		if pid != lastPlayerID {
-			totalLeftover += lp
+		if l.pid != lastPlayerID {
+			totalLeftover += l.lp
 		}
 	}
+
 	// bonus pour le finisseur (si lastPlayerID != 0)
 	if lastPlayerID != 0 && totalLeftover > 0 {
 		if _, err := tx.Exec(
