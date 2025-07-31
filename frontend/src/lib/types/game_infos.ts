@@ -16,6 +16,7 @@ type MoveData = {
     word: string;
     x: number;
     y: number;
+    type?: '' | 'pass';
 }
 
 type MoveInfo = {

@@ -19,7 +19,15 @@
 
 	let lastMoveCoords = $derived((() => {
 		if (!game?.moves?.length) return [];
-		const last = game.moves[game.moves.length - 1];
+		let lastIndex = 1;
+		let last = game.moves[game.moves.length - lastIndex];
+
+		while (last && last.move.type && last.move.type === 'pass') {
+			lastIndex++;
+			if (game.moves.length - lastIndex < 0) return [];
+			last = game.moves[game.moves.length - lastIndex];
+		}
+
 		return last
 			? (last.move.letters).map(m => ({ x: m.x, y: m.y }))
 			: [];
