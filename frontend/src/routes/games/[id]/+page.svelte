@@ -151,6 +151,10 @@
 		} catch (e: any) {
 			const msg = e?.response?.data?.message || 'Erreur lors de la validation du coup.';
 			alert(msg);
+		} finally {
+			if (game?.status === 'ended') {
+				showScores = true;
+			}
 		}
 	}
 
