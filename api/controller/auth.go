@@ -118,3 +118,25 @@ func ChangePassword(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, echo.Map{"message": "Mot de passe changé avec succès"})
 }
+
+func ConnectAS(c echo.Context) error {
+	// get the user from the query parameter "user"
+	username := strings.ToLower(strings.TrimSpace(c.QueryParam("user")))
+
+	user := services.GetUserByUsername(username)
+	if user == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error":   fmt.Sprintf("user %s not found", username),
+			"message": "Utilisateur non trouvé",
+		})
+	}
+
+	tokenString, err := utils.GenerateToken(*user)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error":   fmt.Sprintf("failed to create token for user %s: %v", username, err),
+			"message": "Erreur interne du serveur lors de la création du token d'authentification, veuillez réessayer plus tard",
+		})
+	}
+	return c.JSON(http.StatusOK, response.AuthResponse{Token: tokenString})
+}

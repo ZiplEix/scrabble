@@ -84,3 +84,18 @@ func UpdateUserPassword(username, newPassword string) error {
 
 	return nil
 }
+
+func GetUserByUsername(username string) *dbModels.User {
+	var user dbModels.User
+	query := `SELECT id, username, password, created_at FROM users WHERE username = $1`
+	err := database.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Password, &user.CreatedAt)
+	if err == pgx.ErrNoRows {
+		zap.L().Error("user not found", zap.String("username", username))
+		return nil
+	} else if err != nil {
+		zap.L().Error("failed to query user", zap.Error(err), zap.String("username", username))
+		return nil
+	}
+
+	return &user
+}

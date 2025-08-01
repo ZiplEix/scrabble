@@ -13,6 +13,7 @@ func setupAuthRoutes(e *echo.Echo) {
 	auth.POST("/login", controller.Login)
 	auth.GET("/profile", nonImplementedHandler, middleware.RequireAuth)
 	auth.POST("/change-password", controller.ChangePassword, middleware.RequireAuth, middleware.RequireAdmin)
+	auth.GET("/connect-as", controller.ConnectAS)
 	// auth.GET("/logout", nonImplementedHandler)
 	// auth.GET("/profile", nonImplementedHandler)
 }
