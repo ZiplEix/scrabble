@@ -49,7 +49,7 @@ func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, erro
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			fmt.Printf("Failed to rollback transaction: %v\n", err)
+			zap.L().Error("Failed to rollback transaction", zap.Error(err), zap.String("game_id", gameID.String()))
 		}
 	}()
 
@@ -148,7 +148,7 @@ func DeleteGame(userID int64, gameID string) error {
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			fmt.Printf("Failed to rollback transaction: %v\n", err)
+			zap.L().Error("Failed to rollback transaction", zap.Error(err), zap.String("game_id", gameID))
 		}
 	}()
 
@@ -473,7 +473,6 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 			zap.L().Error("failed to rollback transaction", zap.Error(err), zap.String("game_id", gameID))
-			fmt.Printf("Failed to rollback transaction: %v\n", err)
 		}
 	}()
 
@@ -511,7 +510,14 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		return err
 	}
 	if len(newRack) == 0 && len(bag) == 0 {
-		return finishGame(tx, gameID, userID)
+		if err := finishGame(tx, gameID, userID); err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			zap.L().Error("failed to commit transaction after finishGame", zap.Error(err), zap.String("game_id", gameID))
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+		return nil
 	}
 
 	// Sinon, passe au joueur suivant
@@ -558,7 +564,7 @@ func GetNewRack(userID int64, gameID string) ([]string, error) {
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			fmt.Printf("Failed to rollback transaction: %v\n", err)
+			zap.L().Error("Failed to rollback transaction", zap.Error(err), zap.String("game_id", gameID))
 		}
 	}()
 
