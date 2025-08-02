@@ -1,6 +1,8 @@
 package response
 
-import "time"
+import (
+	"time"
+)
 
 type GameInfo struct {
 	ID               string       `json:"id"`
@@ -38,6 +40,7 @@ type GameSummary struct {
 	CurrentTurnUsername string    `json:"current_turn_username"`
 	LastPlayTime        time.Time `json:"last_play_time"`
 	IsYourGame          bool      `json:"is_your_game"`
+	WinnerUsername      string    `json:"winner_username,omitempty"`
 }
 
 type GamesListResponse struct {

@@ -655,6 +655,7 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 			g.name,
 			g.status,
 			g.current_turn,
+			COALESCE(g.winner_username, '') AS winner_username,
 			u.username,
 			COALESCE((
 				SELECT MAX(created_at)
@@ -684,6 +685,7 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 			&g.Name,
 			&g.Status,
 			&g.CurrentTurnUserID,
+			&g.WinnerUsername,
 			&g.CurrentTurnUsername,
 			&g.LastPlayTime,
 			&g.IsYourGame,
