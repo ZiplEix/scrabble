@@ -5,4 +5,5 @@ export type GameSummary = {
     last_play_time: string;
     is_your_game: boolean;
     status: string;
+    winner_username: string | null;
 }

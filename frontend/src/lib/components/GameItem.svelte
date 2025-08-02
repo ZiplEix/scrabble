@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { user } from '$lib/stores/user';
   	import type { GameSummary } from '$lib/types/game_summary';
-  import { get } from 'svelte/store';
 
 	export let game: GameSummary;
 	export let onDelete: (id: string) => Promise<void>;
 	export let onRename: (id: string, currentName: string)=> Promise<void>;
+	export let showTurnOf: boolean = false;
+	export let showLastPlayTime: boolean = false;
+	export let winning: boolean = false;
 
 	let menuOpen = false;
 
@@ -43,20 +44,21 @@
 	}
 </script>
 
-<div class="relative bg-slate-50 rounded shadow-md p-4 flex flex-col gap-2">
-	<!-- Pastille statut tour -->
-	{#if game.status === 'ended'}
-		<div class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-red-500" title="Partie terminée"></div>
-	{:else if get(user)?.username === game.current_turn_username}
-		<div class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-orange-400" title="C'est votre tour"></div>
-	{:else}
-		<div class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-green-500" title="Tour de l'autre joueur"></div>
-	{/if}
-
+<div class="relative bg-slate-100 rounded shadow-md p-4 flex flex-col gap-2">
 	<a href={`/games/${game.id}`} class="flex flex-col gap-1">
 		<h2 class="text-xl font-bold text-green-700">{game.name}</h2>
-		<p class="text-sm text-gray-600">Tour de : <span class="font-medium">{game.current_turn_username}</span></p>
-		<p class="text-xs text-gray-400">Dernier coup : {formatDate(game.last_play_time)}</p>
+		{#if showLastPlayTime}
+			<p class="text-xs text-gray-400">Dernier coup : {formatDate(game.last_play_time)}</p>
+		{/if}
+		{#if showTurnOf}
+			<p class="text-sm text-gray-600">Tour de : <span class="font-medium">{game.current_turn_username}</span></p>
+		{/if}
+		{#if winning}
+			<p class="text-sm text-gray-600">Gagnant:
+				<span class="font-medium">{game.winner_username}</span>
+				, le {formatDate(game.last_play_time)}
+			</p>
+		{/if}
 	</a>
 
 	{#if game.is_your_game}

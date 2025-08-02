@@ -7,7 +7,6 @@
   	import { onMount } from "svelte";
 
     let games: GameSummary[] = $state<GameSummary[]>([]);
-	let showFinished = $state(false);
 
 	onMount(async () => {
 		if ($user) {
@@ -20,10 +19,11 @@
 		}
 	});
 
-	let visibleGames = $derived(showFinished
-		? games
-		: games.filter(g => g.status === 'ongoing')
-	)
+	let myTurnGames = $derived(games.filter(g => g.current_turn_username === $user?.username && g.status === 'ongoing'));
+
+	let ongoingGame = $derived(games.filter(g => g.status === 'ongoing' && g.current_turn_username !== $user?.username));
+
+	let finishedGames = $derived(games.filter(g => g.status === 'ended'));
 
     function createGame() {
 		goto('/games/new');
@@ -57,35 +57,37 @@
 </script>
 
 <div class="mb-6">
-    {#if !showFinished}
-     	<h2 class="text-xl font-semibold mb-2">Mes parties en cours</h2>
-   	{:else}
-     	<h2 class="text-xl font-semibold mb-2">Toutes mes parties</h2>
-   	{/if}
-    <GameList
-        games={visibleGames}
+	<h2 class="text-xl font-semibold mb-2">À mon tour</h2>
+	<GameList
+        games={myTurnGames}
         {onDelete}
         {onRename}
+		placeholder="Aucune partie à jouer pour le moment."
+		showTurnOf={true}
+		showLastPlayTime={true}
+		winning={false}
     />
-</div>
 
-<!-- Bouton pour basculer l’affichage des terminées -->
-<div class="mb-6">
-	{#if !showFinished}
-		<button
-			class="text-sm text-blue-600 hover:underline"
-			onclick={() => showFinished = true}
-		>
-			Voir les parties terminées
-		</button>
-	{:else}
-		<button
-			class="text-sm text-blue-600 hover:underline"
-			onclick={() => showFinished = false}
-		>
-			Masquer les parties terminées
-		</button>
-	{/if}
+	<h2 class="text-xl font-semibold mb-2">Mes parties en cours</h2>
+    <GameList
+        games={ongoingGame}
+        {onDelete}
+        {onRename}
+		placeholder="Aucune partie en cours."
+		showTurnOf={true}
+		showLastPlayTime={true}
+		winning={false}
+    />
+	<h2 class="text-xl font-semibold mb-2 mt-6">Mes parties terminées</h2>
+	<GameList
+		games={finishedGames}
+		{onDelete}
+		placeholder="Aucune partie terminée."
+		{onRename}
+		winning={true}
+		showTurnOf={false}
+		showLastPlayTime={false}
+	/>
 </div>
 
 <button onclick={createGame} class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
