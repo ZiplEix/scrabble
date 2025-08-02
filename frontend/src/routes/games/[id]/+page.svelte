@@ -352,7 +352,7 @@
 							class="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
 							onclick={handleRematch}
 						>
-             				🔁 Rejouer
+             				Rejouer
            				</button>
          			{/if}
          			<button
