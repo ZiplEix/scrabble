@@ -10,6 +10,7 @@ import (
 
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/models/request"
+	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/ZiplEix/scrabble/api/word"
 	"go.uber.org/zap"
 )
@@ -277,6 +278,65 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 	if err != nil {
 		zap.L().Error("failed to update game status", zap.Error(err), zap.String("game_id", gameID))
 		return err
+	}
+
+	var gameName string
+	if err := tx.QueryRow(
+		`SELECT name FROM games WHERE id = $1`, gameID,
+	).Scan(&gameName); err != nil {
+		zap.L().Error("failed to get game name", zap.Error(err), zap.String("game_id", gameID))
+		return err
+	}
+
+	// envoyer notification au gagnant
+	if winnerUsername.Valid {
+		if err := utils.SendNotificationToUserByID(
+			winnerID,
+			utils.NotificationPayload{
+				Title: "Vous avez gagné la partie \"" + gameName + "\"!",
+				Body:  fmt.Sprintf("Félicitations %s, vous avez remporté la partie avec %d points!", winnerUsername.String, winnerScore),
+				Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
+			},
+		); err != nil {
+			zap.L().Error("failed to send notification to winner", zap.Error(err), zap.String("game_id", gameID), zap.String("winner_username", winnerUsername.String))
+			return err
+		}
+	}
+
+	// envoyer notification aux autres joueurs
+	for _, l := range lefts {
+		if l.pid == winnerID {
+			continue // skip the winner
+		}
+		var username sql.NullString
+		if err := tx.QueryRow(
+			`SELECT username FROM users WHERE id = $1`, l.pid,
+		).Scan(&username); err != nil {
+			zap.L().Error("failed to get player username", zap.Error(err), zap.Int64("player_id", l.pid))
+			return err
+		}
+
+		var userPts int64
+		if err := tx.QueryRow(
+			`SELECT score FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, l.pid,
+		).Scan(&userPts); err != nil {
+			zap.L().Error("failed to get player score", zap.Error(err), zap.Int64("player_id", l.pid))
+			return err
+		}
+
+		if username.Valid {
+			if err := utils.SendNotificationToUserByID(
+				l.pid,
+				utils.NotificationPayload{
+					Title: "Partie terminée: \"" + gameName + "\"",
+					Body:  fmt.Sprintf("%s a gagné avec %d points!\nVous avez terminé avec %d points.", winnerUsername.String, winnerScore, userPts),
+					Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
+				},
+			); err != nil {
+				zap.L().Error("failed to send notification to player", zap.Error(err), zap.Int64("player_id", l.pid))
+				return err
+			}
+		}
 	}
 
 	return nil

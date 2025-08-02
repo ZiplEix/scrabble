@@ -550,7 +550,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	notificationPayload := utils.NotificationPayload{
 		Title: "C'est à toi de jouer !",
 		Body:  fmt.Sprintf("%s a joué un coup à %d point%s dans %s", username, moveScore, pluralSuffix, gameName),
-		Url:   fmt.Sprintf("https://scrabble.baptiste.zip/game/%s", gameID),
+		Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
 	}
 	_ = utils.SendNotificationToUserByID(nextPlayerID, notificationPayload)
 
