@@ -21,11 +21,10 @@
 	let originalRack = writable<RackLetter[]>([]);
 	let showScores = $state(false);
 
-	let sortedPlayers = $derived((() => {
-		return game
+	let sortedPlayers = $derived(game
 			? [...game.players].sort((a, b) => b.score - a.score)
-			: [];
-	}))
+			: []
+	)
 
 	let moveScore = derived(
 		[pendingMove, page],
@@ -324,7 +323,9 @@
 			<div class="bg-white rounded-lg shadow-lg w-[90vw] max-w-sm p-6">
 				{#if game?.status === 'ended'}
 					<h3 class="text-lg font-semibold mb-2 text-center">
-						🎉 Partie terminée – Vainqueur : <span class="text-green-600 font-semibold">{game.winner_username}</span>
+						🎉 Partie terminée
+						<br />
+						Vainqueur : <span class="text-green-600 font-bold">{game.winner_username}</span>
 					</h3>
 					<p class="text-center text-sm text-gray-600 mb-4">
 						Terminée le {new Date(game.ended_at!).toLocaleString('fr-FR')}
@@ -333,13 +334,12 @@
 					<h3 class="text-lg font-semibold mb-4 text-center">Classement</h3>
 				{/if}
 				<div class="flex flex-col gap-2">
-					{#each game.players as player, i}
+					{#each (game.status === 'ended' ? sortedPlayers : game.players) as player, i}
+					{@const playerClass = game.status === "ended" ? "bg-gray-50" : player.id === game.current_turn ? "bg-green-100 border-green-400" : "bg-gray-50"}
 						<div class="flex justify-between items-center p-2 rounded border
-							{player.id === game.current_turn ? 'bg-green-100 border-green-400' : 'bg-gray-50'}">
+							{playerClass}">
 							<span>
-								{#if game?.status === 'ended'}
-									{i+1}.&nbsp;
-								{/if}
+								{#if game.status === 'ended'}{i+1}.&nbsp;{/if}
 								{player.username}
 							</span>
 							<span class="font-bold">{player.score}</span>
