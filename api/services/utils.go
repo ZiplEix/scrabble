@@ -187,6 +187,7 @@ func rackPoints(rack string) int {
 	return pts
 }
 
+// tx is a transaction that must be committed by the caller
 func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 	type leftover struct {
 		pid int64
@@ -219,7 +220,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 	for _, l := range lefts {
 		if _, err := tx.Exec(
 			`UPDATE game_players SET score = score - $1
-		WHERE game_id = $2 AND player_id = $3`,
+			WHERE game_id = $2 AND player_id = $3`,
 			l.lp, gameID, l.pid,
 		); err != nil {
 			return fmt.Errorf("failed to update game player %d: %w", l.pid, err)
@@ -240,23 +241,37 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		}
 	}
 
-	// on marque la partie terminée, stocke le vainqueur et l'heure
-	var winnerUsername sql.NullString
-	if lastPlayerID != 0 {
-		// on récupère le username du vainqueur
-		if err := tx.QueryRow(
-			`SELECT username FROM users WHERE id = $1`, lastPlayerID,
-		).Scan(&winnerUsername); err != nil {
-			zap.L().Error("failed to get winner username", zap.Error(err), zap.Int64("last_player_id", lastPlayerID))
-			return err
-		}
+	// determiener le vainqueur
+	var winnerID int64
+	var winnerScore int
+	err = tx.QueryRow(
+		`SELECT player_id, score
+         FROM game_players
+         WHERE game_id = $1
+         ORDER BY score DESC
+         LIMIT 1`,
+		gameID,
+	).Scan(&winnerID, &winnerScore)
+	if err != nil {
+		return fmt.Errorf("failed to determine winner: %w", err)
 	}
+
+	// Récupération du username du winner
+	var winnerUsername sql.NullString
+	if err := tx.QueryRow(
+		`SELECT username FROM users WHERE id = $1`, winnerID,
+	).Scan(&winnerUsername); err != nil {
+		zap.L().Error("failed to get winner username", zap.Error(err), zap.Int64("winner_id", winnerID))
+		return err
+	}
+
+	// marquer la partie comme terminée avec le nom du gagnant
 	_, err = tx.Exec(
 		`UPDATE games
-           SET status           = 'ended',
-               winner_username  = $1,
-               ended_at         = now()
-         WHERE id = $2`,
+            SET status          = 'ended',
+                winner_username = $1,
+                ended_at        = now()
+          WHERE id = $2`,
 		winnerUsername.String, gameID,
 	)
 	if err != nil {

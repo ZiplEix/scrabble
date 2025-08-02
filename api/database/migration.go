@@ -41,6 +41,10 @@ func Migrate() error {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
+	// if err := migrateFixWinners(); err != nil {
+	// 	return fmt.Errorf("migration failed: %w", err)
+	// }
+
 	fmt.Println("Database migration completed successfully")
 	return nil
 }
@@ -213,5 +217,66 @@ func createPushSubscriptionTable() error {
 	if err != nil {
 		return fmt.Errorf("failed to create push_subscriptions table: %w", err)
 	}
+	return nil
+}
+
+func migrateFixWinners() error {
+	// 1. On récupère tous les jeux terminés
+	rows, err := Query(`
+        SELECT id
+        FROM games
+        WHERE status = 'ended'
+    `)
+	if err != nil {
+		return fmt.Errorf("failed to fetch ended games: %w", err)
+	}
+	defer rows.Close()
+
+	// 2. Pour chaque partie, on détermine le joueur avec le score le plus élevé
+	for rows.Next() {
+		var gameID string
+		if err := rows.Scan(&gameID); err != nil {
+			return fmt.Errorf("failed to scan game ID: %w", err)
+		}
+
+		// Récupère l'ID et le score du meilleur joueur
+		var winnerID int64
+		var maxScore int
+		err := QueryRow(`
+            SELECT player_id, score
+            FROM game_players
+            WHERE game_id = $1
+            ORDER BY score DESC
+            LIMIT 1
+        `, gameID).Scan(&winnerID, &maxScore)
+		if err != nil {
+			return fmt.Errorf("failed to find top scorer for game %s: %w", gameID, err)
+		}
+
+		// On récupère son username
+		var winnerUsername string
+		err = QueryRow(`
+            SELECT username
+            FROM users
+            WHERE id = $1
+        `, winnerID).Scan(&winnerUsername)
+		if err != nil {
+			return fmt.Errorf("failed to fetch username for user %d: %w", winnerID, err)
+		}
+
+		// 3. On met à jour la partie avec le vrai gagnant
+		if _, err := Exec(`
+            UPDATE games
+            SET winner_username = $1
+            WHERE id = $2
+        `, winnerUsername, gameID); err != nil {
+			return fmt.Errorf("failed to update winner for game %s: %w", gameID, err)
+		}
+		fmt.Println("Updated winner for game", gameID, "to", winnerUsername)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error iterating ended games: %w", err)
+	}
+
 	return nil
 }
