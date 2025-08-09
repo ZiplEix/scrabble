@@ -310,7 +310,7 @@ func SimulateScore(c echo.Context) error {
 func PassTurn(c echo.Context) error {
 	userID, ok := utils.GetUserID(c)
 	if !ok {
-		// return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+		zap.L().Error("unauthorized, no user_id")
 		return c.JSON(http.StatusUnauthorized, echo.Map{
 			"error":   "unauthorized, no user_id",
 			"message": "Vous devez être connecté pour passer votre tour",
@@ -319,7 +319,7 @@ func PassTurn(c echo.Context) error {
 
 	gameID := c.Param("id")
 	if gameID == "" {
-		// return echo.NewHTTPError(http.StatusBadRequest, "missing game id")
+		zap.L().Error("missing game id")
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   "missing game id",
 			"message": "L'ID de la partie est requis pour passer votre tour",
@@ -328,6 +328,20 @@ func PassTurn(c echo.Context) error {
 
 	err := services.PassTurn(userID, gameID)
 	if err != nil {
+		if strings.Contains(err.Error(), "not your turn") {
+			zap.L().Error("not your turn", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
+			return c.JSON(http.StatusForbidden, echo.Map{
+				"error":   fmt.Sprintf("failed to pass turn: %v", err),
+				"message": "Ce n'est pas votre tour de jouer. Veuillez attendre votre tour.",
+			})
+		} else if strings.Contains(err.Error(), "game not found") {
+			zap.L().Error("game not found", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
+			return c.JSON(http.StatusNotFound, echo.Map{
+				"error":   fmt.Sprintf("failed to pass turn: %v", err),
+				"message": "La partie n'existe pas ou a été supprimée. Veuillez recharger la page ou réessayer. Si le problème persiste, contactez le support.",
+			})
+		}
+		zap.L().Error("failed to pass turn", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("failed to pass turn: %v", err),
 			"message": "Erreur lors de la tentative de passer votre tour. Veuillez recharger la page ou réessayer. Si le problème persiste, contactez le support.",
