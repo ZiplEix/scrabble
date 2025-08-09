@@ -11,10 +11,6 @@
 		showLastPlayTime: boolean;
 		winning: boolean;
 	} = $props();
-
-	let onScreenGameLimit = $state(3);
-
-	let onScreenGame = $derived(games.length > onScreenGameLimit ? games.slice(0, onScreenGameLimit) : games);
 </script>
 
 <div class="mb-6">
@@ -22,7 +18,7 @@
 		<p class="text-center text-gray-500 italic">{placeholder}</p>
 	{:else}
 		<div class="flex flex-col gap-3 mb-4">
-			{#each onScreenGame as game}
+			{#each games as game}
 				<GameItem
 					{game}
 					{onDelete}
@@ -33,10 +29,5 @@
 				/>
 			{/each}
 		</div>
-		<!-- {#if games.length > 3}
-			<button class="text-blue-500 hover:underline" onclick={() => alert('Voir plus de parties...')}>
-				Afficher plus
-			</button>
-		{/if} -->
 	{/if}
 </div>
