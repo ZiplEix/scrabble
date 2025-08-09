@@ -288,34 +288,38 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		return err
 	}
 
-	// envoyer notification au gagnant
-	if winnerUsername.Valid {
-		if err := utils.SendNotificationToUserByID(
-			winnerID,
-			utils.NotificationPayload{
-				Title: "Vous avez gagné la partie \"" + gameName + "\"!",
-				Body:  fmt.Sprintf("Félicitations %s, vous avez remporté la partie avec %d points!", winnerUsername.String, winnerScore),
-				Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
-			},
-		); err != nil {
-			zap.L().Error("failed to send notification to winner", zap.Error(err), zap.String("game_id", gameID), zap.String("winner_username", winnerUsername.String))
-			return err
-		}
+	sendNotif := func(uid int64, payload utils.NotificationPayload) {
+		go func(userID int64, pl utils.NotificationPayload) {
+			if err := utils.SendNotificationToUserByID(userID, pl); err != nil {
+				// si pas d'abonnement push → info, sinon warn
+				if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "no rows in result set") {
+					zap.L().Info("no push subscription for user", zap.Int64("user_id", userID))
+					return
+				}
+				zap.L().Warn("failed to send push notification", zap.Error(err), zap.Int64("user_id", userID))
+			}
+		}(uid, payload)
 	}
 
-	// envoyer notification aux autres joueurs
+	// gagnant
+	if winnerUsername.Valid {
+		sendNotif(winnerID, utils.NotificationPayload{
+			Title: "Vous avez gagné la partie \"" + gameName + "\"!",
+			Body:  fmt.Sprintf("Félicitations %s, vous avez remporté la partie avec %d points!", winnerUsername.String, winnerScore),
+			Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
+		})
+	}
+
+	// autres joueurs
 	for _, l := range lefts {
 		if l.pid == winnerID {
-			continue // skip the winner
+			continue // skip winner
 		}
 		var username sql.NullString
-		if err := tx.QueryRow(
-			`SELECT username FROM users WHERE id = $1`, l.pid,
-		).Scan(&username); err != nil {
+		if err := tx.QueryRow(`SELECT username FROM users WHERE id = $1`, l.pid).Scan(&username); err != nil {
 			zap.L().Error("failed to get player username", zap.Error(err), zap.Int64("player_id", l.pid))
 			return err
 		}
-
 		var userPts int64
 		if err := tx.QueryRow(
 			`SELECT score FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, l.pid,
@@ -323,19 +327,12 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 			zap.L().Error("failed to get player score", zap.Error(err), zap.Int64("player_id", l.pid))
 			return err
 		}
-
 		if username.Valid {
-			if err := utils.SendNotificationToUserByID(
-				l.pid,
-				utils.NotificationPayload{
-					Title: "Partie terminée: \"" + gameName + "\"",
-					Body:  fmt.Sprintf("%s a gagné avec %d points!\nVous avez terminé avec %d points.", winnerUsername.String, winnerScore, userPts),
-					Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
-				},
-			); err != nil {
-				zap.L().Error("failed to send notification to player", zap.Error(err), zap.Int64("player_id", l.pid))
-				return err
-			}
+			sendNotif(l.pid, utils.NotificationPayload{
+				Title: "Partie terminée: \"" + gameName + "\"",
+				Body:  fmt.Sprintf("%s a gagné avec %d points!\nVous avez terminé avec %d points.", winnerUsername.String, winnerScore, userPts),
+				Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
+			})
 		}
 	}
 
