@@ -223,119 +223,128 @@
 {:else if error}
 	<p class="text-center text-red-600 mt-8">{error}</p>
 {:else if game}
-	<!-- Header compact avec menu -->
-	<GameMenu game={game} showScores={showScores} gameId={gameId!} />
-
-	<!-- Board + actions -->
-	<div class="relative flex-1 w-full px-2 pb-[max(env(safe-area-inset-bottom),72px)]">
-		<div class="mx-auto max-w-[95vw] w-full aspect-square">
-			<Board {game} {onPlaceLetter} />
-		</div>
-	</div>
-
-	<!-- Action cluster -->
-	<div
-		class="fixed left-0 right-0 z-30 px-3"
-		style="bottom: calc(env(safe-area-inset-bottom) + 75px)"
+	<!-- Main colonne sans fixed -->
+	<div class="flex flex-col overflow-hidden"
+		style="height: calc(100dvh - var(--nav-h, 72px));"
 	>
-		<div class="mx-auto max-w-[640px]">
-			<div class="w-full rounded-2xl bg-white/95 backdrop-blur-md shadow-lg ring-1 ring-black/5">
-				<div class="grid grid-cols-4 divide-x">
-					<!-- Annuler -->
-					<button
-						class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium disabled:opacity-40 active:scale-[0.98] transition"
-						onclick={() => { pendingMove.set([]); selectedLetter.set(null); }}
-						disabled={$moveScore <= 0 || get(pendingMove).length === 0}
-						aria-label="Annuler le coup en cours"
-					>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M9 16l-4-4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M20 20a8 8 0 0 0-8-8H5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-						</svg>
-						<span>Annuler</span>
-					</button>
+		<!-- Header compact avec menu -->
+		<GameMenu game={game} showScores={showScores} gameId={gameId!} />
 
-					<!-- Passer -->
-					<button
-						class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium active:scale-[0.98] transition"
-						onclick={passTurn}
-						aria-label="Passer le tour"
-					>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-							<path d="M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".15"/>
-						</svg>
-					<span>Passer</span>
-					</button>
+		<!-- Zone centrale qui prend le reste -->
+		<main class="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-					<!-- Échanger -->
-					<button
-						class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium active:scale-[0.98] transition"
-						onclick={drawNewRack}
-						aria-label="Échanger les lettres"
-					>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M4 7h11l-3-3M20 17H9l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-						<span>Échanger</span>
-					</button>
-
-					<!-- Valider (CTA) -->
-					<button
-						class="relative h-12 px-2 flex flex-col items-center justify-center text-[12px] font-semibold text-white bg-green-600 rounded-r-2xl active:scale-[0.98] transition disabled:opacity-60 disabled:bg-green-600/70"
-						onclick={playMove}
-						disabled={$moveScore <= 0 || get(pendingMove).length === 0}
-						aria-label="Valider le coup"
-					>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M20 7l-9 9-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-						<span>Valider</span>
-
-						<!-- Badge score -->
-						<span class="absolute -top-2 -right-2 text-[10px] px-2 py-0.5 rounded-full bg-white text-green-700 shadow ring-1 ring-black/5">
-							{$moveScore}
-						</span>
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Rack dock -->
-	<div class="fixed left-0 right-0 bottom-0 z-40 bg-white/95 backdrop-blur supports-backdrop-blur:border-t border-t shadow-inner">
-		<div class="px-2 pt-2 pb-[max(env(safe-area-inset-bottom),10px)]">
-			<div class="mx-auto max-w-[95vw] overflow-x-auto no-scrollbar">
-				<div
-					class="flex gap-1 whitespace-nowrap justify-center"
-					use:dndzone={{
-						items: $visibleRack,
-						flipDurationMs: 150,
-						dropFromOthersDisabled: true,
-						dragDisabled: false,
-					}}
-					onconsider={({ detail }) => originalRack.set(detail.items)}
-					onfinalize={({ detail }) => originalRack.set(detail.items)}
+			<!-- Board : centré verticalement et horizontalement -->
+			<div class="flex-1 grid place-items-center px-2 min-h-0">
+				<!-- Carré qui s’adapte à la hauteur dispo ET à la largeur -->
+				<div class="mx-auto"
+					style="width: min(95vw, 100%); height: min(95vw, 100%);"
 				>
-					{#each $visibleRack as item (item.id)}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<div
-							role="button"
-							tabindex="0"
-							class="relative inline-flex w-11 h-11 rounded-lg text-center text-lg font-bold items-center justify-center border cursor-pointer
-							{ $selectedLetter === item.char ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
-							onclick={() => onSelectLetter(item.char)}
-							animate:flip={{ duration: 200, easing: cubicOut }}
-						>
-							{item.char}
-							<span class="absolute bottom-0.5 right-1 text-[10px] font-normal text-gray-600">
-								{letterValues[item.char]}
-							</span>
-						</div>
-					{/each}
+					<Board {game} {onPlaceLetter} />
 				</div>
 			</div>
-		</div>
+
+			<!-- Cluster d’actions (en flux, juste au-dessus du rack) -->
+			<div class="px-3 pb-4 flex-none">
+				<div class="mx-auto max-w-[640px]">
+					<div class="w-full rounded-2xl bg-white/95 backdrop-blur-md shadow-lg ring-1 ring-black/5">
+						<div class="grid grid-cols-4 divide-x">
+							<!-- Annuler -->
+							<button
+								class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium disabled:opacity-40 active:scale-[0.98] transition"
+								onclick={() => { pendingMove.set([]); selectedLetter.set(null); }}
+								disabled={get(pendingMove).length === 0}
+								aria-label="Annuler le coup en cours"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<path d="M9 16l-4-4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+									<path d="M20 20a8 8 0 0 0-8-8H5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+								</svg>
+								<span>Annuler</span>
+							</button>
+
+							<!-- Passer -->
+							<button
+								class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium active:scale-[0.98] transition"
+								onclick={passTurn}
+								aria-label="Passer le tour"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+									<path d="M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".15"/>
+								</svg>
+								<span>Passer</span>
+							</button>
+
+							<!-- Échanger -->
+							<button
+								class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium active:scale-[0.98] transition"
+								onclick={drawNewRack}
+								aria-label="Échanger les lettres"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<path d="M4 7h11l-3-3M20 17H9l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+								</svg>
+								<span>Échanger</span>
+							</button>
+
+							<!-- Valider (CTA) -->
+							<button
+								class="relative h-12 px-2 flex flex-col items-center justify-center text-[12px] font-semibold text-white bg-green-600 rounded-r-2xl active:scale-[0.98] transition disabled:opacity-60 disabled:bg-green-600/70"
+								onclick={playMove}
+								disabled={get(pendingMove).length === 0}
+								aria-label="Valider le coup"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<path d="M20 7l-9 9-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+								</svg>
+								<span>Valider</span>
+
+								<!-- Badge score -->
+								<span class="absolute -top-2 -right-2 text-[10px] px-2 py-0.5 rounded-full bg-white text-green-700 shadow ring-1 ring-black/5">
+									{$moveScore}
+								</span>
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Rack (dernier, bord à bord) -->
+			<div class="bg-white/95 backdrop-blur supports-backdrop-blur:border-t border-t shadow-inner flex-none">
+				<div class="px-2 pt-2 pb-[max(env(safe-area-inset-bottom),10px)]">
+					<div class="mx-auto max-w-[95vw] overflow-x-auto no-scrollbar">
+						<div
+							class="flex gap-1 whitespace-nowrap justify-center"
+							use:dndzone={{
+								items: $visibleRack,
+								flipDurationMs: 150,
+								dropFromOthersDisabled: true,
+								dragDisabled: false,
+							}}
+							onconsider={({ detail }) => originalRack.set(detail.items)}
+							onfinalize={({ detail }) => originalRack.set(detail.items)}
+						>
+							{#each $visibleRack as item (item.id)}
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<div
+									role="button"
+									tabindex="0"
+									class="relative inline-flex w-11 h-11 rounded-lg text-center text-lg font-bold items-center justify-center border cursor-pointer
+									{ $selectedLetter === item.char ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
+									onclick={() => onSelectLetter(item.char)}
+									animate:flip={{ duration: 200, easing: cubicOut }}
+								>
+									{item.char}
+									<span class="absolute bottom-0.5 right-1 text-[10px] font-normal text-gray-600">
+										{letterValues[item.char]}
+									</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
 	</div>
 
 	<!-- Modal classement -->
@@ -389,6 +398,6 @@
 {/if}
 
 <style>
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+	.no-scrollbar::-webkit-scrollbar { display: none; }
+	.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
