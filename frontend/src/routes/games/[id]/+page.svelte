@@ -236,7 +236,7 @@
 	<!-- Action cluster -->
 	<div
 		class="fixed left-0 right-0 z-30 px-3"
-		style="bottom: calc(env(safe-area-inset-bottom) + 92px)"
+		style="bottom: calc(env(safe-area-inset-bottom) + 75px)"
 	>
 		<div class="mx-auto max-w-[640px]">
 			<div class="w-full rounded-2xl bg-white/95 backdrop-blur-md shadow-lg ring-1 ring-black/5">
