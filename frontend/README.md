@@ -49,7 +49,6 @@ frontend/
       +page.svelte        # accueil (loginé vs non logué) + bannière PWA
       login/+page.svelte  # connexion
       register/+page.svelte
-      impersonate/+page.svelte  # utilitaire d’admin/dev
       admin/change-password/+page.svelte
       games/new/+page.svelte    # création
       games/[id]/+page.svelte   # vue partie (plateau, rack, actions)
