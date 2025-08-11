@@ -322,7 +322,7 @@
 						<div
 							role="button"
 							tabindex="0"
-							class="relative inline-flex w-11 h-11 rounded-lg shadow text-center text-lg font-bold items-center justify-center border cursor-pointer
+							class="relative inline-flex w-11 h-11 rounded-lg text-center text-lg font-bold items-center justify-center border cursor-pointer
 							{ $selectedLetter === item.char ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
 							onclick={() => onSelectLetter(item.char)}
 							animate:flip={{ duration: 200, easing: cubicOut }}
