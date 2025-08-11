@@ -215,6 +215,9 @@
       		alert(err?.response?.data?.message || 'Impossible de créer la revanche.');
     	}
   	}
+
+	let menuOpen = $state(false);
+  	function closeMenu() { menuOpen = false; }
 </script>
 
 {#if loading}
@@ -222,35 +225,63 @@
 {:else if error}
 	<p class="text-center text-red-600 mt-8">{error}</p>
 {:else if game}
-	<!-- Header: nom + tour + bouton classement -->
-	<div class="px-4 pt-3 pb-1 w-full flex justify-between items-center">
+	<!-- Header compact avec menu -->
+	<div class="flex items-center justify-between">
 		<div>
-			<h2 class="text-xl font-bold text-gray-800">{game.name}</h2>
-			<p class="text-sm text-gray-600">Tour de : <strong>{game.current_turn_username}</strong></p>
-			<p class="text-xs text-gray-500">Lettres restantes : <strong>{game.remaining_letters}</strong></p>
+			<div class="px-3 pt-2 pb-1 w-full relative">
+				<div class="flex items-center gap-2">
+					<h2 class="flex-1 text-base font-semibold text-gray-800 truncate">{game.name}</h2>
+				</div>
+			</div>
+			<!-- Sous-ligne compacte (hauteur minimale) -->
+			<p class="px-3 mt-0.5 text-[11px] leading-tight text-gray-600 flex items-center justify-between">
+				<span>
+					Lettres restantes : <strong class="font-semibold">{game.remaining_letters}</strong>
+				</span>
+				<span>
+					Tour : <strong class="font-semibold">{game.current_turn_username}</strong>
+				</span>
+			</p>
 		</div>
-		<!-- Actions: classement + report -->
-		<div class="flex flex-col items-end gap-2">
+		<div class="px-3 relative">
 			<button
-				class="text-xs bg-gray-200 px-3 py-1 rounded shadow hover:bg-gray-300"
-				onclick={() => showScores = true}
+				class="shrink-0 h-8 w-8 grid place-items-center rounded-lg bg-gray-100 hover:bg-gray-200 text-xl leading-none"
+				aria-label="Ouvrir le menu"
+				onclick={() => (menuOpen = !menuOpen)}
 			>
-				Classement 🏆
+				⋯
 			</button>
-			<a
-				href="/report"
-				class="text-xs bg-gray-200 px-3 py-1 rounded shadow hover:bg-gray-300 text-center"
-			>
-				🛠️ reporter un bug
-			</a>
-			<a
-				href={`/games/${gameId}/history`}
-				class="text-xs bg-gray-200 px-3 py-1 rounded shadow hover:bg-gray-300"
-			>
-				Historique 📜
-			</a>
+
+			{#if menuOpen}
+				<div
+					class="absolute right-3 mt-1 w-44 rounded-xl bg-white shadow-lg ring-1 ring-black/5 overflow-hidden z-20"
+					onfocusout={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) closeMenu(); }}
+				>
+					<button
+						class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+						onclick={() => { showScores = true; closeMenu(); }}
+					>
+						🏆 Classement
+					</button>
+					<a
+						href="/report"
+						class="block px-3 py-2 text-sm hover:bg-gray-50"
+						onclick={closeMenu}
+					>
+						🛠️ Reporter un bug
+					</a>
+					<a
+						href={`/games/${gameId}/history`}
+						class="block px-3 py-2 text-sm hover:bg-gray-50"
+						onclick={closeMenu}
+					>
+						📜 Historique
+					</a>
+				</div>
+			{/if}
 		</div>
 	</div>
+
 
 	<div class="text-center mt-2 mb-1">
 		<span class="inline-block bg-yellow-100 text-yellow-800 font-semibold text-lg px-4 py-2 rounded shadow">
