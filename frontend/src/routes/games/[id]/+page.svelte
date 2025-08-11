@@ -23,8 +23,8 @@
 	let showScores = $state(writable<boolean>(false));
 
 	let sortedPlayers = $derived(game
-			? [...game.players].sort((a, b) => b.score - a.score)
-			: []
+		? [...game.players].sort((a, b) => b.score - a.score)
+		: []
 	)
 
 	let moveScore = derived(
