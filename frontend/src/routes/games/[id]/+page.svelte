@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { page } from '$app/stores';
-	import { get, derived, writable } from 'svelte/store';
+	import { get, derived, writable, type Readable } from 'svelte/store';
 	import Board from '$lib/components/Board.svelte';
 	import { pendingMove, selectedLetter } from '$lib/stores/pendingMove';
 	import { letterValues } from '$lib/lettres_value';
@@ -27,7 +27,7 @@
 		: []
 	)
 
-	let moveScore = derived(
+	let moveScore: Readable<number> = derived(
 		[pendingMove, page],
 		([$moves, $page], set) => {
 			if (!$moves.length || !game) return set(0);
@@ -226,67 +226,115 @@
 	<!-- Header compact avec menu -->
 	<GameMenu game={game} showScores={showScores} gameId={gameId!} />
 
-	<div class="text-center mt-2 mb-1">
-		<span class="inline-block bg-yellow-100 text-yellow-800 font-semibold text-lg px-4 py-2 rounded shadow">
-			{#if game?.status === 'ended'}
-				Partie terminée !
-				<br />
-				Vainqueur : <strong>{game.winner_username}</strong>
-			{:else}
-				Score du coup : <strong>{$moveScore}</strong>
-			{/if}
-		</span>
+	<!-- Board + actions -->
+	<div class="relative flex-1 w-full px-2 pb-[max(env(safe-area-inset-bottom),72px)]">
+		<div class="mx-auto max-w-[95vw] w-full aspect-square">
+			<Board {game} {onPlaceLetter} />
+		</div>
 	</div>
 
-	<!-- Plateau + rack -->
-	<div class="flex flex-col items-center mt-6 w-full gap-2 px-2"
-    	style="min-height: calc(100vh - 320px);">
-		<!-- Plateau -->
-		<div class="max-w-[95vw] w-full aspect-square">
-			<Board
-				{game}
-				{onPlaceLetter}
-			/>
-		</div>
+	<!-- Action cluster -->
+	<div
+		class="fixed left-0 right-0 z-30 px-3"
+		style="bottom: calc(env(safe-area-inset-bottom) + 92px)"
+	>
+		<div class="mx-auto max-w-[640px]">
+			<div class="w-full rounded-2xl bg-white/95 backdrop-blur-md shadow-lg ring-1 ring-black/5">
+				<div class="grid grid-cols-4 divide-x">
+					<!-- Annuler -->
+					<button
+						class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium disabled:opacity-40 active:scale-[0.98] transition"
+						onclick={() => { pendingMove.set([]); selectedLetter.set(null); }}
+						disabled={$moveScore <= 0 || get(pendingMove).length === 0}
+						aria-label="Annuler le coup en cours"
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<path d="M9 14l-4-4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M20 20a8 8 0 0 0-8-8H5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+						</svg>
+						<span>Annuler</span>
+					</button>
 
-		<!-- Rack -->
-		<div
-			class="flex justify-center gap-1 mt-2 flex-wrap max-w-[95vw] w-full"
-			use:dndzone={{
-				items: $visibleRack,
-				flipDurationMs: 150,
-				dropFromOthersDisabled: true,
-				dragDisabled: false,
-			}}
-			onconsider={({ detail }) => originalRack.set(detail.items)}
-			onfinalize={({ detail }) => originalRack.set(detail.items)}
-		>
-			{#each $visibleRack as item (item.id)}
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<div
-					role="button"
-					tabindex="0"
-					class="relative w-12 h-12 rounded shadow text-center text-lg font-bold flex items-center justify-center border cursor-pointer
-						{ $selectedLetter === item.char ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
-					onclick={() => onSelectLetter(item.char)}
-					animate:flip={{ duration: 200, easing: cubicOut }}
-				>
-					{item.char}
-					<span class="absolute bottom-0.5 right-1 text-xs font-normal text-gray-600">{letterValues[item.char]}</span>
+					<!-- Passer -->
+					<button
+						class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium active:scale-[0.98] transition"
+						onclick={passTurn}
+						aria-label="Passer le tour"
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+							<path d="M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".15"/>
+						</svg>
+					<span>Passer</span>
+					</button>
+
+					<!-- Échanger -->
+					<button
+						class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium active:scale-[0.98] transition"
+						onclick={drawNewRack}
+						aria-label="Échanger les lettres"
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<path d="M4 7h11l-3-3M20 17H9l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+						<span>Échanger</span>
+					</button>
+
+					<!-- Valider (CTA) -->
+					<button
+						class="relative h-12 px-2 flex flex-col items-center justify-center text-[12px] font-semibold text-white bg-green-600 rounded-r-2xl active:scale-[0.98] transition disabled:opacity-60 disabled:bg-green-600/70"
+						onclick={playMove}
+						disabled={$moveScore <= 0 || get(pendingMove).length === 0}
+						aria-label="Valider le coup"
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<path d="M20 7l-9 9-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+						<span>Valider</span>
+
+						<!-- Badge score -->
+						<span class="absolute -top-2 -right-2 text-[10px] px-2 py-0.5 rounded-full bg-white text-green-700 shadow ring-1 ring-black/5">
+							{$moveScore}
+						</span>
+					</button>
 				</div>
-			{/each}
+			</div>
 		</div>
 	</div>
 
-	<!-- Actions sticky -->
-	<div class="fixed bottom-0 left-0 w-full bg-white border-t shadow-inner px-4 py-3 flex justify-between items-center">
-		<div class="flex gap-3">
-			<button class="bg-gray-400 text-white px-4 py-2 rounded shadow" onclick={() => { pendingMove.set([]); selectedLetter.set(null); }}>Annuler</button>
-			<button class="bg-red-500 text-white px-4 py-2 rounded shadow" onclick={passTurn}>Passer</button>
-		</div>
-		<div class="flex gap-3">
-			<button class="bg-orange-500 text-white px-4 py-2 rounded shadow" onclick={drawNewRack}>Échanger</button>
-			<button class="bg-green-600 text-white px-4 py-2 rounded shadow" onclick={playMove}>Valider</button>
+	<!-- Rack dock -->
+	<div class="fixed left-0 right-0 bottom-0 z-40 bg-white/95 backdrop-blur supports-backdrop-blur:border-t border-t shadow-inner">
+		<div class="px-2 pt-2 pb-[max(env(safe-area-inset-bottom),10px)]">
+			<div class="mx-auto max-w-[95vw] overflow-x-auto no-scrollbar">
+				<div
+					class="flex gap-1 whitespace-nowrap justify-center"
+					use:dndzone={{
+						items: $visibleRack,
+						flipDurationMs: 150,
+						dropFromOthersDisabled: true,
+						dragDisabled: false,
+					}}
+					onconsider={({ detail }) => originalRack.set(detail.items)}
+					onfinalize={({ detail }) => originalRack.set(detail.items)}
+				>
+					{#each $visibleRack as item (item.id)}
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<div
+							role="button"
+							tabindex="0"
+							class="relative inline-flex w-11 h-11 rounded-lg shadow text-center text-lg font-bold items-center justify-center border cursor-pointer
+							{ $selectedLetter === item.char ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
+							onclick={() => onSelectLetter(item.char)}
+							animate:flip={{ duration: 200, easing: cubicOut }}
+						>
+							{item.char}
+							<span class="absolute bottom-0.5 right-1 text-[10px] font-normal text-gray-600">
+								{letterValues[item.char]}
+							</span>
+						</div>
+					{/each}
+				</div>
+			</div>
 		</div>
 	</div>
 
@@ -339,3 +387,8 @@
 		</div>
 	{/if}
 {/if}
+
+<style>
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
