@@ -30,7 +30,6 @@
 		[pendingMove, page],
 		([$moves, $page], set) => {
 			if (!$moves.length || !game) return set(0);
-			set(undefined);
 
 			api.post(`/game/${$page.params.id}/simulate_score`, {
 				letters: $moves.map(m => ({
