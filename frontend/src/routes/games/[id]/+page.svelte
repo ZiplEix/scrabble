@@ -252,7 +252,7 @@
 							<button
 								class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium disabled:opacity-40 active:scale-[0.98] transition"
 								onclick={() => { pendingMove.set([]); selectedLetter.set(null); }}
-								disabled={get(pendingMove).length === 0}
+								disabled={$moveScore <= 0 || get(pendingMove).length === 0}
 								aria-label="Annuler le coup en cours"
 							>
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -291,7 +291,7 @@
 							<button
 								class="relative h-12 px-2 flex flex-col items-center justify-center text-[12px] font-semibold text-white bg-green-600 rounded-r-2xl active:scale-[0.98] transition disabled:opacity-60 disabled:bg-green-600/70"
 								onclick={playMove}
-								disabled={get(pendingMove).length === 0}
+								disabled={$moveScore <= 0 || get(pendingMove).length === 0}
 								aria-label="Valider le coup"
 							>
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
