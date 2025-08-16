@@ -13,8 +13,9 @@
     }
 </script>
 
-<div class="flex items-center justify-between">
-    <div>
+<div class="flex items-center w-full justify-between">
+    <!-- Title & infos -->
+    <div class="w-full">
         <div class="px-3 pt-2 pb-1 w-full relative">
             <div class="flex items-center gap-2">
                 <h2 class="flex-1 text-base font-semibold text-gray-800 truncate">{game.name}</h2>
@@ -30,6 +31,8 @@
             </span>
         </p>
     </div>
+
+    <!-- Menu bouton -->
     <div class="px-3 relative">
         <button
             class="shrink-0 h-8 w-8 grid place-items-center rounded-lg bg-gray-100 hover:bg-gray-200 text-xl leading-none"
