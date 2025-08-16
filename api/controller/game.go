@@ -42,6 +42,13 @@ func CreateGame(c echo.Context) error {
 		usernames = append(usernames, strings.ToLower(strings.TrimSpace(player)))
 	}
 
+	if len(usernames) > 3 {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error":   "too many players",
+			"message": "Vous ne pouvez pas inviter plus de 3 joueurs",
+		})
+	}
+
 	gameID, err := services.CreateGame(userID, req.Name, usernames)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{

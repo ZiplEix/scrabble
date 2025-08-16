@@ -60,6 +60,7 @@
 			const gameId = res.data.game_id;
 			goto(`/games/${gameId}`);
 		} catch (e: any) {
+			alert(e?.response?.data?.message)
 			error = e?.response?.data?.error || 'Erreur lors de la création de la partie';
 		} finally {
 			loading = false;
