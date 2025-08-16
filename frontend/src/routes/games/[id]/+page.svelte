@@ -196,6 +196,15 @@
 		}
 	}
 
+	function shuffleRack() {
+		const rack = get(originalRack);
+		for (let i = rack.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[rack[i], rack[j]] = [rack[j], rack[i]];
+		}
+		originalRack.set(rack);
+	}
+
 	async function handleRematch() {
 		const defaultName = `${game!.name} – revanche`;
 		const newName = prompt('Nom de la nouvelle partie :', defaultName);
@@ -265,14 +274,15 @@
 							<!-- Passer -->
 							<button
 								class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium active:scale-[0.98] transition"
-								onclick={passTurn}
+								onclick={shuffleRack}
 								aria-label="Passer le tour"
 							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-									<path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-									<path d="M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".15"/>
+								<svg width="18" height="18" viewBox="0 0 24 24" version="1.1" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+									<path d="M8.7,14.2C8,14.7,7.1,15,6.2,15H4c-0.6,0-1,0.4-1,1s0.4,1,1,1h2.2c1.3,0,2.6-0.4,3.7-1.2c0.4-0.3,0.5-1,0.2-1.4    C9.7,13.9,9.1,13.8,8.7,14.2z"/>
+									<path d="M13,10.7c0.3,0,0.6-0.1,0.8-0.3C14.5,9.5,15.6,9,16.8,9h0.8l-0.3,0.3c-0.4,0.4-0.4,1,0,1.4c0.2,0.2,0.5,0.3,0.7,0.3    s0.5-0.1,0.7-0.3l2-2c0.1-0.1,0.2-0.2,0.2-0.3c0.1-0.2,0.1-0.5,0-0.8c-0.1-0.1-0.1-0.2-0.2-0.3l-2-2c-0.4-0.4-1-0.4-1.4,0    s-0.4,1,0,1.4L17.6,7h-0.8c-1.8,0-3.4,0.8-4.6,2.1c-0.4,0.4-0.3,1,0.1,1.4C12.5,10.7,12.8,10.7,13,10.7z"/>
+									<path d="M20.7,15.3l-2-2c-0.4-0.4-1-0.4-1.4,0s-0.4,1,0,1.4l0.3,0.3h-1.5c-1.6,0-2.9-0.9-3.6-2.3l-1.2-2.4C10.3,8.3,8.2,7,5.9,7H4    C3.4,7,3,7.4,3,8s0.4,1,1,1h1.9c1.6,0,2.9,0.9,3.6,2.3l1.2,2.4c1,2.1,3.1,3.4,5.4,3.4h1.5l-0.3,0.3c-0.4,0.4-0.4,1,0,1.4    c0.2,0.2,0.5,0.3,0.7,0.3s0.5-0.1,0.7-0.3l2-2C21.1,16.3,21.1,15.7,20.7,15.3z"/>
 								</svg>
-								<span>Passer</span>
+								<span>Mélanger</span>
 							</button>
 
 							<!-- Échanger -->
@@ -287,23 +297,38 @@
 								<span>Échanger</span>
 							</button>
 
-							<!-- Valider (CTA) -->
-							<button
-								class="relative h-12 px-2 flex flex-col items-center justify-center text-[12px] font-semibold text-white bg-green-600 rounded-r-2xl active:scale-[0.98] transition disabled:opacity-60 disabled:bg-green-600/70"
-								onclick={playMove}
-								disabled={$moveScore <= 0 || get(pendingMove).length === 0}
-								aria-label="Valider le coup"
-							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-									<path d="M20 7l-9 9-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-								</svg>
-								<span>Valider</span>
+							{#if $moveScore <= 0 || get(pendingMove).length === 0}
+								<!-- Passer -->
+								<button
+									class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium active:scale-[0.98] transition"
+									onclick={passTurn}
+									aria-label="Passer le tour"
+								>
+									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+										<path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+										<path d="M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".15"/>
+									</svg>
+									<span>Passer</span>
+								</button>
+							{:else}
+								<!-- Valider (CTA) -->
+								<button
+									class="relative h-12 px-2 flex flex-col items-center justify-center text-[12px] font-semibold text-white bg-green-600 rounded-r-2xl active:scale-[0.98] transition disabled:opacity-60 disabled:bg-green-600/70"
+									onclick={playMove}
+									disabled={$moveScore <= 0 || get(pendingMove).length === 0}
+									aria-label="Valider le coup"
+								>
+									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+										<path d="M20 7l-9 9-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+									</svg>
+									<span>Valider</span>
 
-								<!-- Badge score -->
-								<span class="absolute -top-2 -right-2 text-[10px] px-2 py-0.5 rounded-full bg-white text-green-700 shadow ring-1 ring-black/5">
-									{$moveScore}
-								</span>
-							</button>
+									<!-- Badge score -->
+									<span class="absolute -top-2 -right-2 text-[10px] px-2 py-0.5 rounded-full bg-white text-green-700 shadow ring-1 ring-black/5">
+										{$moveScore}
+									</span>
+								</button>
+							{/if}
 						</div>
 					</div>
 				</div>
