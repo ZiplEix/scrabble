@@ -4,9 +4,9 @@
 	import { page } from '$app/stores';
 	import { get, derived, writable, type Readable } from 'svelte/store';
 	import Board from '$lib/components/Board.svelte';
-	import { pendingMove, selectedLetter } from '$lib/stores/pendingMove';
-	import { letterValues } from '$lib/lettres_value';
+	import { pendingMove } from '$lib/stores/pendingMove';
 	import { dndzone } from 'svelte-dnd-action';
+	import { letterValues } from '$lib/lettres_value';
 	import { flip } from 'svelte/animate';
 	import { cubicOut } from 'svelte/easing';
 	import { goto } from '$app/navigation';
@@ -60,18 +60,13 @@
 		} catch (e: any) {
 			error = e?.response?.data?.error || 'Erreur lors du chargement de la partie';
 		} finally {
-			loading = false;
+					loading = false;
 
-			if (game?.status === 'ended') {
-				showScores.set(true);
-			}
+					if (game?.status === 'ended') {
+						showScores.set(true);
+					}
 		}
 	});
-
-	function onSelectLetter(letter: string) {
-		const current = get(selectedLetter);
-		selectedLetter.set(current === letter ? null : letter);
-	}
 
 	function onPlaceLetter(x: number, y: number, cell: string) {
 		const currentMoves = get(pendingMove);
@@ -83,33 +78,57 @@
 		}
 
 		if (cell) return;
-		const letter = get(selectedLetter);
-		if (!letter) return;
-
-		pendingMove.update((moves) => {
-			const filtered = moves.filter((m) => !(m.x === x && m.y === y));
-			return [...filtered, { x, y, letter }];
-		});
-		selectedLetter.set(null);
+		// placement now performed by drag-drop only; keep function for programmatic use
+		return;
 	}
 
-	const placedLetters = derived(pendingMove, (moves) => moves.map((m) => m.letter));
+	function cancelPendingMove() {
+		const moves = get(pendingMove);
+		if (!moves || moves.length === 0) {
+			pendingMove.set([]);
+			return;
+		}
+
+		// restore used rack letters (if any) back to originalRack
+		originalRack.update(r => {
+			const existingIds = new Set(r.map(i => i.id));
+			const toAdd = moves.map((m) => {
+				if (m.rackId) return { id: m.rackId, char: m.letter };
+				return { id: `${Date.now()}-${m.letter}-${crypto.randomUUID()}`, char: m.letter };
+			}).filter(item => !existingIds.has(item.id));
+			return [...r, ...toAdd];
+		});
+
+		pendingMove.set([]);
+	}
+
+	function takeBackFromBoard(x: number, y: number) {
+		const moves = get(pendingMove);
+		const idx = moves.findIndex(m => m.x === x && m.y === y);
+		if (idx === -1) return;
+		const move = moves[idx];
+		// restore to originalRack preserving id when available
+		originalRack.update(r => {
+			if (move.rackId && r.some(it => it.id === move.rackId)) return r;
+			const item = move.rackId ? { id: move.rackId, char: move.letter } : { id: `${Date.now()}-${move.letter}-${crypto.randomUUID()}`, char: move.letter };
+			return [...r, item];
+		});
+		// remove from pendingMove
+		pendingMove.update(ms => ms.filter((m) => !(m.x === x && m.y === y)));
+	}
+
 	const visibleRack = derived(
-		[originalRack, placedLetters],
-		([$rack, $used]) => {
-			const usedCopy = [...$used];
-			return $rack.filter((l) => {
-				const idx = usedCopy.indexOf(l.char);
-				if (idx !== -1) {
-					usedCopy.splice(idx, 1);
-					return false;
-				}
-				return true;
-			});
+		[originalRack, pendingMove],
+		([$rack, $moves]) => {
+			const usedIds = new Set($moves.map(m => m.rackId).filter(Boolean) as string[]);
+			return $rack.filter(r => !usedIds.has(r.id));
 		}
 	);
 
+	let submitting = $state(false);
+
 	async function playMove() {
+		submitting = true;
 		const move = get(pendingMove);
 		if (!move.length) return;
 
@@ -146,11 +165,11 @@
 				char
 			})));
 			pendingMove.set([]);
-			selectedLetter.set(null);
 		} catch (e: any) {
 			const msg = e?.response?.data?.message || 'Erreur lors de la validation du coup.';
 			alert(msg);
 		} finally {
+			submitting = false;
 			if (game?.status === 'ended') {
 				showScores.set(true);
 			}
@@ -173,8 +192,7 @@
 				id: `${i}-${char}-${crypto.randomUUID()}`,
 				char
 			})));
-			pendingMove.set([]);
-			selectedLetter.set(null);
+					pendingMove.set([]);
 		} catch (e: any) {
 			const msg = e?.response?.data?.message || 'Erreur lors du tirage d\'un nouveau rack.';
 			console.error(e);
@@ -248,7 +266,29 @@
 				<div class="mx-auto"
 					style="width: min(95vw, 100%); height: min(95vw, 100%);"
 				>
-					<Board {game} {onPlaceLetter} />
+					<Board {game} {onPlaceLetter} onTakeFromBoard={takeBackFromBoard} onDropFromRack={(char, x, y, id) => {
+						console.log('[page] onDropFromRack', { char, x, y, id });
+						// called when an item from the rack is dropped on the board via svelte-dnd-action
+						const cell = game!.board[y][x];
+						if (cell) {
+							// target occupied -> restore tile into originalRack so it doesn't disappear
+							originalRack.update(r => {
+								// if we already have the id in the rack, do nothing
+								if (id && r.some(it => it.id === id)) return r;
+								// re-add with same id when available, otherwise create a new id
+								const newItem = id ? { id, char } : { id: `${Date.now()}-${char}-${crypto.randomUUID()}`, char };
+								return [...r, newItem];
+							});
+							return; // do not add to pendingMove
+						}
+						// add to pendingMove and tag which rack item was used
+						pendingMove.update(moves => {
+							const filtered = moves.filter((m) => !(m.x === x && m.y === y));
+							return [...filtered, { x, y, letter: char, rackId: id }];
+						});
+						// remove from originalRack by id
+						originalRack.update(r => r.filter(item => item.id !== id));
+					}} />
 				</div>
 			</div>
 
@@ -260,7 +300,7 @@
 							<!-- Annuler -->
 							<button
 								class="h-12 px-2 flex flex-col items-center justify-center text-[12px] font-medium disabled:opacity-40 active:scale-[0.98] transition"
-								onclick={() => { pendingMove.set([]); selectedLetter.set(null); }}
+								onclick={cancelPendingMove}
 								disabled={$moveScore <= 0 || get(pendingMove).length === 0}
 								aria-label="Annuler le coup en cours"
 							>
@@ -315,13 +355,21 @@
 								<button
 									class="relative h-12 px-2 flex flex-col items-center justify-center text-[12px] font-semibold text-white bg-green-600 rounded-r-2xl active:scale-[0.98] transition disabled:opacity-60 disabled:bg-green-600/70"
 									onclick={playMove}
-									disabled={$moveScore <= 0 || get(pendingMove).length === 0}
+									disabled={$moveScore <= 0 || get(pendingMove).length === 0 || submitting}
 									aria-label="Valider le coup"
 								>
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-										<path d="M20 7l-9 9-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-									</svg>
-									<span>Valider</span>
+									{#if submitting}
+										<!-- spinner -->
+										<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+											<circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.4)" stroke-width="4"></circle>
+											<path d="M22 12a10 10 0 0 1-10 10" stroke="white" stroke-width="4" stroke-linecap="round"></path>
+										</svg>
+									{:else}
+										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+											<path d="M20 7l-9 9-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+										</svg>
+									{/if}
+									<span class="mt-1">{submitting ? 'Envoi...' : 'Valider'}</span>
 
 									<!-- Badge score -->
 									<span class="absolute -top-2 -right-2 text-[10px] px-2 py-0.5 rounded-full bg-white text-green-700 shadow ring-1 ring-black/5">
@@ -343,7 +391,7 @@
 							use:dndzone={{
 								items: $visibleRack,
 								flipDurationMs: 150,
-								dropFromOthersDisabled: true,
+								dropFromOthersDisabled: false,
 								dragDisabled: false,
 							}}
 							onconsider={({ detail }) => originalRack.set(detail.items)}
@@ -354,9 +402,18 @@
 								<div
 									role="button"
 									tabindex="0"
-									class="relative inline-flex w-11 h-11 rounded-lg text-center text-lg font-bold items-center justify-center border cursor-pointer
-									{ $selectedLetter === item.char ? 'bg-yellow-400 border-yellow-600' : 'bg-yellow-100 border-yellow-400' }"
-									onclick={() => onSelectLetter(item.char)}
+									draggable="true"
+									ondragstart={(e) => {
+										// Try to use dataTransfer but also set a global fallback because some dnd libs intercept dataTransfer
+										e.dataTransfer?.setData('text/plain', JSON.stringify({ char: item.char }));
+										try { e.dataTransfer!.effectAllowed = 'move'; e.dataTransfer!.dropEffect = 'move'; } catch (err) {}
+										(window as any).__draggedTile = { char: item.char, id: item.id };
+										(window as any).__dndActive = true;
+										// stop propagation so svelte-dnd-action doesn't intercept this native drag
+										try { e.stopPropagation(); } catch (err) {}
+									}}
+									ondragend={() => { try { (window as any).__draggedTile = null; (window as any).__dndActive = false; } catch(e){} }}
+									class="relative inline-flex w-11 h-11 rounded-lg text-center text-lg font-bold items-center justify-center border cursor-pointer bg-yellow-100 border-yellow-400"
 									animate:flip={{ duration: 200, easing: cubicOut }}
 								>
 									{item.char}
