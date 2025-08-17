@@ -27,16 +27,12 @@
 	<div class="flex space-x-6 items-center">
 		{#if !$user}
 			<a href="/login" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Connexion</a>
-		{:else}
+        {:else}
             <button
                 class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                on:click={() => {
-                    user.set(null);
-                    localStorage.removeItem('user');
-                    goto('/')
-                }}
+                on:click={() => goto('/me')}
             >
-                Déconnexion
+                Mon profil
             </button>
 		{/if}
 	</div>
