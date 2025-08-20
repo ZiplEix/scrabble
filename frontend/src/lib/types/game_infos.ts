@@ -38,4 +38,5 @@ type GameInfo = {
     remaining_letters: number;
     winner_username?: string;
     ended_at?: string;
+    is_your_game: boolean;
 };

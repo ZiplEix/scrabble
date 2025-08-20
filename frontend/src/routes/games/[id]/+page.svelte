@@ -224,6 +224,11 @@
 	}
 
 	async function handleRematch() {
+			// Guard côté client : s'assurer que seul le créateur peut créer une revanche
+			if (!game?.is_your_game) {
+				alert('Seul le créateur de la partie peut créer une revanche.');
+				return;
+			}
 		const defaultName = `${game!.name} – revanche`;
 		const newName = prompt('Nom de la nouvelle partie :', defaultName);
 		if (!newName) return;
@@ -459,13 +464,13 @@
 					{/each}
 				</div>
 				<div class="mt-6 flex gap-2">
-					{#if game?.status === 'ended'}
+					{#if game?.status === 'ended' && game?.is_your_game}
 						<button
 							class="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
 							onclick={handleRematch}
 						>
-             				Rejouer
-           				</button>
+				 			Rejouer
+				 		</button>
          			{/if}
          			<button
            				class="flex-1 bg-gray-300 py-2 rounded hover:bg-gray-400"

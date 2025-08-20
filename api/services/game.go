@@ -27,7 +27,7 @@ func initEmptyBoard() [15][15]string {
 // Lettres classiques du scrabble français
 const initialLetters = "AAAAAAAAAEEEEEEEEEEEEIIIIIIIIONNNNNNRRRRRRTTTTTTLLLLSSSSUDDDGGGMMMBBCCPPFFHHVVJQKWXYZ"
 
-func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, error) {
+func CreateGame(userID int64, name string, usernames []string, revangeFrom *string) (*uuid.UUID, error) {
 	board := initEmptyBoard()
 
 	available := []rune(initialLetters)
@@ -42,6 +42,22 @@ func CreateGame(userID int64, name string, usernames []string) (*uuid.UUID, erro
 
 	availableStr := string(available)
 	gameID := uuid.New()
+
+	// Si une partie d'origine est fournie pour une revanche, vérifier que
+	// l'utilisateur courant est bien le créateur de cette partie.
+	if revangeFrom != nil {
+		var srcCreatedBy int64
+		err := database.QueryRow(`SELECT created_by FROM games WHERE id = $1`, *revangeFrom).Scan(&srcCreatedBy)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, fmt.Errorf("source game not found")
+			}
+			return nil, err
+		}
+		if srcCreatedBy != userID {
+			return nil, fmt.Errorf("only the creator of the original game can create a rematch")
+		}
+	}
 
 	tx, err := database.DB.BeginTx(context.Background(), nil)
 	if err != nil {
@@ -203,8 +219,8 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 	// 2. Récupère info partie
 	gameQuery := `
        SELECT id, name, board, available_letters,
-              current_turn, status,
-              winner_username, ended_at
+			 current_turn, status, created_by,
+			 winner_username, ended_at
        FROM games
        WHERE id = $1
     `
@@ -212,12 +228,13 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 		boardJSON      []byte
 		avail          string
 		game           response.GameInfo
+		createdBy      int64
 		winnerUsername sql.NullString
 		endedAt        sql.NullTime
 	)
 	err = database.QueryRow(gameQuery, gameID).Scan(
 		&game.ID, &game.Name, &boardJSON, &avail,
-		&game.CurrentTurn, &game.Status,
+		&game.CurrentTurn, &game.Status, &createdBy,
 		&winnerUsername, &endedAt,
 	)
 	if err != nil {
@@ -227,6 +244,7 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 	_ = json.Unmarshal(boardJSON, &game.Board)
 
 	// transfert dans le DTO
+	game.IsYourGame = (createdBy == userID)
 	if winnerUsername.Valid {
 		game.WinnerUsername = winnerUsername.String
 	}

@@ -17,6 +17,7 @@ type GameInfo struct {
 	RemainingLetters int          `json:"remaining_letters"`
 	WinnerUsername   string       `json:"winner_username,omitempty"`
 	EndedAt          *time.Time   `json:"ended_at,omitempty"`
+	IsYourGame       bool         `json:"is_your_game"`
 }
 
 type PlayerInfo struct {

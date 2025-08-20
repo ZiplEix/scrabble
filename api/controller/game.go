@@ -49,7 +49,7 @@ func CreateGame(c echo.Context) error {
 		})
 	}
 
-	gameID, err := services.CreateGame(userID, req.Name, usernames)
+	gameID, err := services.CreateGame(userID, req.Name, usernames, req.RevangeFrom)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{
 			"error":   fmt.Sprintf("failed to create game: %v", err),
