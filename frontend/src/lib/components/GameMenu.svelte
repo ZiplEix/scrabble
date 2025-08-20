@@ -1,4 +1,5 @@
 <script lang='ts'>
+  import { goto } from "$app/navigation";
   import type { Writable } from "svelte/store";
 
     let { game, showScores, gameId }: {
@@ -67,6 +68,12 @@
                 >
                     📜 Historique
                 </a>
+                <button
+                    class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                    onclick={() => { goto(`/games/${gameId}/chat`); closeMenu(); }}
+                >
+                    💬 Chat
+                </button>
             </div>
         {/if}
     </div>
