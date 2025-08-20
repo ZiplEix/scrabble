@@ -117,15 +117,32 @@
         });
         return out;
     })();
+
+    // info modal state
+    let showInfo = false;
+    function openInfo() { showInfo = true; }
+    function closeInfo() { showInfo = false; }
 </script>
 
 <div class="flex flex-col overflow-hidden"
 	style="height: calc(100dvh - var(--nav-h, 72px));"
 >
-    <div class="shrink-0 p-2">
-        <button class="text-sm text-blue-600 hover:underline " on:click={backToGame}>
+    <div class="shrink-0 p-2 flex justify-between items-center">
+        <button class="text-sm text-blue-600 hover:underline" on:click={backToGame}>
             ← Retour à la partie
         </button>
+        <div class="flex items-center gap-2">
+            <button
+                class="p-1 rounded hover:bg-gray-100"
+                aria-label="Informations sur le chat"
+                title="Informations sur le chat"
+                on:click={openInfo}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-9-1a1 1 0 112 0v5a1 1 0 11-2 0V9zm1-4a1.25 1.25 0 100 2.5A1.25 1.25 0 0010 5z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
     </div>
 
     <header class="w-full flex flex-col items-center">
@@ -159,6 +176,34 @@
             {/if}
         {/each}
     </div>
+
+    {#if showInfo}
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" on:click={closeInfo} aria-hidden="true"></div>
+            <div class="relative max-w-xl w-full bg-white rounded-lg shadow-lg ring-1 ring-black/5">
+                <div class="flex items-center justify-between px-4 py-3 border-b">
+                    <h2 class="text-sm font-semibold">À propos du chat (Bêta)</h2>
+                    <button class="text-gray-500 hover:text-gray-700 p-1" aria-label="Fermer" on:click={closeInfo}>&times;</button>
+                </div>
+                <div class="px-4 py-3 text-sm text-gray-700 space-y-2">
+                    <p>Ce chat est en version Bêta. Il peut contenir des bugs — n'hésitez pas à signaler tout problème.</p>
+                    <p class="font-medium">Formatage léger supporté :</p>
+                    <ul class="list-none ml-0 space-y-1">
+                        <li><span class="font-mono">**gras**</span> → <b>gras</b></li>
+                        <li><span class="font-mono">*italique*</span> → <i>italique</i></li>
+                        <li><span class="font-mono">__souligné__</span> → <u>souligné</u></li>
+                        <li><span class="font-mono">~~barré~~</span> → <s>barré</s></li>
+                        <li><span class="font-mono">`code`</span> → <code>inline code</code></li>
+                    </ul>
+                    <p>Les liens (http/https/www) sont détectés automatiquement. Les sauts de ligne sont préservés.</p>
+                    <p class="text-xs text-gray-500">Astuce : le texte est automatiquement nettoyé à l'envoi (trim) et la ponctuation française est protégée.</p>
+                </div>
+                <div class="px-4 py-3 border-t flex justify-end gap-2">
+                    <button class="px-3 py-1 text-sm bg-gray-100 rounded" on:click={closeInfo}>Fermer</button>
+                </div>
+            </div>
+        </div>
+    {/if}
 
     <div
         class="shrink-0 bg-white px-4 pt-3"
