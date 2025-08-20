@@ -111,9 +111,11 @@
                 on:keydown={(e) => { if (e.key === 'Enter') openMenuFromKeyboard(e); if (e.key === 'Escape') closeMenu(); }}
             >
                 <div class="text-sm">{@html formatted}</div>
-                {#if msg.created_at}
-                    <div class="text-xs text-gray-500 mt-1">{safeTime(msg.created_at)}</div>
-                {/if}
+                <div class="flex items-center gap-2 mt-1 justify-end">
+                    {#if msg.created_at}
+                        <div class="text-xs text-gray-500">{safeTime(msg.created_at)}</div>
+                    {/if}
+                </div>
             </div>
         </div>
     {:else}
@@ -132,7 +134,7 @@
                 on:keydown={(e) => { if (e.key === 'Enter') openMenuFromKeyboard(e); if (e.key === 'Escape') closeMenu(); }}
             >
                 <div class="text-sm">{@html formatted}</div>
-                <div class="flex items-center gap-2 mt-1">
+                <div class="flex items-center gap-2 mt-1 justify-end">
                     {#if msg.created_at}
                         <div class="text-xs text-green-200">{safeTime(msg.created_at)}</div>
                     {/if}
