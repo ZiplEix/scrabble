@@ -136,9 +136,6 @@
                     {#if msg.created_at}
                         <div class="text-xs text-green-200">{safeTime(msg.created_at)}</div>
                     {/if}
-                    {#if onDelete}
-                        <button class="text-xs text-red-500 hover:text-red-600 ml-2" on:click={() => onDelete && onDelete(msg.id)}>Supprimer</button>
-                    {/if}
                 </div>
             </div>
             <div class="w-8 h-8 rounded-full flex-none bg-green-600 flex items-center justify-center text-sm font-semibold text-white">
