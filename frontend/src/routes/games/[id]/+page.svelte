@@ -60,11 +60,11 @@
 		} catch (e: any) {
 			error = e?.response?.data?.error || 'Erreur lors du chargement de la partie';
 		} finally {
-					loading = false;
+			loading = false;
 
-					if (game?.status === 'ended') {
-						showScores.set(true);
-					}
+			if (game?.status === 'ended') {
+				showScores.set(true);
+			}
 		}
 	});
 
