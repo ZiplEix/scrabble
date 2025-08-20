@@ -297,6 +297,51 @@
 				</div>
 			</div>
 
+			<!-- Rack (dernier, bord à bord) -->
+			<div class="bg-white/95 backdrop-blur supports-backdrop-blur:border-y border-y flex-none mb-4">
+				<div class="px-2 pt-2 pb-[max(env(safe-area-inset-bottom),10px)]">
+					<div class="mx-auto max-w-[95vw] overflow-x-auto no-scrollbar">
+						<div
+							class="flex gap-1 whitespace-nowrap justify-center"
+							use:dndzone={{
+								items: $visibleRack,
+								flipDurationMs: 150,
+								dropFromOthersDisabled: false,
+								dragDisabled: false,
+							}}
+							onconsider={({ detail }) => originalRack.set(detail.items)}
+							onfinalize={({ detail }) => originalRack.set(detail.items)}
+						>
+							{#each $visibleRack as item (item.id)}
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<div
+									role="button"
+									tabindex="0"
+									draggable="true"
+									ondragstart={(e) => {
+										// Try to use dataTransfer but also set a global fallback because some dnd libs intercept dataTransfer
+										e.dataTransfer?.setData('text/plain', JSON.stringify({ char: item.char }));
+										try { e.dataTransfer!.effectAllowed = 'move'; e.dataTransfer!.dropEffect = 'move'; } catch (err) {}
+										(window as any).__draggedTile = { char: item.char, id: item.id };
+										(window as any).__dndActive = true;
+										// stop propagation so svelte-dnd-action doesn't intercept this native drag
+										try { e.stopPropagation(); } catch (err) {}
+									}}
+									ondragend={() => { try { (window as any).__draggedTile = null; (window as any).__dndActive = false; } catch(e){} }}
+									class="relative inline-flex w-11 h-11 rounded-lg text-center text-lg font-bold items-center justify-center border cursor-pointer bg-yellow-100 border-yellow-400"
+									animate:flip={{ duration: 200, easing: cubicOut }}
+								>
+									{item.char}
+									<span class="absolute bottom-0.5 right-1 text-[10px] font-normal text-gray-600">
+										{letterValues[item.char]}
+									</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<!-- Cluster d’actions (en flux, juste au-dessus du rack) -->
 			<div class="px-3 pb-4 flex-none">
 				<div class="mx-auto max-w-[640px]">
@@ -382,51 +427,6 @@
 									</span>
 								</button>
 							{/if}
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<!-- Rack (dernier, bord à bord) -->
-			<div class="bg-white/95 backdrop-blur supports-backdrop-blur:border-t border-t shadow-inner flex-none">
-				<div class="px-2 pt-2 pb-[max(env(safe-area-inset-bottom),10px)]">
-					<div class="mx-auto max-w-[95vw] overflow-x-auto no-scrollbar">
-						<div
-							class="flex gap-1 whitespace-nowrap justify-center"
-							use:dndzone={{
-								items: $visibleRack,
-								flipDurationMs: 150,
-								dropFromOthersDisabled: false,
-								dragDisabled: false,
-							}}
-							onconsider={({ detail }) => originalRack.set(detail.items)}
-							onfinalize={({ detail }) => originalRack.set(detail.items)}
-						>
-							{#each $visibleRack as item (item.id)}
-								<!-- svelte-ignore a11y_click_events_have_key_events -->
-								<div
-									role="button"
-									tabindex="0"
-									draggable="true"
-									ondragstart={(e) => {
-										// Try to use dataTransfer but also set a global fallback because some dnd libs intercept dataTransfer
-										e.dataTransfer?.setData('text/plain', JSON.stringify({ char: item.char }));
-										try { e.dataTransfer!.effectAllowed = 'move'; e.dataTransfer!.dropEffect = 'move'; } catch (err) {}
-										(window as any).__draggedTile = { char: item.char, id: item.id };
-										(window as any).__dndActive = true;
-										// stop propagation so svelte-dnd-action doesn't intercept this native drag
-										try { e.stopPropagation(); } catch (err) {}
-									}}
-									ondragend={() => { try { (window as any).__draggedTile = null; (window as any).__dndActive = false; } catch(e){} }}
-									class="relative inline-flex w-11 h-11 rounded-lg text-center text-lg font-bold items-center justify-center border cursor-pointer bg-yellow-100 border-yellow-400"
-									animate:flip={{ duration: 200, easing: cubicOut }}
-								>
-									{item.char}
-									<span class="absolute bottom-0.5 right-1 text-[10px] font-normal text-gray-600">
-										{letterValues[item.char]}
-									</span>
-								</div>
-							{/each}
 						</div>
 					</div>
 				</div>
