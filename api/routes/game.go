@@ -12,10 +12,13 @@ func setupGameRoutes(e *echo.Echo) {
 	g.POST("", controller.CreateGame)
 	g.DELETE("/:id", controller.DeleteGame)
 	g.GET("/:id", controller.GetGame)
+	g.GET("/:id/messages", controller.GetMessages)
+	g.DELETE("/:id/messages/:msg_id", controller.DeleteMessage)
 	g.POST("/:id/play", controller.PlayMove)
 	g.GET("", controller.GetUserGames)
 	g.PUT("/:id/rename", controller.RenameGame)
 	g.GET("/:id/new_rack", controller.GetNewRack)
 	g.POST("/:id/simulate_score", controller.SimulateScore)
+	g.POST("/:id/message", controller.CreateMessage)
 	g.POST("/:id/pass", controller.PassTurn)
 }
