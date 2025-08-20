@@ -4,7 +4,8 @@
 	import LoginedPage from './LoginedPage.svelte';
 	import NoLoginPage from './NoLoginPage.svelte';
   	import { browser } from '$app/environment';
-  import { subscribeToPush } from '$lib/push';
+  	import { subscribeToPush } from '$lib/push';
+  	import NewsBanner from '$lib/components/NewsBanner.svelte';
 
 	let deferredPrompt: any = null;
 	let canInstall = false;
@@ -73,6 +74,9 @@
 			</button>
 		</div>
 	{/if}
+
+	<!-- News popup / modal -->
+	<NewsBanner />
 
 	{#if !$user}
 		<NoLoginPage />
