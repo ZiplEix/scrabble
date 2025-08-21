@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/ZiplEix/scrabble/api/database"
@@ -54,9 +55,38 @@ func GetMeInfo(userID int64) (response.MeResponse, error) {
 		return res, err
 	}
 
+	// notifications pref
+	var prefsJSON sql.NullString
+	if err := tx.QueryRow("SELECT notification_prefs FROM users WHERE id = $1", userID).Scan(&prefsJSON); err != nil && err != sql.ErrNoRows {
+		return res, err
+	}
+	if prefsJSON.Valid {
+		var prefs struct {
+			Turn     *bool `json:"turn"`
+			Messages *bool `json:"messages"`
+		}
+		if err := json.Unmarshal([]byte(prefsJSON.String), &prefs); err == nil {
+			if prefs.Turn != nil {
+				res.TurnNotificationsEnabled = *prefs.Turn
+			}
+			if prefs.Messages != nil {
+				res.MessagesNotificationsEnabled = *prefs.Messages
+			}
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return res, err
 	}
 
 	return res, nil
+}
+
+func UpdateUserNotificationPrefs(userID int64, prefs map[string]bool) error {
+	b, err := json.Marshal(prefs)
+	if err != nil {
+		return err
+	}
+	_, err = database.Exec(`UPDATE users SET notification_prefs = $1 WHERE id = $2`, string(b), userID)
+	return err
 }
