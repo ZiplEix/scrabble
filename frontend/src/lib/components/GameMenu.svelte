@@ -1,6 +1,7 @@
 <script lang='ts'>
   import { goto } from "$app/navigation";
   import type { Writable } from "svelte/store";
+  import ChatRedirectionButton from "./ChatRedirectionButton.svelte";
 
     let { game, showScores, gameId }: {
         game: GameInfo;
@@ -9,7 +10,8 @@
     } = $props()
 
     let menuOpen = $state(false);
-  	function closeMenu() {
+
+    function closeMenu() {
         menuOpen = false;
     }
 </script>
@@ -34,17 +36,11 @@
     </div>
 
     <!-- Menu bouton -->
-    <div class="px-3 relative flex gap-2">
-        <button
-				class="shrink-0 h-8 w-8 rounded-lg bg-amber-200 text-black flex items-center justify-center active:scale-95 transition"
-				aria-label="Ouvrir le chat"
-				onclick={() => goto(`/games/${gameId}/chat`)}
-				title="Chat de la partie"
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 0 1-4-.88L3 20l1.12-3.11A7.97 7.97 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-				</svg>
-			</button>
+    <div class="px-3 flex gap-2">
+        <!-- chat redirection -->
+        <ChatRedirectionButton gameId={gameId} />
+
+        <!-- burger menu opener -->
         <button
             class="shrink-0 h-8 w-8 grid place-items-center rounded-lg bg-gray-100 hover:bg-gray-200 text-xl leading-none"
             aria-label="Ouvrir le menu"
@@ -79,10 +75,10 @@
                     📜 Historique
                 </a>
                 <button
-                    class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between"
                     onclick={() => { goto(`/games/${gameId}/chat`); closeMenu(); }}
                 >
-                    💬 Chat
+                    <span>💬 Chat</span>
                 </button>
             </div>
         {/if}

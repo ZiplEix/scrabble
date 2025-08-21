@@ -38,6 +38,21 @@
         }
     }
 
+    async function markMessagesRead() {
+        try {
+            const msgs = get(messages) as any[];
+            const lastId = msgs.length ? msgs[msgs.length - 1].id : 0;
+            if (lastId) {
+                await api.post(`/game/${gameId}/messages/read`, { last_message_id: lastId });
+            } else {
+                // no messages -> still call endpoint to create row if needed (server will noop)
+                await api.post(`/game/${gameId}/messages/read`, {});
+            }
+        } catch (e) {
+            console.warn('failed to mark messages read', e);
+        }
+    }
+
     async function send() {
         const trimmed = content.trim();
         if (!trimmed) return;
@@ -46,6 +61,7 @@
             await api.post(`/game/${gameId}/message`, { content: trimmed, meta: {} });
             content = '';
             await loadMessages();
+            await markMessagesRead();
             await tick();
             scrollToBottom();
             // scroll to bottom handled by DOM after update
@@ -60,6 +76,7 @@
         try {
             await api.delete(`/game/${gameId}/messages/${msgId}`);
             await loadMessages();
+            await markMessagesRead();
             await tick();
             scrollToBottom();
         } catch (e) {
@@ -98,6 +115,7 @@
         }
 
         await loadMessages();
+        await markMessagesRead();
         scrollToBottom();
     });
 
