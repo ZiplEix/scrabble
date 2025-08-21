@@ -48,3 +48,16 @@ func SendTest(c echo.Context) error {
 
 	return c.NoContent(http.StatusOK)
 }
+
+func PushUnsubscribe(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	if err := services.PushUnsubscribe(userID); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to unsubscribe"})
+	}
+
+	return c.NoContent(http.StatusOK)
+}

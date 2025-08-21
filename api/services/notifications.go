@@ -14,3 +14,14 @@ func PushSubscribe(userID int64, subBytes []byte) error {
 	}
 	return nil
 }
+
+func PushUnsubscribe(userID int64) error {
+	_, err := database.Exec(`
+		DELETE FROM push_subscriptions WHERE user_id = $1
+	`, userID)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}

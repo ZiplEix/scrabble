@@ -10,5 +10,6 @@ func setupNotificationsRoutes(e *echo.Echo) {
 	r := e.Group("/notifications", middleware.RequireAuth)
 
 	r.POST("/push-subscribe", controller.PushSubscribe)
-	e.GET("/notifications/test", controller.SendTest)
+	r.DELETE("/push-subscribe", controller.PushUnsubscribe)
+	e.GET("/notifications/test", controller.SendTest, middleware.RequireAdmin)
 }
