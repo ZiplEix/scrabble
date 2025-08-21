@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ZiplEix/scrabble/api/database"
+	"github.com/ZiplEix/scrabble/api/utils"
 	"go.uber.org/zap"
 )
 
@@ -52,7 +53,83 @@ func CreateMessage(userID int64, gameID, content string, meta map[string]any) (m
 		return nil, err
 	}
 
-	fmt.Println("Message: ", content, "created at", createdAt)
+	go func(gameID string) {
+		// get sender username
+		var senderUsername string
+		err := database.QueryRow(`SELECT username FROM users WHERE id = $1`, userID).Scan(&senderUsername)
+		if err != nil {
+			zap.L().Warn("failed to fetch sender username", zap.Error(err), zap.Int64("user_id", userID))
+			return
+		}
+
+		// get the game name
+		var gameName string
+		err = database.QueryRow(`SELECT name FROM games WHERE id = $1`, gameID).Scan(&gameName)
+		if err != nil {
+			zap.L().Warn("failed to fetch game name", zap.Error(err), zap.String("game_id", gameID))
+			return
+		}
+
+		var users []int
+		rows, err := database.Query(`SELECT user_id FROM game_players WHERE game_id = $1`, gameID)
+		if err != nil {
+			zap.L().Warn("failed to fetch game players", zap.Error(err), zap.String("game_id", gameID))
+			return
+		}
+		for rows.Next() {
+			var uid int
+			if err := rows.Scan(&uid); err != nil {
+				zap.L().Warn("failed to scan game player", zap.Error(err), zap.String("game_id", gameID))
+				continue // skip this user if there's an error
+			}
+			users = append(users, uid)
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			zap.L().Warn("error reading game players", zap.Error(err), zap.String("game_id", gameID))
+		}
+
+		// helper: check if a user allows message notifications
+		userAllowsMessages := func(uid int64) bool {
+			// try a dedicated boolean column first (backwards compatible)
+			var allowed sql.NullBool
+			if err := database.QueryRow(`SELECT messages_notifications_enabled FROM users WHERE id = $1`, uid).Scan(&allowed); err == nil {
+				if allowed.Valid {
+					return allowed.Bool
+				}
+			}
+			// fallback: try JSONB column "notification_prefs"
+			var prefsRaw []byte
+			if err := database.QueryRow(`SELECT notification_prefs FROM users WHERE id = $1`, uid).Scan(&prefsRaw); err == nil && len(prefsRaw) > 0 {
+				var prefs map[string]any
+				if err := json.Unmarshal(prefsRaw, &prefs); err == nil {
+					if v, ok := prefs["messages"]; ok {
+						if b, ok := v.(bool); ok {
+							return b
+						}
+					}
+				}
+			}
+			// default: allow notifications
+			return true
+		}
+
+		for _, uid := range users {
+			// skip sender
+			if int64(uid) == userID {
+				continue
+			}
+			if !userAllowsMessages(int64(uid)) {
+				continue
+			}
+			payload := utils.NotificationPayload{
+				Title: "Nouveau message de " + senderUsername + " dans la partie " + gameName,
+				Body:  content,
+				Url:   fmt.Sprintf("/games/%s/chat", gameID),
+			}
+			_ = utils.SendNotificationToUserByID(int64(uid), payload)
+		}
+	}(gameID)
 
 	// build response
 	msg := map[string]any{
