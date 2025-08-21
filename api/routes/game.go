@@ -13,6 +13,8 @@ func setupGameRoutes(e *echo.Echo) {
 	g.DELETE("/:id", controller.DeleteGame)
 	g.GET("/:id", controller.GetGame)
 	g.GET("/:id/messages", controller.GetMessages)
+	g.GET("/:id/unread_messages_count", controller.GetUnreadCountForGameHandler)
+	g.POST("/:id/messages/read", controller.MarkMessagesReadHandler)
 	g.DELETE("/:id/messages/:msg_id", controller.DeleteMessage)
 	g.POST("/:id/play", controller.PlayMove)
 	g.GET("", controller.GetUserGames)

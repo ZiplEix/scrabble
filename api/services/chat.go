@@ -223,3 +223,129 @@ func DeleteMessage(userID int64, gameID, msgID string) error {
 	}
 	return nil
 }
+
+// MarkMessagesRead sets the last_read_message_id for a user+game. If lastMessageID == 0
+// the function will try to find the latest message id for the game and use it.
+func MarkMessagesRead(userID int64, gameID string, lastMessageID int64) error {
+	// validate membership
+	inGame, err := IsUserInGame(userID, gameID)
+	if err != nil {
+		return err
+	}
+	if !inGame {
+		return fmt.Errorf("user not in game")
+	}
+
+	if lastMessageID == 0 {
+		// fetch latest message id
+		var latestID int64
+		err := database.QueryRow(`SELECT id FROM messages WHERE game_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1`, gameID).Scan(&latestID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				// nothing to mark
+				return nil
+			}
+			return err
+		}
+		lastMessageID = latestID
+	}
+
+	// upsert into game_message_reads table
+	_, err = database.Exec(`
+		INSERT INTO game_message_reads (user_id, game_id, last_read_message_id, last_read_at)
+		VALUES ($1, $2, $3, now())
+		ON CONFLICT (user_id, game_id) DO UPDATE
+		SET last_read_message_id = GREATEST(coalesce(game_message_reads.last_read_message_id, 0), EXCLUDED.last_read_message_id),
+			last_read_at = now()
+	`, userID, gameID, lastMessageID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetTotalUnreadMessagesForUser returns total count of messages newer than user's last_read per game
+func GetTotalUnreadMessagesForUser(userID int64) (int64, error) {
+	var total int64
+	err := database.QueryRow(`
+		SELECT COALESCE(SUM(cnt),0) FROM (
+			SELECT g.id, COUNT(m.id) AS cnt
+			FROM games g
+			JOIN game_players gp ON gp.game_id = g.id
+			JOIN messages m ON m.game_id = g.id AND m.deleted_at IS NULL
+			LEFT JOIN game_message_reads r ON r.user_id = gp.player_id AND r.game_id = g.id::text
+			WHERE gp.player_id = $1 AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+			GROUP BY g.id
+		) s
+	`, userID).Scan(&total)
+	return total, err
+}
+
+// GetUnreadMessagesForUser returns up to a limited list of unread messages for a user
+// useful for debugging: returns id, game_id, user_id, content (trimmed), created_at
+func GetUnreadMessagesForUser(userID int64, limit int) ([]map[string]any, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	rows, err := database.Query(`
+		SELECT m.id, m.game_id, m.user_id, m.content, m.created_at
+		FROM messages m
+		JOIN game_players gp ON gp.game_id = m.game_id
+		LEFT JOIN game_message_reads r ON r.user_id = gp.player_id AND r.game_id = m.game_id::text
+		WHERE gp.player_id = $1 AND m.deleted_at IS NULL AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+		ORDER BY m.created_at ASC
+		LIMIT $2
+	`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []map[string]any
+	for rows.Next() {
+		var id int64
+		var gameID string
+		var uid int64
+		var content string
+		var createdAt time.Time
+		if err := rows.Scan(&id, &gameID, &uid, &content, &createdAt); err != nil {
+			return nil, err
+		}
+		snippet := content
+		if len(snippet) > 300 {
+			snippet = snippet[:300]
+		}
+		out = append(out, map[string]any{
+			"id":         id,
+			"game_id":    gameID,
+			"user_id":    uid,
+			"content":    snippet,
+			"created_at": createdAt,
+		})
+	}
+	return out, nil
+}
+
+// GetUnreadCountForUserInGame returns the number of unread messages for a user in a specific game
+func GetUnreadCountForUserInGame(userID int64, gameID string) (int64, error) {
+	// validate membership
+	inGame, err := IsUserInGame(userID, gameID)
+	if err != nil {
+		return 0, err
+	}
+	if !inGame {
+		return 0, fmt.Errorf("user not in game")
+	}
+
+	var total int64
+	err = database.QueryRow(`
+		SELECT COUNT(m.id)
+		FROM messages m
+		LEFT JOIN game_message_reads r ON r.user_id = $1 AND r.game_id = m.game_id::text
+		WHERE m.game_id = $2 AND m.deleted_at IS NULL AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+	`, userID, gameID).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}

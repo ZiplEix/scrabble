@@ -55,3 +55,41 @@ func UpdatePrefs(c echo.Context) error {
 	}
 	return c.NoContent(http.StatusOK)
 }
+
+// GetUnreadMessagesCountHandler returns total unread messages for the current user
+func GetUnreadMessagesCountHandler(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized, no user_id"})
+	}
+
+	cnt, err := services.GetTotalUnreadMessagesForUser(userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, echo.Map{"unread_count": cnt})
+}
+
+// GetUnreadMessagesHandler returns a small list of unread messages for debugging
+func GetUnreadMessagesHandler(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized, no user_id"})
+	}
+
+	// optional ?limit query param
+	limit := 200
+	if l := c.QueryParam("limit"); l != "" {
+		var v int
+		fmt.Sscanf(l, "%d", &v)
+		if v > 0 && v < 2000 {
+			limit = v
+		}
+	}
+
+	msgs, err := services.GetUnreadMessagesForUser(userID, limit)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, msgs)
+}

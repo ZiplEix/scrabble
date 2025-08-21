@@ -143,3 +143,58 @@ func DeleteMessage(c echo.Context) error {
 
 	return c.NoContent(http.StatusNoContent)
 }
+
+// MarkMessagesReadHandler handles POST /game/:id/messages/read
+func MarkMessagesReadHandler(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized, no user_id"})
+	}
+
+	gameID := c.Param("id")
+	if gameID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "missing game id"})
+	}
+
+	var body struct {
+		LastMessageID *int64 `json:"last_message_id,omitempty"`
+	}
+	if err := c.Bind(&body); err != nil {
+		// ignore body parse errors and continue with zero -> server will take latest
+	}
+
+	var lastID int64
+	if body.LastMessageID != nil {
+		lastID = *body.LastMessageID
+	}
+
+	if err := services.MarkMessagesRead(userID, gameID, lastID); err != nil {
+		if err.Error() == "user not in game" {
+			return c.JSON(http.StatusForbidden, echo.Map{"error": "forbidden"})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+// GetUnreadCountForGameHandler handles GET /game/:id/unread_messages_count
+func GetUnreadCountForGameHandler(c echo.Context) error {
+	userID, ok := utils.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized, no user_id"})
+	}
+
+	gameID := c.Param("id")
+	if gameID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "missing game id"})
+	}
+
+	cnt, err := services.GetUnreadCountForUserInGame(userID, gameID)
+	if err != nil {
+		if err.Error() == "user not in game" {
+			return c.JSON(http.StatusForbidden, echo.Map{"error": "forbidden"})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, echo.Map{"unread_count": cnt})
+}

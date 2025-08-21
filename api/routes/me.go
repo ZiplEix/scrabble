@@ -11,4 +11,6 @@ func SetupMeRoutes(e *echo.Echo) {
 
 	me.GET("", controller.GetMe, middleware.RequireAuth)
 	me.PUT("/prefs", controller.UpdatePrefs)
+	me.GET("/unread_messages_count", controller.GetUnreadMessagesCountHandler)
+	me.GET("/unread_messages", controller.GetUnreadMessagesHandler)
 }
