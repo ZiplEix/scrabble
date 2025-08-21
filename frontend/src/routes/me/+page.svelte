@@ -13,9 +13,9 @@
 
     onMount(async () => {
         try {
-            const resp = await api.get('/auth/me');
+            const resp = await api.get('/me');
             userInfos = resp.data as UserInfos;
-            console.log('Fetched /auth/me:', userInfos);
+            console.log('Fetched /me:', userInfos);
 
             user.update(u => ({ ...(u as any), id: userInfos!.id, role: userInfos!.role, created_at: userInfos!.created_at }));
         } catch (e) {

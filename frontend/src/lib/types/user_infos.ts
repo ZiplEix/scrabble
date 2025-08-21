@@ -8,6 +8,8 @@ export type UserInfos = {
     victories: number;
     avg_score: number;
     notifications_enabled: boolean;
+    turn_notifications_enabled?: boolean;
+    messages_notifications_enabled?: boolean;
 }
 
 export let defaultUserInfos = {
@@ -19,5 +21,7 @@ export let defaultUserInfos = {
     best_score: 0,
     victories: 0,
     avg_score: 0,
-    notifications_enabled: false
+    notifications_enabled: false,
+    turn_notifications_enabled: true,
+    messages_notifications_enabled: true
 }
