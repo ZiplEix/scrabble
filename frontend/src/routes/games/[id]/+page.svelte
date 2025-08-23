@@ -49,6 +49,12 @@
 		if (!gameId) return;
 
 		try {
+			if (gameStore && $gameStore?.id === gameId) {
+				game = $gameStore;
+				loading = false;
+				return;
+			}
+
 			const res = await api.get(`/game/${gameId}`);
 			game = res.data;
 			gameStore.set(game);
