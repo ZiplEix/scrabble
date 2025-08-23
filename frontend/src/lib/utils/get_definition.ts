@@ -67,11 +67,13 @@ function extractFromLarousse(doc: Document): DefinitionGroup[] {
             // Certains items contiennent des sous-listes (souvent des exemples) : on les retire par prudence
             liClone.querySelectorAll(':scope ul, :scope ol').forEach(n => n.remove());
 
-            const text = cleanText(liClone.textContent || "");
+            const raw = cleanText(liClone.textContent || "");
 
-            const cleanedText = stripLeadingNumberDot(text).trim();
+            const t1 = removeColonAfterLeadingTags(raw);
+            const t2 = stripLeadingIndex(t1);
+            const final = replaceTrailingColonWithDot(t2);
 
-            if (cleanedText) defs.push(cleanedText);
+            if (final) defs.push(final);
         });
 
         if (defs.length) {
@@ -123,8 +125,18 @@ function extractFromWiktionary(doc: Document, langId: string): DefinitionGroup[]
 /* ===================== Helpers ===================== */
 
 /** Supprime un indice en tête du style "1.", "12.", "1 ." ... */
-function stripLeadingNumberDot(text: string): string {
-  return text.replace(/^\s*\d+\s*\.\s*/u, "");
+export function stripLeadingIndex(text: string): string {
+  return text.replace(/^\s*(?:\d+|[ivxlcdm]+)\s*[.)]\s*/iu, "");
+}
+
+/** Remplace un ":" final (éventuels espaces après) par "." */
+export function replaceTrailingColonWithDot(text: string): string {
+  return text.replace(/:\s*$/u, ".");
+}
+
+/** Supprime le ":" placé juste après les étiquettes initiales entre parenthèses. */
+export function removeColonAfterLeadingTags(text: string): string {
+  return text.replace(/^((?:\([^)]*\)\s*)+):\s*/u, "$1");
 }
 
 function parseHTML(html: string): Document {

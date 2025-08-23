@@ -146,8 +146,8 @@
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					{#each definitions as def (def.word)}
-						<section class="rounded-lg border border-amber-300 bg-white shadow-sm overflow-hidden">
-							<header class="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 border-b border-amber-200">
+						<section class="rounded-lg border border-green-300 bg-white shadow-sm overflow-hidden">
+							<header class="flex items-center justify-between gap-3 px-4 py-3 bg-green-50 border-b border-green-200">
 								<h2 class="text-lg font-semibold text-gray-800 uppercase tracking-wide">{def.word}</h2>
 								{#if def?.wikidef?.[0]?.url || def?.url}
 									<a
@@ -166,7 +166,7 @@
 										{#each def.def as group}
 											<div class="rounded-md border border-gray-200">
 												<div class="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-													<span class="inline-flex items-center rounded-full bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1">
+													<span class="inline-flex items-center rounded-full bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1">
 														{group.type}
 													</span>
 												</div>
