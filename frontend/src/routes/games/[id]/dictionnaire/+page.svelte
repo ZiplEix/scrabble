@@ -171,7 +171,7 @@
 													</span>
 												</div>
 												<ol class="list-decimal pl-6 p-3 space-y-1 text-gray-800">
-													{#each group.definitions as d}
+													{#each group.definitions.slice(0, 3) as d}
 														<li class="leading-relaxed">{d}</li>
 													{/each}
 												</ol>
