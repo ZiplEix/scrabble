@@ -1,10 +1,10 @@
 <script lang='ts'>
-  import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
-  import { api } from "$lib/api";
-  import { gameStore } from "$lib/stores/game";
-  import { onMount } from "svelte";
-  import { get } from "svelte/store";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
+	import { api } from "$lib/api";
+	import { gameStore } from "$lib/stores/game";
+	import { onMount } from "svelte";
+	import { get } from "svelte/store";
 
     let game: GameInfo | null = $state<GameInfo | null>(null);
 	let error = $state('');
@@ -28,6 +28,8 @@
 		} finally {
 			loading = false;
 		}
+
+		console.log(game?.moves);
 	})
 
 	function getUsername(pid: number) {

@@ -9,10 +9,9 @@
 	import { letterValues } from '$lib/lettres_value';
 	import { flip } from 'svelte/animate';
 	import { cubicOut } from 'svelte/easing';
-	import { goto } from '$app/navigation';
 	import { user } from '$lib/stores/user';
   	import { gameStore } from '$lib/stores/game';
-  	import GameMenu from '$lib/components/GameMenu.svelte';
+  	import GameHeader from '$lib/components/GameHeader.svelte';
 
 	let gameId = $state<string | null>(null);
 	let game = $state<GameInfo | null>(null);
@@ -266,7 +265,7 @@
 		style="height: calc(100dvh - var(--nav-h, 72px));"
 	>
 		<!-- Header compact avec menu -->
-		<GameMenu game={game} showScores={showScores} gameId={gameId!} />
+		<GameHeader game={game} showScores={showScores} gameId={gameId!} />
 
 		<!-- Zone centrale qui prend le reste -->
 		<main class="flex-1 flex flex-col min-h-0 overflow-hidden">
