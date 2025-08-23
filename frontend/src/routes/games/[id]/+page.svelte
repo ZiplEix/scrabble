@@ -224,11 +224,11 @@
 	}
 
 	async function handleRematch() {
-			// Guard côté client : s'assurer que seul le créateur peut créer une revanche
-			if (!game?.is_your_game) {
-				alert('Seul le créateur de la partie peut créer une revanche.');
-				return;
-			}
+		// Guard côté client : s'assurer que seul le créateur peut créer une revanche
+		if (!game?.is_your_game) {
+			alert('Seul le créateur de la partie peut créer une revanche.');
+			return;
+		}
 		const defaultName = `${game!.name} – revanche`;
 		const newName = prompt('Nom de la nouvelle partie :', defaultName);
 		if (!newName) return;
@@ -243,7 +243,7 @@
 				name: newName,
 				players: opponents,
 			});
-      		goto(`/games/${res.data.game_id}`);
+			window.location.href = `/games/${res.data.game_id}`;
     	} catch (err: any) {
       		alert(err?.response?.data?.message || 'Impossible de créer la revanche.');
     	}
