@@ -123,7 +123,7 @@
             <div
                 role="button"
                 tabindex="0"
-                class="rounded-lg px-3 py-2 bg-green-600 text-white min-w-0 flex-grow max-w-[70%] break-words"
+                class="rounded-lg px-3 py-2 bg-green-600 text-white min-w-0 max-w-7/12 break-words"
                 style="overflow-wrap:anywhere;"
                 on:touchstart|passive={startPress}
                 on:touchend={cancelPress}
