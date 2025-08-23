@@ -57,13 +57,6 @@
             </a>
             <button
                 class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between"
-                onclick={() => { goto(`/games/${gameId}/chat`); closeMenu(); }}
-            >
-                <span>💬 Chat</span>
-            </button>
-            <!-- dictionnaire bouton -->
-            <button
-                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between"
                 onclick={() => { goto(`/games/${gameId}/dictionnaire`); closeMenu(); }}
             >
                 <span>📖 Dictionnaire</span>
