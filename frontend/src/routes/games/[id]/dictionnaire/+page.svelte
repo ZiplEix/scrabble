@@ -155,8 +155,8 @@
 										href={(def?.wikidef?.[0]?.url) ?? def.url}
 										target="_blank"
 										rel="noopener noreferrer"
-										title="Voir sur le Wiktionnaire"
-									>Wiktionnaire ↗</a>
+										title="Voir sur le Larousse"
+									>Larousse ↗</a>
 								{/if}
 							</header>
 
@@ -179,7 +179,7 @@
 										{/each}
 									</div>
 								{:else}
-									<p class="text-sm text-gray-500 italic">Aucune définition trouvée pour l’instant.</p>
+									<p class="text-sm text-gray-500 italic">Aucune définition trouvée dans le Larousse pour l’instant.</p>
 								{/if}
 							</div>
 						</section>
