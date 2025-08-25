@@ -22,24 +22,45 @@
     let definitions: Definition[] = $state<Definition[]>([]);
     let showScore = writable<boolean>(false);
 
-	function extractWordsFromBoard(board: string[][]): string[] {
+	// Construit une map (x,y) -> timestamp de pose (ms) pour chaque tuile posée
+	function buildTilePlacementMap(moves: any[] | undefined): Map<string, number> {
+		const map = new Map<string, number>();
+		if (!moves) return map;
+		// Itérer du plus ancien au plus récent et n'écrire qu'une fois par case
+		const sorted = [...moves].sort(
+			(a, b) => new Date(a.played_at).getTime() - new Date(b.played_at).getTime()
+		);
+		for (const m of sorted) {
+			const t = new Date(m.played_at).getTime();
+			for (const l of m?.move?.letters ?? []) {
+				const key = `${l.x},${l.y}`;
+				if (!map.has(key)) map.set(key, t);
+			}
+		}
+		return map;
+	}
+
+	// Extrait les mots (>=2) avec leurs coordonnées de cases
+	function extractWordSpans(board: string[][]): { word: string; cells: { x: number; y: number }[] }[] {
 		const H = board.length;
 		const W = H > 0 ? board[0].length : 0;
 		const isLetter = (c: string) => /^[A-Z]$/.test(c);
-		const found = new Set<string>();
+		const spans: { word: string; cells: { x: number; y: number }[] }[] = [];
 
-		// Horizontal scan
+		// Horizontal
 		for (let y = 0; y < H; y++) {
 			let x = 0;
 			while (x < W) {
 				if (isLetter(board[y][x]) && (x === 0 || !isLetter(board[y][x - 1]))) {
 					let w = '';
+					const cells: { x: number; y: number }[] = [];
 					let xi = x;
 					while (xi < W && isLetter(board[y][xi])) {
 						w += board[y][xi];
+						cells.push({ x: xi, y });
 						xi++;
 					}
-					if (w.length >= 2) found.add(w);
+					if (w.length >= 2) spans.push({ word: w.toUpperCase(), cells });
 					x = xi;
 				} else {
 					x++;
@@ -47,26 +68,47 @@
 			}
 		}
 
-		// Vertical scan
+		// Vertical
 		for (let x = 0; x < W; x++) {
 			let y = 0;
 			while (y < H) {
 				if (isLetter(board[y][x]) && (y === 0 || !isLetter(board[y - 1][x]))) {
 					let w = '';
+					const cells: { x: number; y: number }[] = [];
 					let yi = y;
 					while (yi < H && isLetter(board[yi][x])) {
 						w += board[yi][x];
+						cells.push({ x, y: yi });
 						yi++;
 					}
-					if (w.length >= 2) found.add(w);
+					if (w.length >= 2) spans.push({ word: w.toUpperCase(), cells });
 					y = yi;
 				} else {
 					y++;
 				}
 			}
 		}
+		return spans;
+	}
 
-		return Array.from(found).sort((a, b) => a.localeCompare(b));
+	// Trie les mots selon le timestamp max de leurs cases (plus récent -> plus ancien)
+	function getWordsOrderedByPlacement(board: string[][], moves: any[] | undefined): string[] {
+		const spans = extractWordSpans(board);
+		const tileTime = buildTilePlacementMap(moves);
+		const wordMaxTime = new Map<string, number>();
+		for (const s of spans) {
+			let maxT = -Infinity;
+			for (const c of s.cells) {
+				const t = tileTime.get(`${c.x},${c.y}`);
+				if (typeof t === 'number' && t > maxT) maxT = t;
+			}
+			// Si on n'a aucune info (ex: cases sans move), on garde -Infinity pour qu'ils finissent en fin de liste
+			const prev = wordMaxTime.get(s.word);
+			if (prev === undefined || (maxT > prev)) wordMaxTime.set(s.word, maxT);
+		}
+		const uniqueWords = Array.from(wordMaxTime.keys());
+		uniqueWords.sort((a, b) => (wordMaxTime.get(b)! - wordMaxTime.get(a)!));
+		return uniqueWords;
 	}
 
 	onMount(async () => {
@@ -74,14 +116,16 @@
 		const stored = get(gameStore);
 		if (stored?.id === id) {
 			game = stored;
-			words = extractWordsFromBoard(stored.board);
+			const ordered = getWordsOrderedByPlacement(stored.board, stored.moves);
+			words = ordered;
 			loading = false;
 		} else {
             try {
                 const res = await api.get<GameInfo>(`/game/${id}`);
                 game = res.data;
                 gameStore.set(res.data);
-                words = extractWordsFromBoard(res.data.board);
+				const ordered = getWordsOrderedByPlacement(res.data.board, res.data.moves);
+				words = ordered;
             } catch (e: any) {
                 error = e?.response?.data?.message || 'Impossible de charger les mots de la partie';
             } finally {
@@ -90,25 +134,26 @@
         }
 
 
-        if (words.length) {
-            words.forEach(async (word) => {
-                let newDef: Definition = {
-                    word,
-                    url: `https://fr.wiktionary.org/wiki/${encodeURIComponent(word)}`,
-                    wikidef: [],
-                    def: []
-                };
-                const wikidef = await getDefinition(word);
-                newDef.wikidef = wikidef ? [wikidef] : [];
-                if (wikidef?.url) {
-                    newDef.url = wikidef.url;
-                }
-                if (wikidef && wikidef.extract) {
-                    newDef.def = extractDefinitions(wikidef.extract);
-                }
-
-                definitions.push(newDef);
-            });
+		if (words.length) {
+			// Charger les définitions séquentiellement pour préserver l'ordre choisi
+			definitions = [];
+			for (const word of words) {
+				let newDef: Definition = {
+					word,
+					url: `https://fr.wiktionary.org/wiki/${encodeURIComponent(word)}`,
+					wikidef: [],
+					def: []
+				};
+				const wikidef = await getDefinition(word);
+				newDef.wikidef = wikidef ? [wikidef] : [];
+				if (wikidef?.url) {
+					newDef.url = wikidef.url;
+				}
+				if (wikidef && wikidef.extract) {
+					newDef.def = extractDefinitions(wikidef.extract);
+				}
+				definitions = [...definitions, newDef];
+			}
         }
 	})
 
