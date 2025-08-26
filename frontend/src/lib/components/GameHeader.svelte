@@ -11,10 +11,10 @@
 
 <div class="flex items-center w-full justify-between">
     <!-- Title & infos -->
-    <div class="w-full">
+    <div class="flex-1 min-w-0">
         <div class="px-3 pt-2 pb-1 w-full relative">
-            <div class="flex items-center gap-2">
-                <h2 class="flex-1 text-base font-semibold text-gray-800 truncate">{game.name}</h2>
+            <div class="flex items-center gap-2 min-w-0">
+                <h2 class="flex-1 text-base font-semibold text-gray-800 truncate" title={game.name}>{game.name}</h2>
             </div>
         </div>
         <!-- Sous-ligne compacte (hauteur minimale) -->
@@ -29,5 +29,7 @@
     </div>
 
     <!-- Menu bouton -->
-    <GameMenu showScores={showScores} gameId={game.id} />
+    <div class="flex-none shrink-0 ml-2">
+        <GameMenu showScores={showScores} gameId={game.id} />
+    </div>
 </div>
