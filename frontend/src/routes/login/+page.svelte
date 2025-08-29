@@ -12,7 +12,7 @@
 		error = '';
 		try {
 			const userNameToStore = username.trim().toLowerCase();
-			const res = await api.post('/auth/login', { userNameToStore, password });
+			const res = await api.post('/auth/login', { username: userNameToStore, password });
 			user.set({ username: userNameToStore, token: res.data.token });
 			goto('/');
 		} catch (err: any) {
