@@ -164,3 +164,139 @@ func fmtInt(v int64) string {
 	// but we can import strconv directly; prefer clarity:
 	return strconv.FormatInt(v, 10)
 }
+
+// -------- Additional edge cases --------
+
+func TestCreateMessage_NonParticipant_Error(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("p1_chat_np", "x")
+	u2, _ := CreateUser("p2_chat_np", "x")
+	gid := createGameWithPlayers(t, u1.ID) // only u1 in game
+
+	_, err := CreateMessage(u2.ID, gid, "hi", map[string]any{"a": 1})
+	require.Error(t, err)
+}
+
+func TestCreateMessage_InvalidMeta_Error(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("p1_meta", "x")
+	u2, _ := CreateUser("p2_meta", "x")
+	gid := createGameWithPlayers(t, u1.ID, u2.ID)
+
+	bad := map[string]any{"bad": func() {}}
+	_, err := CreateMessage(u1.ID, gid, "hello", bad)
+	require.Error(t, err)
+}
+
+func TestDeleteMessage_NotFound(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("owner_nf", "x")
+	gid := createGameWithPlayers(t, u1.ID)
+
+	// deleting unknown id should yield not found
+	err := DeleteMessage(u1.ID, gid, "123456789")
+	require.Error(t, err)
+}
+
+func TestDeleteMessage_WrongGame(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("owner_wg", "x")
+	u2, _ := CreateUser("mate_wg", "x")
+	g1 := createGameWithPlayers(t, u1.ID, u2.ID)
+	g2 := createGameWithPlayers(t, u1.ID, u2.ID)
+
+	m, err := CreateMessage(u1.ID, g1, "in g1", map[string]any{"k": "v"})
+	require.NoError(t, err)
+	id := m["id"].(int64)
+
+	// try to delete using the other game id → forbidden
+	err = DeleteMessage(u1.ID, g2, int64ToString(id))
+	require.Error(t, err)
+}
+
+func TestMarkMessagesRead_NonParticipant_Error(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("p1_mr_np", "x")
+	u2, _ := CreateUser("p2_mr_np", "x")
+	gid := createGameWithPlayers(t, u1.ID)
+
+	err := MarkMessagesRead(u2.ID, gid, 0)
+	require.Error(t, err)
+}
+
+func TestMarkMessagesRead_ZeroID_NoMessages_NoOp(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("p1_mr0", "x")
+	u2, _ := CreateUser("p2_mr0", "x")
+	gid := createGameWithPlayers(t, u1.ID, u2.ID)
+
+	// no messages yet → should be no-op without insert
+	err := MarkMessagesRead(u2.ID, gid, 0)
+	require.NoError(t, err)
+
+	var cnt int
+	err = database.QueryRow(`SELECT COUNT(*) FROM game_message_reads WHERE user_id = $1 AND game_id = $2`, u2.ID, gid).Scan(&cnt)
+	require.NoError(t, err)
+	assert.Equal(t, 0, cnt)
+}
+
+func TestMarkMessagesRead_GreatestDoesNotRegress(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("p1_mr_g", "x")
+	u2, _ := CreateUser("p2_mr_g", "x")
+	gid := createGameWithPlayers(t, u1.ID, u2.ID)
+
+	m1, _ := CreateMessage(u1.ID, gid, "m1", map[string]any{})
+	m2, _ := CreateMessage(u1.ID, gid, "m2", map[string]any{})
+	m3, _ := CreateMessage(u1.ID, gid, "m3", map[string]any{})
+
+	id1 := m1["id"].(int64)
+	id2 := m2["id"].(int64)
+	id3 := m3["id"].(int64)
+
+	require.NoError(t, MarkMessagesRead(u2.ID, gid, id2))
+	// regression attempt
+	require.NoError(t, MarkMessagesRead(u2.ID, gid, id1))
+
+	var lastID int64
+	err := database.QueryRow(`SELECT last_read_message_id FROM game_message_reads WHERE user_id = $1 AND game_id = $2`, u2.ID, gid).Scan(&lastID)
+	require.NoError(t, err)
+	assert.Equal(t, id2, lastID)
+
+	// advance
+	require.NoError(t, MarkMessagesRead(u2.ID, gid, id3))
+	err = database.QueryRow(`SELECT last_read_message_id FROM game_message_reads WHERE user_id = $1 AND game_id = $2`, u2.ID, gid).Scan(&lastID)
+	require.NoError(t, err)
+	assert.Equal(t, id3, lastID)
+}
+
+func TestGetUnreadMessagesForUser_LimitBounds(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("p1_un", "x")
+	u2, _ := CreateUser("p2_un", "x")
+	gid := createGameWithPlayers(t, u1.ID, u2.ID)
+
+	// Create 5 messages from u1
+	for i := 0; i < 5; i++ {
+		_, err := CreateMessage(u1.ID, gid, "msg", map[string]any{})
+		require.NoError(t, err)
+	}
+
+	list1, err := GetUnreadMessagesForUser(u2.ID, 1)
+	require.NoError(t, err)
+	assert.Len(t, list1, 1)
+
+	list0, err := GetUnreadMessagesForUser(u2.ID, 0) // defaults to 200
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(list0), 5)
+}
+
+func TestGetUnreadCountForUserInGame_NotInGame_Error(t *testing.T) {
+	resetChatDeps(t)
+	u1, _ := CreateUser("p1_uc", "x")
+	u2, _ := CreateUser("p2_uc", "x")
+	gid := createGameWithPlayers(t, u1.ID) // only u1
+
+	_, err := GetUnreadCountForUserInGame(u2.ID, gid)
+	require.Error(t, err)
+}
