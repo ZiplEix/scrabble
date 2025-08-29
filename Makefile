@@ -34,7 +34,7 @@ migrate-down:
 	@cd migrations && go run ./down/down.go --dsn $(POSTGRES_URL) --dir .
 
 .PHONY: tests
-tests:
+tests: tests-api tests-frontend
 
 .PHONY: tests-api
 tests-api:
