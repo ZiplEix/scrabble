@@ -11,8 +11,8 @@
 	async function handleLogin() {
 		error = '';
 		try {
-			const res = await api.post('/auth/login', { username, password });
 			const userNameToStore = username.trim().toLowerCase();
+			const res = await api.post('/auth/login', { userNameToStore, password });
 			user.set({ username: userNameToStore, token: res.data.token });
 			goto('/');
 		} catch (err: any) {

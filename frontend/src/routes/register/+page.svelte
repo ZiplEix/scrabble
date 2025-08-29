@@ -3,16 +3,17 @@
 	import { user } from '$lib/stores/user';
 	import { goto } from '$app/navigation';
 
-	let username = '';
-	let password = '';
-	let error = '';
+	let username = $state('');
+	let password = $state('');
+	let error = $state('');
 	let showPassword = $state(false);
 
 	async function handleRegister() {
 		error = '';
 		try {
-			const res = await api.post('/auth/register', { username, password });
-			user.set({ username, token: res.data.token });
+				const userNameToStore = username.trim().toLowerCase();
+				const res = await api.post('/auth/register', { username: userNameToStore, password });
+			user.set({ username: userNameToStore, token: res.data.token });
 			goto('/');
 		} catch (err: any) {
 			error = err?.response?.data?.message || 'Échec de l’inscription';
