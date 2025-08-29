@@ -32,7 +32,7 @@ func Register(c echo.Context) error {
 		})
 	}
 
-	user, err := services.CreateUser(req.Username, req.Password)
+	user, err := services.CreateUser(username, req.Password)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			return c.JSON(http.StatusConflict, echo.Map{
