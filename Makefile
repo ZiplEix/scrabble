@@ -32,3 +32,14 @@ migrate-up:
 .PHONY: migrate-down
 migrate-down:
 	@cd migrations && go run ./down/down.go --dsn $(POSTGRES_URL) --dir .
+
+.PHONY: tests
+tests:
+
+.PHONY: tests-api
+tests-api:
+	@./test-api.sh
+
+.PHONY: tests-frontend
+tests-frontend:
+	@cd frontend && npx cypress run
