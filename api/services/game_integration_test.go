@@ -120,6 +120,21 @@ func TestCreateGame_RematchChecks(t *testing.T) {
 	assert.Nil(t, gid4)
 }
 
+func TestDeleteGame_NotFound(t *testing.T) {
+	resetAllGamesDeps(t)
+	u := mustCreateUser(t, "deleter_nf")
+	// random UUID not existing
+	err := DeleteGame(u, uuid.New().String())
+	require.Error(t, err)
+}
+
+func TestRenameGame_NotFound(t *testing.T) {
+	resetAllGamesDeps(t)
+	u := mustCreateUser(t, "renamer_nf")
+	err := RenameGame(u, uuid.New().String(), "x")
+	require.Error(t, err)
+}
+
 func TestDeleteGame_OnlyCreator(t *testing.T) {
 	resetAllGamesDeps(t)
 	u1 := mustCreateUser(t, "owner")
@@ -199,6 +214,19 @@ func TestGetGameDetails_AfterMove(t *testing.T) {
 	assert.GreaterOrEqual(t, len(info.Moves), 1)
 }
 
+func TestGetGameDetails_Unauthorized_NotInGame(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "d1")
+	_ = mustCreateUser(t, "d2")
+	gid, err := CreateGame(u1, "nope", []string{"d2"}, nil)
+	require.NoError(t, err)
+	stranger := mustCreateUser(t, "str")
+
+	info, err := GetGameDetails(stranger, gid.String())
+	require.Error(t, err)
+	assert.Nil(t, info)
+}
+
 func TestGetNewRack_ChangesRackAndAdvancesTurn(t *testing.T) {
 	resetAllGamesDeps(t)
 	u1 := mustCreateUser(t, "rackman")
@@ -220,6 +248,24 @@ func TestGetNewRack_ChangesRackAndAdvancesTurn(t *testing.T) {
 	err = database.QueryRow("SELECT current_turn FROM games WHERE id = $1", g).Scan(&ct)
 	require.NoError(t, err)
 	assert.NotEqual(t, u1, ct)
+}
+
+func TestGetNewRack_Errors(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "rack_err1")
+	u2 := mustCreateUser(t, "rack_err2")
+	gid, err := CreateGame(u1, "rackerrs", []string{"rack_err2"}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+
+	// Not your turn for u2 initially
+	_, err = GetNewRack(u2, g)
+	require.Error(t, err)
+
+	// Set turn to u1 but empty bag -> error "no letters left in the bag"
+	setGameTurnAndBag(t, g, u1, "")
+	_, err = GetNewRack(u1, g)
+	require.Error(t, err)
 }
 
 func TestGetGamesByUserID_Basic(t *testing.T) {
@@ -266,6 +312,29 @@ func TestSimulateScore_Positive(t *testing.T) {
 	assert.Greater(t, score, 0)
 }
 
+func TestSimulateScore_Errors(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "sim_err1")
+	_ = mustCreateUser(t, "sim_err2")
+	gid, err := CreateGame(u1, "simerrs", []string{"sim_err2"}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+
+	// empty letters → 0, nil
+	sc, err := SimulateScore(g, u1, []request.PlacedLetter{})
+	require.NoError(t, err)
+	assert.Equal(t, 0, sc)
+
+	// non-participant
+	stranger := mustCreateUser(t, "sim_str")
+	_, err = SimulateScore(g, stranger, []request.PlacedLetter{{X: 7, Y: 7, Char: "A"}})
+	require.Error(t, err)
+
+	// overlapping same cell in one request → applyLetters error
+	_, err = SimulateScore(g, u1, []request.PlacedLetter{{X: 7, Y: 7, Char: "A"}, {X: 7, Y: 7, Char: "B"}})
+	require.Error(t, err)
+}
+
 func TestPassTurn_EndsGameAfterDoubleRound(t *testing.T) {
 	resetAllGamesDeps(t)
 	u1 := mustCreateUser(t, "pass1")
@@ -289,4 +358,138 @@ func TestPassTurn_EndsGameAfterDoubleRound(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "ended", status)
 	assert.True(t, endedAt.Valid)
+}
+
+func TestPassTurn_Errors(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "pt_err1")
+	u2 := mustCreateUser(t, "pt_err2")
+	gid, err := CreateGame(u1, "pterr", []string{"pt_err2"}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+
+	// Not your turn: u2 first
+	err = PassTurn(u2, g)
+	require.Error(t, err)
+
+	// Game not found
+	err = PassTurn(u1, uuid.New().String())
+	require.Error(t, err)
+}
+
+// -------- PlayMove error cases --------
+
+func TestPlayMove_NotInGame(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "pm_own")
+	u2 := mustCreateUser(t, "pm_str")
+	gid, err := CreateGame(u1, "pm", []string{}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+
+	err = PlayMove(g, u2, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 7, Y: 7, Char: "A"}}})
+	require.Error(t, err)
+}
+
+func TestPlayMove_NotYourTurn(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "pm_t1")
+	u2 := mustCreateUser(t, "pm_t2")
+	gid, err := CreateGame(u1, "pm2", []string{"pm_t2"}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+
+	// It's u1's turn initially; u2 tries
+	setPlayerRack(t, g, u2, "AAAAAAA")
+	err = PlayMove(g, u2, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 7, Y: 7, Char: "A"}}})
+	require.Error(t, err)
+}
+
+func TestPlayMove_NoLetters_TooMany_NotAligned(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "pm_errs")
+	gid, err := CreateGame(u1, "pm3", []string{}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+	setPlayerRack(t, g, u1, "ABCDEFG")
+
+	// no letters
+	err = PlayMove(g, u1, request.PlayMoveRequest{Letters: []request.PlacedLetter{}})
+	require.Error(t, err)
+
+	// too many (8)
+	eight := []request.PlacedLetter{{X: 0, Y: 7, Char: "A"}, {X: 1, Y: 7, Char: "B"}, {X: 2, Y: 7, Char: "C"}, {X: 3, Y: 7, Char: "D"}, {X: 4, Y: 7, Char: "E"}, {X: 5, Y: 7, Char: "F"}, {X: 6, Y: 7, Char: "G"}, {X: 7, Y: 7, Char: "A"}}
+	err = PlayMove(g, u1, request.PlayMoveRequest{Letters: eight})
+	require.Error(t, err)
+
+	// not aligned
+	err = PlayMove(g, u1, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 5, Y: 7, Char: "A"}, {X: 6, Y: 8, Char: "B"}}})
+	require.Error(t, err)
+}
+
+func TestPlayMove_FirstMoveNotCenter(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "pm_center")
+	gid, err := CreateGame(u1, "pmc", []string{}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+	setPlayerRack(t, g, u1, "AAAAAAA")
+
+	// place away from center
+	err = PlayMove(g, u1, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 0, Y: 0, Char: "A"}}})
+	require.Error(t, err)
+}
+
+func TestPlayMove_NotConnectedAndOccupiedCellAndInvalidWord(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "pm_chain")
+	u2 := mustCreateUser(t, "pm_chain2")
+	gid, err := CreateGame(u1, "pmchain", []string{"pm_chain2"}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+
+	// First, play a valid word at center
+	setPlayerRack(t, g, u1, "CHATXYZ")
+	setGameTurnAndBag(t, g, u1, "")
+	err = PlayMove(g, u1, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 5, Y: 7, Char: "C"}, {X: 6, Y: 7, Char: "H"}, {X: 7, Y: 7, Char: "A"}, {X: 8, Y: 7, Char: "T"}}})
+	require.NoError(t, err)
+
+	// Now it's u2's turn; try a word not connected
+	setPlayerRack(t, g, u2, "BBBBBBB")
+	err = PlayMove(g, u2, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 0, Y: 0, Char: "B"}, {X: 1, Y: 0, Char: "B"}}})
+	require.Error(t, err)
+
+	// Try to place on occupied cell (7,7 already has A from CHAT)
+	err = PlayMove(g, u2, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 7, Y: 7, Char: "B"}}})
+	require.Error(t, err)
+
+	// Invalid word attempt by u2 on connected position: set rack to ZZZ and try "ZZZ" touching existing H at (6,7) with Z at (9,7) and so on
+	// We'll reset turn back to u2 for safety (it should still be, since previous moves failed)
+	setPlayerRack(t, g, u2, "ZZZXXYY")
+	err = PlayMove(g, u2, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 9, Y: 7, Char: "Z"}}})
+	require.Error(t, err)
+}
+
+func TestPlayMove_FinishesGame_WhenRackAndBagEmpty(t *testing.T) {
+	resetAllGamesDeps(t)
+	u1 := mustCreateUser(t, "pm_end1")
+	_ = mustCreateUser(t, "pm_end2")
+	gid, err := CreateGame(u1, "pmend", []string{"pm_end2"}, nil)
+	require.NoError(t, err)
+	g := gid.String()
+
+	// make u1 rack exactly CHAT and bag empty, so after playing CHAT new rack is empty and bag empty → finishGame
+	setPlayerRack(t, g, u1, "CHAT")
+	setGameTurnAndBag(t, g, u1, "")
+	err = PlayMove(g, u1, request.PlayMoveRequest{Letters: []request.PlacedLetter{{X: 5, Y: 7, Char: "C"}, {X: 6, Y: 7, Char: "H"}, {X: 7, Y: 7, Char: "A"}, {X: 8, Y: 7, Char: "T"}}})
+	require.NoError(t, err)
+
+	var status string
+	var endedAt sql.NullTime
+	var winner sql.NullString
+	err = database.QueryRow(`SELECT status, ended_at, winner_username FROM games WHERE id = $1`, g).Scan(&status, &endedAt, &winner)
+	require.NoError(t, err)
+	assert.Equal(t, "ended", status)
+	assert.True(t, endedAt.Valid)
+	assert.True(t, winner.Valid)
 }
