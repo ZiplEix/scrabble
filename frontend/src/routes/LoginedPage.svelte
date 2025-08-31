@@ -91,21 +91,21 @@
 			<div class="w-full rounded-full bg-white ring-1 ring-black/5 p-1 shadow-sm">
 				<div class="grid grid-cols-3 gap-1">
 					<button
-						class="w-full text-center px-3 py-1.5 text-[12px] rounded-full transition {tab==='myturn' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
+						class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {tab==='myturn' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
 						aria-pressed={tab==='myturn'}
 						onclick={() => tab='myturn'}
 					>
 						À mon tour
 					</button>
 					<button
-						class="w-full text-center px-3 py-1.5 text-[12px] rounded-full transition {tab==='ongoing' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
+						class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {tab==='ongoing' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
 						aria-pressed={tab==='ongoing'}
 						onclick={() => tab='ongoing'}
 					>
 						En cours
 					</button>
 					<button
-						class="w-full text-center px-3 py-1.5 text-[12px] rounded-full transition {tab==='finished' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
+						class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {tab==='finished' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
 						aria-pressed={tab==='finished'}
 						onclick={() => tab='finished'}
 					>
