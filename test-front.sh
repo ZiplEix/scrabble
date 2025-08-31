@@ -18,6 +18,6 @@ cd frontend && npx cypress run;
 
 cd ..;
 if [ -f .front.pid ]; then
-    kill $$(cat .front.pid) 2>/dev/null || true;
+    kill $(cat .front.pid) 2>/dev/null || true;
     rm -f .front.pid;
 fi
