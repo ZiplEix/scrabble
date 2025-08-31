@@ -8,6 +8,7 @@
     import { goto } from '$app/navigation';
     import { tick } from 'svelte';
     import ChatBubble from '$lib/components/ChatBubble.svelte';
+    import HeaderBar from '$lib/components/HeaderBar.svelte';
 
     const gameId = get(page).params.id;
 
@@ -20,9 +21,7 @@
 
     let currentGame: GameInfo | null = null;
 
-    function backToGame() {
-        goto(`/games/${gameId}`);
-    }
+    function backToGame() { goto(`/games/${gameId}`); }
 
     async function loadMessages() {
         try {
@@ -143,24 +142,15 @@
 </script>
 
 <div class="flex flex-col overflow-hidden"
-	style="height: calc(100dvh - var(--nav-h, 72px));"
+	style="height: 100dvh;"
 >
-    <div class="shrink-0 p-2 flex justify-between items-center">
-        <button class="text-sm text-blue-600 hover:underline" on:click={backToGame}>
-            ← Retour à la partie
+    <HeaderBar title="Chat" back={true} />
+    <div class="px-3 py-2 flex justify-end">
+        <button class="p-1 rounded hover:bg-gray-100" aria-label="Infos" title="Informations" onclick={openInfo}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-9-1a1 1 0 112 0v5a1 1 0 11-2 0V9zm1-4a1.25 1.25 0 100 2.5A1.25 1.25 0 0010 5z" clip-rule="evenodd" />
+            </svg>
         </button>
-        <div class="flex items-center gap-2">
-            <button
-                class="p-1 rounded hover:bg-gray-100"
-                aria-label="Informations sur le chat"
-                title="Informations sur le chat"
-                on:click={openInfo}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-9-1a1 1 0 112 0v5a1 1 0 11-2 0V9zm1-4a1.25 1.25 0 100 2.5A1.25 1.25 0 0010 5z" clip-rule="evenodd" />
-                </svg>
-            </button>
-        </div>
     </div>
 
     <header class="w-full flex flex-col items-center">
@@ -197,11 +187,11 @@
 
     {#if showInfo}
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/40" on:click={closeInfo} aria-hidden="true"></div>
+            <div class="absolute inset-0 bg-black/40" onclick={closeInfo} aria-hidden="true"></div>
             <div class="relative max-w-xl w-full bg-white rounded-lg shadow-lg ring-1 ring-black/5">
                 <div class="flex items-center justify-between px-4 py-3 border-b">
                     <h2 class="text-sm font-semibold">À propos du chat (Bêta)</h2>
-                    <button class="text-gray-500 hover:text-gray-700 p-1" aria-label="Fermer" on:click={closeInfo}>&times;</button>
+                    <button class="text-gray-500 hover:text-gray-700 p-1" aria-label="Fermer" onclick={closeInfo}>&times;</button>
                 </div>
                 <div class="px-4 py-3 text-sm text-gray-700 space-y-2">
                     <p>Ce chat est en version Bêta. Il peut contenir des bugs — n'hésitez pas à signaler tout problème.</p>
@@ -217,7 +207,7 @@
                     <p class="text-xs text-gray-500">Astuce : le texte est automatiquement nettoyé à l'envoi (trim) et la ponctuation française est protégée.</p>
                 </div>
                 <div class="px-4 py-3 border-t flex justify-end gap-2">
-                    <button class="px-3 py-1 text-sm bg-gray-100 rounded" on:click={closeInfo}>Fermer</button>
+                    <button class="px-3 py-1 text-sm bg-gray-100 rounded" onclick={closeInfo}>Fermer</button>
                 </div>
             </div>
         </div>
@@ -233,11 +223,11 @@
                 rows={1}
                 placeholder="Écrire un message..."
                 class="flex-1 p-2 border rounded resize-none min-h-[44px]"
-                on:keydown={(e) => {
+                onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
                 }}
             ></textarea>
-            <button class="px-4 py-2 bg-green-600 text-white rounded" on:click={send} disabled={sending}>
+            <button class="px-4 py-2 bg-green-600 text-white rounded" onclick={send} disabled={sending}>
                 Envoyer
             </button>
         </div>

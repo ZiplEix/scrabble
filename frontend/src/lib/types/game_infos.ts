@@ -41,4 +41,5 @@ type GameInfo = {
     ended_at?: string;
     is_your_game: boolean;
     blank_tiles?: { x: number; y: number }[];
+    pass_count: number;
 };

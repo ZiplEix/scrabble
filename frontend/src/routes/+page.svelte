@@ -45,7 +45,7 @@
 	}
 </script>
 
-<main class="max-w-4xl mx-auto px-6 py-10">
+<main class="max-w-4xl mx-auto px-4 pt-8">
 	{#if canInstall}
 		<div class="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded mb-6 flex items-center justify-between shadow">
 			<div class="flex items-center gap-2">

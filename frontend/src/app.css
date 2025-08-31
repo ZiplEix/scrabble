@@ -1,1 +1,10 @@
 @import 'tailwindcss';
+
+/* Design tokens (mobile-first) */
+:root {
+	--radius: 14px;
+}
+
+/* Hide scrollbars for carousels */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

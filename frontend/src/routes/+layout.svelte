@@ -1,8 +1,6 @@
 <script lang="ts">
-    import Navbar from '$lib/components/Navbar.svelte';
     import '../app.css';
-
-    let { children } = $props();
+    const { children } = $props();
 </script>
 
 <svelte:head>
@@ -22,7 +20,6 @@
     <meta name="twitter:image" content="https://scrabble.baptiste.zip/og-image.png" />
 </svelte:head>
 
-<!-- NAVBAR -->
-<Navbar />
-
-{@render children()}
+<div>
+    {@render children()}
+</div>

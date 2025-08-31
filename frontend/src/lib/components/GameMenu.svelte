@@ -9,31 +9,48 @@
     } = $props()
 
     let menuOpen = $state(false);
+    let root: HTMLElement;
 
     function closeMenu() {
         menuOpen = false;
     }
+
+    function handleWindowClick(e: MouseEvent) {
+        if (!menuOpen) return;
+        const target = e.target as Node | null;
+        if (root && target && !root.contains(target)) {
+            closeMenu();
+        }
+    }
+
+    function handleWindowKey(e: KeyboardEvent) {
+        if (e.key === 'Escape' && menuOpen) closeMenu();
+    }
 </script>
 
-<div class="px-3 flex gap-2">
+<svelte:window on:click={handleWindowClick} on:keydown={handleWindowKey} />
+
+<div class="relative px-3 flex items-center gap-2" bind:this={root}>
     <!-- chat redirection -->
     <ChatRedirectionButton gameId={gameId} />
 
-    <!-- burger menu opener -->
+    <!-- burger/ellipsis menu opener -->
     <button
-        class="shrink-0 h-8 w-8 grid place-items-center rounded-lg bg-gray-100 hover:bg-gray-200 text-xl leading-none"
+        class="shrink-0 h-9 w-9 grid place-items-center rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-700/30"
         aria-label="Ouvrir le menu"
         onclick={() => (menuOpen = !menuOpen)}
+        title="Menu"
     >
-        ⋯
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.6" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+            <circle cx="19" cy="12" r="1.6" fill="currentColor" />
+        </svg>
     </button>
 
     {#if menuOpen}
         <div
-            class="absolute right-3 mt-1 w-44 rounded-xl bg-white shadow-lg ring-1 ring-black/5 overflow-hidden z-20"
-            onfocusout={(e) => {
-                if (!(e.currentTarget as Node).contains(e.relatedTarget as Node)) closeMenu();
-            }}
+            class="absolute right-0 top-full mt-2 w-44 rounded-xl bg-white shadow-lg ring-1 ring-black/5 overflow-hidden z-20"
         >
             <button
                 class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"

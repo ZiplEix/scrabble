@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api';
-	import { goto } from '$app/navigation';
 	import { onDestroy } from 'svelte';
+	import HeaderBar from '$lib/components/HeaderBar.svelte';
 
 	let name = '';
 	let error = '';
@@ -66,9 +66,11 @@
 			loading = false;
 		}
 	}
+	let _ = HeaderBar;
 </script>
 
-<main class="max-w-sm mx-auto px-4 py-8">
+<HeaderBar title="Nouvelle partie" back={true} />
+<main class="max-w-sm mx-auto px-4 py-6">
 	<h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Créer une nouvelle partie</h1>
 
 	<form on:submit|preventDefault={createGame} class="flex flex-col gap-4">

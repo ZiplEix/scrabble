@@ -2,6 +2,9 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
+	import HeaderBar from '$lib/components/HeaderBar.svelte';
+	import Card from '$lib/ui/Card.svelte';
+	import Button from '$lib/ui/Button.svelte';
 
 	type Report = {
 		id: number;
@@ -41,41 +44,34 @@
 	}
 </script>
 
-<main class="max-w-3xl mx-auto px-4 py-8">
-	<h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Liste des tickets</h1>
-
+<HeaderBar title="Mes tickets" back={true} />
+<main class="max-w-3xl mx-auto px-4 py-6">
 	{#if error}
 		<p class="text-red-600 text-center">{error}</p>
 	{:else if reports.length === 0}
 		<p class="text-center text-gray-600">Aucun ticket pour le moment.</p>
 	{:else}
-		<div class="flex flex-col gap-4">
+		<div class="flex flex-col gap-3">
 			{#each reports as report}
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					class="border rounded p-4 shadow hover:shadow-md transition cursor-pointer hover:bg-gray-50"
-					onclick={() => goto(`/report/${report.id}`)}
-				>
-					<div class="flex justify-between items-start">
-						<h2 class="text-lg font-semibold text-gray-800">{report.title}</h2>
-						<span class="text-xs px-2 py-1 rounded font-medium {statusColor(report.status)}">
-							{report.status}
-						</span>
-					</div>
-					<p class="text-sm text-gray-600 mt-1">Type : <strong>{report.type}</strong></p>
-					<p class="text-sm text-gray-500">Par <strong>{report.username}</strong> le {new Date(report.created_at).toLocaleDateString()}</p>
-				</div>
+				<Card>
+					<button type="button" class="w-full text-left cursor-pointer" onclick={() => goto(`/report/${report.id}`)}>
+						<div class="flex justify-between items-start">
+							<h2 class="text-base font-semibold text-gray-900 truncate pr-2">{report.title}</h2>
+							<span class="text-[11px] px-2 py-0.5 rounded-full font-medium {statusColor(report.status)}">
+								{report.status}
+							</span>
+						</div>
+						<p class="text-[12px] text-gray-700 mt-1">Type : <strong>{report.type}</strong></p>
+						<p class="text-[12px] text-gray-500">Par <strong>{report.username}</strong> — {new Date(report.created_at).toLocaleDateString()}</p>
+					</button>
+				</Card>
 			{/each}
 		</div>
 	{/if}
 
-    <div class="mt-8 flex justify-center">
-		<button
-			class="bg-green-600 hover:bg-green-700 text-white rounded p-3 font-semibold transition"
-			onclick={() => goto('/report/new')}
-		>
-			Créer un nouveau ticket
-		</button>
+	<div class="mt-6 flex justify-center">
+		<Button variant="primary" size="lg" onclick={() => goto('/report/new')}>
+			Nouveau ticket
+		</Button>
 	</div>
 </main>

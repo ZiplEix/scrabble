@@ -2,6 +2,7 @@
 	import { api } from '$lib/api';
 	import { user } from '$lib/stores/user';
 	import { goto } from '$app/navigation';
+	import HeaderBar from '$lib/components/HeaderBar.svelte';
 
 	let username = $state('');
 	let password = $state('');
@@ -25,10 +26,11 @@
 	}
 </script>
 
-<main class="max-w-sm mx-auto px-4 py-8">
+<HeaderBar title="Inscription" back={true} />
+<main class="max-w-sm mx-auto px-4 py-6">
 	<h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Créer un compte</h1>
 
-	<form on:submit|preventDefault={handleRegister} class="flex flex-col gap-4">
+	<form onsubmit={(e) => { e.preventDefault(); handleRegister(); }} class="flex flex-col gap-4">
 		<div>
 			<input
 				class="border rounded px-4 py-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -52,7 +54,7 @@
 			/>
 			<button
 				type="button"
-				on:click={togglePasswordVisibility}
+				onclick={togglePasswordVisibility}
 				class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
 				aria-label={showPassword ? 'Cacher le mot de passe' : 'Montrer le mot de passe'}
 			>

@@ -168,15 +168,36 @@
 {:else if error}
   	<p class="mt-8 text-center text-red-600">{error}</p>
 {:else if game}
-    <div class="px-4 pt-4 flex justify-between items-center">
-		<button
-			class="text-sm text-blue-600 hover:underline flex items-center"
-			onclick={backToGame}
-		>
-			← Retour à la partie
-		</button>
-        <GameMenu showScores={showScore} gameId={game.id} />
-  	</div>
+    <header class="px-3 pt-2 pb-2">
+        <div class="flex items-center w-full justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+                <button
+                    class="p-2 rounded-lg hover:bg-white/60 ring-1 ring-black/5 bg-white/40 backdrop-blur-sm"
+                    aria-label="Retour à la partie"
+                    onclick={backToGame}
+                    title="Retour"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 12h16M10 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <h2 class="text-base font-semibold text-gray-900 truncate" title={game.name}>{game.name}</h2>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button
+                    class="hidden sm:flex items-center gap-1 px-2.5 h-8 rounded-lg bg-emerald-600/90 hover:bg-emerald-600 text-white text-[12px] font-medium shadow-sm ring-1 ring-emerald-700/30"
+                    onclick={() => showScore.set(true)}
+                    title="Voir le classement"
+                    aria-label="Voir le classement"
+                >
+                    <span>🏆</span>
+                    <span>Scores</span>
+                </button>
+                <GameMenu showScores={showScore} gameId={game.id} />
+            </div>
+        </div>
+    </header>
 
     <div class="p-4">
         <h1 class="text-xl font-bold text-gray-800 text-center mb-4">
