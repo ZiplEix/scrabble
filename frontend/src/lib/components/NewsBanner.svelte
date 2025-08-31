@@ -10,10 +10,10 @@
 
 	// TODO: Replace this object when you want to show a different nouveauté.
 	const newsBanner: NewsBanner = {
-        title: 'Nouvelle fonctionnalité — Dictionnaire de partie',
+        title: 'Nouvelle fonctionnalité — Lettre blanche / Joker',
         message:
             "Vous pouvez désormais consulter le dictionnaire des mots joués pendant une partie. Cliquez sur un mot pour en voir la définition.",
-        image: '/news/dictionnaire_annonce.png'
+        image: '/news/joker_tile_annonce.png'
 	};
 
 	const LOCAL_KEY = 'closedBannerTitle';
@@ -51,10 +51,11 @@
                 </svg>
             </button>
 
-            <div class="flex items-center justify-center">
+            <div class="flex flex-col items-center justify-center">
                 {#if newsBanner.image}
-                    <img src={newsBanner.image} alt="Annonce : discussion pendant la partie" class="w-full h-auto rounded" />
+                    <img src={newsBanner.image} alt="Annonce : white tile" class="w-full h-auto rounded" />
                 {/if}
+                <p class="text-sm text-gray-500 mt-2">Applicable uniquement aux parties créées après l'annonce.</p>
             </div>
         </div>
     </div>
