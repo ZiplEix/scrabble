@@ -55,6 +55,24 @@ func GetMeInfo(userID int64) (response.MeResponse, error) {
 		return res, err
 	}
 
+	// Avg points per move (based on stored move.score)
+	if err := tx.QueryRow(`
+		SELECT COALESCE(AVG((move->>'score')::INT), 0)
+		FROM game_moves
+		WHERE player_id = $1
+	`, userID).Scan(&res.AvgPointsPerMove); err != nil && err != sql.ErrNoRows {
+		return res, err
+	}
+
+	// Best move score
+	if err := tx.QueryRow(`
+		SELECT COALESCE(MAX((move->>'score')::INT), 0)
+		FROM game_moves
+		WHERE player_id = $1
+	`, userID).Scan(&res.BestMoveScore); err != nil && err != sql.ErrNoRows {
+		return res, err
+	}
+
 	// notifications pref
 	var prefsJSON sql.NullString
 	if err := tx.QueryRow("SELECT notification_prefs FROM users WHERE id = $1", userID).Scan(&prefsJSON); err != nil && err != sql.ErrNoRows {

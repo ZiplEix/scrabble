@@ -499,6 +499,8 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	moveScore := computeMoveScore(board, req.Letters, boardBlank)
 
 	// 9. Enregistrement du coup
+	// enrichit la requête avec le score calculé pour faciliter les agrégations
+	req.Score = moveScore
 	moveJSON, _ := json.Marshal(req)
 	_, err = database.Exec(`INSERT INTO game_moves (game_id, player_id, move) VALUES ($1, $2, $3)`, gameID, userID, moveJSON)
 	if err != nil {

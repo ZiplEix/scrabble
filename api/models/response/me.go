@@ -11,6 +11,8 @@ type MeResponse struct {
 	BestScore                    int       `json:"best_score"`
 	Victories                    int       `json:"victories"`
 	AvgScore                     float64   `json:"avg_score"`
+	AvgPointsPerMove             float64   `json:"avg_points_per_move"`
+	BestMoveScore                int       `json:"best_move_score"`
 	NotificationsEnabled         bool      `json:"notifications_enabled"`
 	TurnNotificationsEnabled     bool      `json:"turn_notifications_enabled"`
 	MessagesNotificationsEnabled bool      `json:"messages_notifications_enabled"`

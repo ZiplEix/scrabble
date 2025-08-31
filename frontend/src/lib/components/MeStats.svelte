@@ -25,5 +25,13 @@
             <span class="text-sm text-gray-700">Meilleur score</span>
             <span class="text-sm font-medium text-gray-900">{userInfos.best_score}</span>
         </div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+            <span class="text-sm text-gray-700">Moyenne par coup</span>
+            <span class="text-sm font-medium text-gray-900">{Math.round(userInfos.avg_points_per_move ?? 0)}</span>
+        </div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+            <span class="text-sm text-gray-700">Meilleur coup</span>
+            <span class="text-sm font-medium text-gray-900">{userInfos.best_move_score ?? 0}</span>
+        </div>
     </div>
 </div>
