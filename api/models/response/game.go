@@ -19,6 +19,7 @@ type GameInfo struct {
 	EndedAt          *time.Time   `json:"ended_at,omitempty"`
 	IsYourGame       bool         `json:"is_your_game"`
 	BlankTiles       []BoardBlank `json:"blank_tiles,omitempty"`
+	PassCount        int          `json:"pass_count"`
 }
 
 type PlayerInfo struct {

@@ -220,7 +220,7 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 	gameQuery := `
        SELECT id, name, board, available_letters,
 			 current_turn, status, created_by,
-			 winner_username, ended_at
+			 winner_username, ended_at, pass_count
        FROM games
        WHERE id = $1
     `
@@ -235,7 +235,7 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 	err = database.QueryRow(gameQuery, gameID).Scan(
 		&game.ID, &game.Name, &boardJSON, &avail,
 		&game.CurrentTurn, &game.Status, &createdBy,
-		&winnerUsername, &endedAt,
+		&winnerUsername, &endedAt, &game.PassCount,
 	)
 	if err != nil {
 		return nil, err
