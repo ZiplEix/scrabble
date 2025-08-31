@@ -28,8 +28,8 @@ describe("Accueil — utilisateur non connecté", () => {
         cy.wait(100);
         closeNewsBannerIfPresent();
 
-        cy.contains('h1', 'Bienvenue sur Scrabble en ligne').should('be.visible');
-        cy.contains('p', 'Jouez au Scrabble en ligne').should('be.visible');
+        cy.contains('h1', 'Scrabble en ligne').should('be.visible');
+        cy.contains('p', 'Jouez avec vos amis').should('be.visible');
         cy.contains('a', 'Connexion').should('have.attr', 'href', '/login');
         cy.contains('a', 'Inscription').should('have.attr', 'href', '/register');
     });

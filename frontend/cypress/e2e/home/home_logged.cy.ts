@@ -230,14 +230,9 @@ describe('Accueil — utilisateur connecté', () => {
         cy.wait('@getGames');
         closeNewsBannerIfPresent();
 
-        // Sections présentes
-        cy.contains('h2', 'À mon tour').should('be.visible');
-        cy.contains('h2', 'Mes parties en cours').should('be.visible');
-        cy.contains('h2', 'Mes parties terminées').should('be.visible');
-
-        // Carte "À mon tour" — la partie "test chat" doit y être avec le bon libellé
+    // Onglet "À mon tour" (par défaut) — la partie "test chat" doit y être avec le bon libellé
         cy.contains('h2', 'test chat')
-            .parents('div.relative.bg-slate-100')
+            .parents('div.relative')
             .first()
             .within(() => {
                 cy.contains('Tour de :').should('contain', 'baptiste');
@@ -246,18 +241,20 @@ describe('Accueil — utilisateur connecté', () => {
                 cy.get('button[aria-label="Menu"]').should('exist'); // is_your_game: true
             });
 
-        // Une partie en cours qui n'est pas à mon tour
-        cy.contains('h2', 'Aude coco hort')
-            .parents('div.relative.bg-slate-100')
+    // Onglet "En cours" (pas à mon tour)
+    cy.contains('button', 'En cours').click();
+    cy.contains('h2', 'Aude coco hort – 3 – revanche')
+            .parents('div.relative')
             .first()
             .within(() => {
                 cy.contains('Tour de :').should('contain', 'hobulala');
                 cy.get('button[aria-label="Menu"]').should('not.exist'); // is_your_game: false
             });
 
-        // Partie terminée — "Nous 3" — doit afficher le gagnant et pas le tour
+    // Onglet "Terminées" — "Nous 3" doit afficher le gagnant et pas le tour
+    cy.contains('button', 'Terminées').click();
         cy.contains('h2', 'Nous 3')
-            .parents('div.relative.bg-slate-100')
+            .parents('div.relative')
             .first()
             .within(() => {
                 cy.contains('Gagnant:').should('contain', 'hobulala');
@@ -267,10 +264,10 @@ describe('Accueil — utilisateur connecté', () => {
     });
 
     it('navigue vers la création de partie', () => {
-        cy.visit(`${baseUrl}/`);
-        cy.wait('@getGames');
-        closeNewsBannerIfPresent();
-        cy.contains('button', 'Créer une nouvelle partie').click();
+    cy.visit(`${baseUrl}/`);
+    cy.wait('@getGames');
+    closeNewsBannerIfPresent();
+    cy.get('button[aria-label="Créer une nouvelle partie"]').click();
         cy.location('pathname').should('eq', '/games/new');
     });
 });
