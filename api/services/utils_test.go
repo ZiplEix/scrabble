@@ -49,7 +49,7 @@ func TestComputeMoveScore_SimpleWord(t *testing.T) {
 	if err := applyLetters(&board, placed); err != nil {
 		t.Fatalf("applyLetters error: %v", err)
 	}
-	score := computeMoveScore(board, placed)
+	score := computeMoveScore(board, placed, map[Pos]bool{})
 	if score <= 0 {
 		t.Fatalf("expected positive score, got %d", score)
 	}
@@ -64,5 +64,24 @@ func TestRackPoints(t *testing.T) {
 	v := rackPoints("Az")
 	if v <= 0 {
 		t.Fatalf("expected > 0, got %d", v)
+	}
+}
+
+func TestComputeMoveScore_Blank(t *testing.T) {
+	var board [15][15]string
+	placed := []request.PlacedLetter{
+		{X: 7, Y: 7, Char: "C"},
+		{X: 8, Y: 7, Char: "A", Blank: true}, // joker utilisé comme 'A'
+		{X: 9, Y: 7, Char: "T"},
+	}
+	if err := applyLetters(&board, placed); err != nil {
+		t.Fatalf("applyLetters error: %v", err)
+	}
+	// Marque la position (8,7) comme blank pour le calcul
+	blanks := map[Pos]bool{{X: 8, Y: 7}: true}
+	score := computeMoveScore(board, placed, blanks)
+	// Le score doit être > 0 et inférieur à la somme normale car 'A' vaut 0
+	if score <= 0 {
+		t.Fatalf("expected positive score with blank, got %d", score)
 	}
 }

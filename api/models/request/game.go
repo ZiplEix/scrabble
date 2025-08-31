@@ -20,7 +20,8 @@ type PlayMoveRequest struct {
 }
 
 type PlacedLetter struct {
-	X    int    `json:"x"`
-	Y    int    `json:"y"`
-	Char string `json:"char"` // toujours en majuscules
+	X     int    `json:"x"`
+	Y     int    `json:"y"`
+	Char  string `json:"char"`            // toujours en majuscules
+	Blank bool   `json:"blank,omitempty"` // true si la tuile posée est un joker (valeur 0)
 }

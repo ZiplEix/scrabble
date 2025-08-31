@@ -24,8 +24,8 @@ func initEmptyBoard() [15][15]string {
 	return [15][15]string{}
 }
 
-// Lettres classiques du scrabble français
-const initialLetters = "AAAAAAAAAEEEEEEEEEEEEIIIIIIIIONNNNNNRRRRRRTTTTTTLLLLSSSSUDDDGGGMMMBBCCPPFFHHVVJQKWXYZ"
+// Lettres classiques du scrabble français + 2 jokers ('?')
+const initialLetters = "AAAAAAAAAEEEEEEEEEEEEIIIIIIIIONNNNNNRRRRRRTTTTTTLLLLSSSSUDDDGGGMMMBBCCPPFFHHVVJQKWXYZ??"
 
 func CreateGame(userID int64, name string, usernames []string, revangeFrom *string) (*uuid.UUID, error) {
 	board := initEmptyBoard()
@@ -306,6 +306,15 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 		game.Moves = append(game.Moves, mv)
 	}
 
+	// 6. Reconstruit les positions de jokers déjà posés pour affichage front
+	blanks := buildBoardBlanks(gameID)
+	if len(blanks) > 0 {
+		game.BlankTiles = make([]response.BoardBlank, 0, len(blanks))
+		for p := range blanks {
+			game.BlankTiles = append(game.BlankTiles, response.BoardBlank{X: p.X, Y: p.Y})
+		}
+	}
+
 	return &game, nil
 }
 
@@ -333,6 +342,13 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		return fmt.Errorf("player not in game")
 	}
 
+	// Déduction automatique des jokers si le client ne les a pas marqués
+	resolvedLetters, err := resolveBlanks(rack, req.Letters)
+	if err != nil {
+		zap.L().Error("invalid move after resolveBlanks", zap.Error(err), zap.String("rack", rack), zap.Any("letters", req.Letters))
+		return fmt.Errorf("invalid move: you don't have the required letters")
+	}
+	req.Letters = resolvedLetters
 	if !rackContains(rack, req.Letters) {
 		zap.L().Error("invalid move: player does not have required letters", zap.String("rack", rack), zap.Any("letters", req.Letters), zap.String("game_id", gameID))
 		return fmt.Errorf("invalid move: you don't have the required letters")
@@ -472,7 +488,15 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		zap.L().Error("failed to update player rack", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
 		return fmt.Errorf("failed to update rack: %v", err)
 	}
-	moveScore := computeMoveScore(board, req.Letters)
+	// Reconstruire les positions de jokers depuis l'historique des coups
+	boardBlank := buildBoardBlanks(gameID)
+	// Ajouter aussi les jokers du coup courant
+	for _, pl := range req.Letters {
+		if pl.Blank {
+			boardBlank[Pos{pl.X, pl.Y}] = true
+		}
+	}
+	moveScore := computeMoveScore(board, req.Letters, boardBlank)
 
 	// 9. Enregistrement du coup
 	moveJSON, _ := json.Marshal(req)
@@ -732,10 +756,25 @@ func SimulateScore(gameID string, userID int64, letters []request.PlacedLetter) 
 	if err != nil {
 		return 0, err
 	}
+	// tente de déduire les jokers à partir du rack courant pour une simulation fidèle
+	var rack string
+	if err := database.QueryRow(`SELECT rack FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&rack); err == nil {
+		if rl, err := resolveBlanks(rack, letters); err == nil {
+			letters = rl
+		}
+	}
+
 	if err := applyLetters(&board, letters); err != nil {
 		return 0, err
 	}
-	return computeMoveScore(board, letters), nil
+	// Reconstruit les positions de jokers déjà présentes
+	boardBlank := buildBoardBlanks(gameID)
+	for _, pl := range letters {
+		if pl.Blank {
+			boardBlank[Pos{pl.X, pl.Y}] = true
+		}
+	}
+	return computeMoveScore(board, letters, boardBlank), nil
 }
 
 func PassTurn(userID int64, gameID string) error {

@@ -150,7 +150,7 @@ Un `Dockerfile` est fourni dans `api/`. Vous pouvez builder et exécuter l’API
 * `DELETE /game/:id` *(créateur)* → supprime partie + joueurs + coups.
 * `POST /game/:id/play` *(tour courant)*
 
-  * body : `{ letters: [{x,y,char}, ...] }`
+  * body : `{ letters: [{x,y,char,blank?}, ...] }` (`blank` est optionnel; si omis, l’API déduira l’usage d’un joker `?` si nécessaire depuis votre rack)
   * contraintes : 1 seule ligne/colonne, 1er coup couvre le centre, connexion aux lettres existantes, lettres doivent être dans le rack, max 7 posées.
   * effets : met à jour le plateau, calcule/ajoute le score, recharge le rack, sauvegarde le coup, remet `pass_count=0`, passe au joueur suivant.
   * fin de partie si joueur vide son rack **et** sac vide → `winner_username` + `ended_at`.
@@ -192,7 +192,7 @@ Un `Dockerfile` est fourni dans `api/`. Vous pouvez builder et exécuter l’API
 ### Requests
 
 * **Auth** : `RegisterRequest { username, password }`, `LoginRequest { username, password }`, `ChangePasswordRequest { username, new_password }`.
-* **Game** : `CreateGameRequest { name, players }`, `RenameGameRequest { new_name }`, `PlacedLetter { x, y, char }`, `PlayMoveRequest { letters: PlacedLetter[] }`.
+* **Game** : `CreateGameRequest { name, players }`, `RenameGameRequest { new_name }`, `PlacedLetter { x, y, char, blank? }`, `PlayMoveRequest { letters: PlacedLetter[] }`.
 * **Report** : `CreateReportRequest { title, content }`, `UpdateReportRequest { title?, content?, status? }`.
 
 ### Responses
@@ -209,7 +209,7 @@ Un `Dockerfile` est fourni dans `api/`. Vous pouvez builder et exécuter l’API
 * **Plateau** : 15×15, cases spéciales : `DL`, `TL`, `DW`, `TW`, `★` au centre.
 * **Dictionnaire** : fr.txt embarqué, mots normalisés (majuscules, accents supprimés) pour la validation.
 * **Placement** : premier mot couvre le centre ; ensuite, continuité et connexion obligatoires.
-* **Score** : somme des lettres (valeurs FR) avec multiplicateurs de **lettre** et **mot** selon les cases traversées. Bonus de 7 lettres (bingo) si applicable.
+* **Score** : somme des lettres (valeurs FR) avec multiplicateurs de **lettre** et **mot** selon les cases traversées. Bonus de 7 lettres (bingo) si applicable. Les deux jokers valent 0 point et n'obtiennent aucun multiplicateur de lettre.
 * **Fin de partie** :
 
   * soit un joueur pose son dernier jeton **et** le sac est vide ;
@@ -251,7 +251,7 @@ curl -X POST "$API/game" \
 curl -X POST "$API/game/$GAME_ID/play" \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"letters":[{"x":7,"y":7,"char":"C"},{"x":8,"y":7,"char":"H"}]}'
+  -d '{"letters":[{"x":7,"y":7,"char":"C"},{"x":8,"y":7,"char":"A","blank":true}]}'
 ```
 
 ### Passer son tour
@@ -266,7 +266,7 @@ curl -X POST "$API/game/$GAME_ID/pass" -H "Authorization: Bearer $TOKEN"
 curl -X POST "$API/game/$GAME_ID/simulate_score" \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"letters":[{"x":7,"y":7,"char":"C"},{"x":8,"y":7,"char":"H"}]}'
+  -d '{"letters":[{"x":7,"y":7,"char":"C"},{"x":8,"y":7,"char":"A","blank":true}]}'
 # -> { "score": 24 }
 ```
 

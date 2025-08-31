@@ -15,6 +15,35 @@ import (
 	"go.uber.org/zap"
 )
 
+// buildBoardBlanks parcourt l'historique des coups pour connaître les positions
+// où des jokers ont été posés. Utile pour le calcul de score des mots croisés.
+func buildBoardBlanks(gameID string) map[Pos]bool {
+	res := map[Pos]bool{}
+	rows, err := database.Query(`SELECT move FROM game_moves WHERE game_id = $1 ORDER BY created_at ASC`, gameID)
+	if err != nil {
+		return res
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var moveRaw []byte
+		if err := rows.Scan(&moveRaw); err != nil {
+			continue
+		}
+		var mv struct {
+			Letters []request.PlacedLetter `json:"letters"`
+		}
+		if err := json.Unmarshal(moveRaw, &mv); err != nil {
+			continue
+		}
+		for _, pl := range mv.Letters {
+			if pl.Blank {
+				res[Pos{pl.X, pl.Y}] = true
+			}
+		}
+	}
+	return res
+}
+
 func drawLetters(available *[]rune, count int) []rune {
 	if len(*available) < count {
 		count = len(*available)
@@ -36,6 +65,14 @@ func rackContains(rack string, letters []request.PlacedLetter) bool {
 		rackCount[r]++
 	}
 	for _, l := range letters {
+		// Si c'est une lettre blanche, on consomme un joker '?'
+		if l.Blank {
+			if rackCount['?'] == 0 {
+				return false
+			}
+			rackCount['?']--
+			continue
+		}
 		c := rune(l.Char[0])
 		if rackCount[c] == 0 {
 			return false
@@ -48,10 +85,15 @@ func rackContains(rack string, letters []request.PlacedLetter) bool {
 func updatePlayerRack(gameID string, userID int64, rack string, played []request.PlacedLetter) (string, error) {
 	// 1. Retirer les lettres jouées
 	for _, l := range played {
-		c := rune(l.Char[0])
-		i := strings.IndexRune(rack, c)
+		var toRemove rune
+		if l.Blank {
+			toRemove = '?'
+		} else {
+			toRemove = rune(l.Char[0])
+		}
+		i := strings.IndexRune(rack, toRemove)
 		if i == -1 {
-			return "", fmt.Errorf("letter %c not in rack", c)
+			return "", fmt.Errorf("letter %c not in rack", toRemove)
 		}
 		rack = rack[:i] + rack[i+1:]
 	}
@@ -77,6 +119,49 @@ func updatePlayerRack(gameID string, userID int64, rack string, played []request
 }
 
 type Pos struct{ X, Y int }
+
+// resolveBlanks tente d'attribuer automatiquement des jokers ('?') aux lettres manquantes
+// lorsque le client n'a pas renseigné le champ Blank. Respecte aussi les Blank déjà posés.
+func resolveBlanks(rack string, letters []request.PlacedLetter) ([]request.PlacedLetter, error) {
+	// Compter les lettres dans le rack
+	rackCount := map[rune]int{}
+	for _, r := range rack {
+		rackCount[r]++
+	}
+
+	// Consommer d'abord les blanks déjà marqués
+	used := make([]request.PlacedLetter, len(letters))
+	copy(used, letters)
+	for _, l := range used {
+		if l.Blank {
+			if rackCount['?'] == 0 {
+				return nil, fmt.Errorf("invalid move: no blank in rack")
+			}
+			rackCount['?']--
+		}
+	}
+
+	// Pass 1: essayer de consommer les vraies lettres
+	for i := range used {
+		if used[i].Blank {
+			continue
+		}
+		c := rune(used[i].Char[0])
+		if rackCount[c] > 0 {
+			rackCount[c]--
+			continue
+		}
+		// sinon, poser un joker si dispo
+		if rackCount['?'] > 0 {
+			used[i].Blank = true
+			rackCount['?']--
+		} else {
+			return nil, fmt.Errorf("invalid move: you don't have the required letters")
+		}
+	}
+
+	return used, nil
+}
 
 func validatePlayerInGame(gameID string, userID int64) error {
 	var dummy int
@@ -113,10 +198,23 @@ func applyLetters(board *[15][15]string, letters []request.PlacedLetter) error {
 	return nil
 }
 
-func computeMoveScore(board [15][15]string, placed []request.PlacedLetter) int {
+// computeMoveScore calcule le score du coup en tenant compte des jokers.
+// boardBlank indique quelles positions du plateau sont des jokers (0 point), y compris celles posées lors de coups précédents.
+func computeMoveScore(board [15][15]string, placed []request.PlacedLetter, boardBlank map[Pos]bool) int {
 	isNew := make(map[Pos]bool)
+	isBlank := make(map[Pos]bool)
 	for _, l := range placed {
-		isNew[Pos{l.X, l.Y}] = true
+		pos := Pos{l.X, l.Y}
+		isNew[pos] = true
+		if l.Blank {
+			isBlank[pos] = true
+		}
+	}
+	// Merge historique
+	for p, b := range boardBlank {
+		if b {
+			isBlank[p] = true
+		}
 	}
 	total := 0
 
@@ -129,12 +227,18 @@ func computeMoveScore(board [15][15]string, placed []request.PlacedLetter) int {
 			if letter == "" {
 				break
 			}
-			letterScore := word.LetterValues[letter]
+			// score de la lettre (0 si joker à cette position)
+			letterScore := 0
+			if !isBlank[Pos{x, y}] {
+				letterScore = word.LetterValues[letter]
+			}
 			if isNew[Pos{x, y}] {
 				switch word.SpecialCells[[2]int{x, y}] {
 				case "DL":
+					// DL ne s'applique pas aux jokers (0 reste 0)
 					letterScore *= 2
 				case "TL":
+					// TL ne s'applique pas aux jokers
 					letterScore *= 3
 				case "DW", "★":
 					wordMultiplier *= 2
@@ -183,6 +287,9 @@ func computeMoveScore(board [15][15]string, placed []request.PlacedLetter) int {
 func rackPoints(rack string) int {
 	pts := 0
 	for _, c := range rack {
+		if c == '?' {
+			continue // joker vaut 0
+		}
 		pts += word.LetterValues[strings.ToUpper(string(c))]
 	}
 	return pts

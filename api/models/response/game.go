@@ -18,6 +18,7 @@ type GameInfo struct {
 	WinnerUsername   string       `json:"winner_username,omitempty"`
 	EndedAt          *time.Time   `json:"ended_at,omitempty"`
 	IsYourGame       bool         `json:"is_your_game"`
+	BlankTiles       []BoardBlank `json:"blank_tiles,omitempty"`
 }
 
 type PlayerInfo struct {
@@ -46,4 +47,9 @@ type GameSummary struct {
 
 type GamesListResponse struct {
 	Games []GameSummary `json:"games"`
+}
+
+type BoardBlank struct {
+	X int `json:"x"`
+	Y int `json:"y"`
 }
