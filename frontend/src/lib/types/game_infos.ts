@@ -11,6 +11,7 @@ type MoveData = {
         char: string;
         x: number;
         y: number;
+    blank?: boolean;
     }[];
     score: number;
     word: string;
@@ -39,4 +40,5 @@ type GameInfo = {
     winner_username?: string;
     ended_at?: string;
     is_your_game: boolean;
+    blank_tiles?: { x: number; y: number }[];
 };

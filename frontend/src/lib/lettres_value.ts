@@ -6,6 +6,7 @@ export const letterValues: Record<string, number> = {
 	K: 10, L: 1, M: 2, N: 1, O: 1,
 	P: 3, Q: 8, R: 1, S: 1, T: 1,
 	U: 1, V: 4, W: 10, X: 10, Y: 10, Z: 10,
+	'?': 0,
 };
 
 export function computeWordValue(letters: { x: number; y: number; letter: string }[]): number {

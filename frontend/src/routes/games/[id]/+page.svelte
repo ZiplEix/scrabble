@@ -35,7 +35,8 @@
 				letters: $moves.map(m => ({
 					x: m.x,
 					y: m.y,
-					char: m.letter.toUpperCase()
+					char: m.letter.toUpperCase(),
+					blank: !!m.blank
 				}))
 			})
 			.then(res => set(res.data.score))
@@ -115,7 +116,8 @@
 		// restore to originalRack preserving id when available
 		originalRack.update(r => {
 			if (move.rackId && r.some(it => it.id === move.rackId)) return r;
-			const item = move.rackId ? { id: move.rackId, char: move.letter } : { id: `${Date.now()}-${move.letter}-${crypto.randomUUID()}`, char: move.letter };
+			const char = move.blank ? '?' : move.letter;
+			const item = move.rackId ? { id: move.rackId, char } : { id: `${Date.now()}-${char}-${crypto.randomUUID()}`, char };
 			return [...r, item];
 		});
 		// remove from pendingMove
@@ -156,7 +158,7 @@
 			x: startX,
 			y: startY,
 			dir: direction,
-			letters: move.map((m) => ({ x: m.x, y: m.y, char: m.letter.toUpperCase() })),
+			letters: move.map((m) => ({ x: m.x, y: m.y, char: m.letter.toUpperCase(), blank: !!m.blank })),
 			score: get(moveScore)
 		};
 
@@ -291,10 +293,31 @@
 							});
 							return; // do not add to pendingMove
 						}
+						// if it's a joker '?', ask user which letter it represents
+						let chosen = char;
+						let isBlank = false;
+						if (char === '?') {
+							const input = prompt('Lettre du joker (A-Z) :');
+							if (!input) {
+								return; // cancel placement
+							}
+							const up = input.trim().toUpperCase();
+							if (!/^[A-Z]$/.test(up)) {
+								alert('Veuillez entrer une seule lettre A–Z.');
+								// put back the letter on the rack
+								originalRack.update(r => {
+									const newItem = { id: `${Date.now()}-${char}-${crypto.randomUUID()}`, char };
+									return [...r, newItem];
+								});
+								return;
+							}
+							chosen = up;
+							isBlank = true;
+						}
 						// add to pendingMove and tag which rack item was used
 						pendingMove.update(moves => {
 							const filtered = moves.filter((m) => !(m.x === x && m.y === y));
-							return [...filtered, { x, y, letter: char, rackId: id }];
+							return [...filtered, { x, y, letter: chosen!, rackId: id, blank: isBlank }];
 						});
 						// remove from originalRack by id
 						originalRack.update(r => r.filter(item => item.id !== id));
@@ -338,7 +361,7 @@
 								>
 									{item.char}
 									<span class="absolute bottom-0.5 right-1 text-[10px] font-normal text-gray-600">
-										{letterValues[item.char]}
+										{letterValues[item.char] ?? (item.char === '?' ? 0 : '')}
 									</span>
 								</div>
 							{/each}

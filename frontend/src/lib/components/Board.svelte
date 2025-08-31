@@ -20,6 +20,7 @@
 		points: number | null;
 		className: string;
 		isPlacedLetter?: boolean;
+		isBlank?: boolean;
 	};
 
 	let lastMoveCoords = $derived((() => {
@@ -50,6 +51,7 @@
 				const displayed = cell || pending?.letter || special || '';
 					const isPlacedLetter = cell !== "" && !pending;
 				const inLastTurn = lastMoveCoords.some(p => p.x === x && p.y === y);
+				const isHistoricBlank = !!game?.blank_tiles?.some((b) => b.x === x && b.y === y);
 
 				let base = "relative aspect-square w-full text-center flex items-center justify-center border border-gray-300 cursor-pointer select-none overflow-hidden";
 				let color = "";
@@ -84,9 +86,10 @@
 					return {
 					x, y,
 					char: displayed,
-					points: /^[A-Z]$/.test(displayed) ? letterValues[displayed] : null,
+					points: (pending?.blank || isHistoricBlank) ? 0 : (/^[A-Z]$/.test(displayed) ? letterValues[displayed] : null),
 						className: `${base} ${color}`,
-						isPlacedLetter
+						isPlacedLetter,
+						isBlank: !!pending?.blank || isHistoricBlank
 				};
 			})
 		);
@@ -398,6 +401,9 @@
 				<span class="absolute bottom-[-1.5px] right-[0px] text-[8px] text-gray-600">
 					{item.points}
 				</span>
+			{/if}
+			{#if item.isBlank}
+				<span title="Joker" class="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-gray-500/70"></span>
 			{/if}
 		</div>
 	{/each}
