@@ -58,7 +58,7 @@
 				players,
 			});
 			const gameId = res.data.game_id;
-			goto(`/games/${gameId}`);
+			window.location.href = `/games/${gameId}`; // for some reason goto doesn't work here
 		} catch (e: any) {
 			alert(e?.response?.data?.message)
 			error = e?.response?.data?.error || 'Erreur lors de la création de la partie';
