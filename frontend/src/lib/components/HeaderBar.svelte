@@ -20,7 +20,7 @@
 </script>
 
 <header
-    class="sticky z-20 bg-white/90 backdrop-blur supports-backdrop-blur:border-b border-b"
+    class="sticky z-20 bg-white/90 backdrop-blur supports-backdrop-blur:border-b"
     style={`top: ${topOffset}`}
 >
     <div class="max-w-[720px] mx-auto px-3 py-2 flex items-center gap-2">

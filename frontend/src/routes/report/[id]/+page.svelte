@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
+	import HeaderBar from '$lib/components/HeaderBar.svelte';
 
 	let report: any = $state(null);
 	let error = $state('');
@@ -52,69 +53,70 @@
 {:else if error}
 	<p class="text-center text-red-600 mt-8">{error}</p>
 {:else}
-	<main class="max-w-sm mx-auto px-2 py-8">
-		<h1 class="text-2xl font-bold mb-6 text-center text-gray-800">
-			Ticket #{report.id}
-		</h1>
+	<HeaderBar title={`Ticket #${report.id}`} back={true} />
+	<main class="max-w-sm mx-auto px-4 py-8">
+		<div class="mx-auto rounded-sm ring-1 ring-black/5 bg-white shadow p-4">
+			<h1 class="text-2xl font-bold mb-4 text-center text-gray-800">Ticket #{report.id}</h1>
 
-		<!-- svelte-ignore event_directive_deprecated -->
-		<form on:submit|preventDefault={updateReport} class="flex flex-col gap-4">
-            <div>
-                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
-                <input
-                    id="title"
-                    type="text"
-                    placeholder="Titre"
-                    bind:value={report.title}
-                    class="w-full border rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required
-                />
-            </div>
+			<!-- svelte-ignore event_directive_deprecated -->
+			<form on:submit|preventDefault={updateReport} class="flex flex-col gap-4">
+				<div>
+					<label for="title" class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+					<input
+						id="title"
+						type="text"
+						placeholder="Titre"
+						bind:value={report.title}
+						class="w-full bg-white rounded-lg px-4 py-3 text-sm placeholder-gray-400 shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+						required
+					/>
+				</div>
 
-            <div>
-                <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
-                <textarea
-                    id="content"
-                    rows="6"
-                    placeholder="Contenu du rapport"
-                    bind:value={report.content}
-                    class="w-full border rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-y"
-                    required
-                ></textarea>
-            </div>
+				<div>
+					<label for="content" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
+					<textarea
+						id="content"
+						rows="6"
+						placeholder="Contenu du rapport"
+						bind:value={report.content}
+						class="w-full bg-white rounded-lg px-4 py-3 text-sm placeholder-gray-400 shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-y transition"
+						required
+					></textarea>
+				</div>
 
-            <div>
-				<label for="type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-				<select
-                    id="type"
-                    bind:value={report.type}
-                    class="w-full border rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-					{#each types as t}
-						<option value={t}>{t}</option>
-					{/each}
-				</select>
-			</div>
+				<div>
+					<label for="type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+					<select
+						id="type"
+						bind:value={report.type}
+						class="w-full bg-white rounded-lg px-4 py-3 text-sm placeholder-gray-400 shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+					>
+						{#each types as t}
+							<option value={t}>{t}</option>
+						{/each}
+					</select>
+				</div>
 
-            <div>
-				<label for="status" class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-				<select
-					id="status"
-					bind:value={report.status}
-					class="w-full border rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+				<div>
+					<label for="status" class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+					<select
+						id="status"
+						bind:value={report.status}
+						class="w-full bg-white rounded-lg px-4 py-3 text-sm placeholder-gray-400 shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+					>
+						{#each statuses as s}
+							<option value={s}>{s}</option>
+						{/each}
+					</select>
+				</div>
+
+				<button
+					type="submit"
+					class="bg-green-600 hover:bg-green-700 text-white rounded py-3 font-semibold transition"
 				>
-					{#each statuses as s}
-						<option value={s}>{s}</option>
-					{/each}
-				</select>
-			</div>
-
-			<button
-				type="submit"
-				class="bg-green-600 hover:bg-green-700 text-white rounded py-3 font-semibold transition"
-			>
-				Enregistrer
-			</button>
-		</form>
+					Enregistrer
+				</button>
+			</form>
+		</div>
 	</main>
 {/if}

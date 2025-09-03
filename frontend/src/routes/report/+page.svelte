@@ -74,4 +74,16 @@
 			Nouveau ticket
 		</Button>
 	</div>
+
+	<!-- Floating action button (bottom-right) for quick create -->
+	<div class="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+16px)] z-40">
+		<button
+			onclick={() => goto('/report/new')}
+			class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-600 text-white shadow-lg hover:bg-green-700 active:scale-95 transition"
+			aria-label="Nouveau ticket"
+			title="Nouveau ticket"
+		>
+			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+		</button>
+	</div>
 </main>
