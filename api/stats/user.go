@@ -77,16 +77,19 @@ func GetVictoriesAndTop(userID int64) (int, int, error) {
 	}
 	var nf sql.NullFloat64
 	err := database.QueryRow(`
-		WITH victories AS (
-			SELECT u.id AS user_id, COUNT(*) AS wins
-			FROM users u
-			JOIN games g ON g.winner_username = u.username
-			GROUP BY u.id
+		-- include all players who played at least one game and compute their wins (may be 0)
+		WITH per_user AS (
+			SELECT gp.player_id AS user_id,
+				   COUNT(*) FILTER (WHERE g.winner_username = u.username) AS wins
+			FROM game_players gp
+			JOIN users u ON u.id = gp.player_id
+			JOIN games g ON gp.game_id = g.id
+			GROUP BY gp.player_id
 		), ranked AS (
 			SELECT user_id, wins,
 				RANK() OVER (ORDER BY wins DESC) AS rnk,
 				COUNT(*) OVER () AS total
-			FROM victories
+			FROM per_user
 		)
 		SELECT ROUND((100.0 * rnk / total)::numeric, 2)
 		FROM ranked WHERE user_id = $1

@@ -154,18 +154,18 @@ func TestGetVictoriesAndTop(t *testing.T) {
 	wins, top, err := GetVictoriesAndTop(fx.alice)
 	require.NoError(t, err)
 	assert.Equal(t, 4, wins)
-	assert.Equal(t, 50, top)
+	assert.Equal(t, 33, top)
 
 	wins, top, err = GetVictoriesAndTop(fx.bob)
 	require.NoError(t, err)
 	assert.Equal(t, 1, wins)
-	assert.Equal(t, 100, top)
+	assert.Equal(t, 67, top)
 
 	// carol has 0 victories, rank row absent -> top=0
 	wins, top, err = GetVictoriesAndTop(fx.carol)
 	require.NoError(t, err)
 	assert.Equal(t, 0, wins)
-	assert.Equal(t, 0, top)
+	assert.Equal(t, 100, top)
 }
 
 func TestGetAvgScoreAndTop(t *testing.T) {
