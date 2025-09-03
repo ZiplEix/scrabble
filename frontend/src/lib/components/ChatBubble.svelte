@@ -1,20 +1,13 @@
 <script lang="ts">
     import { extractTextFromMessage, formatMessage } from '$lib/utils/typography';
+    import { user } from '$lib/stores/user';
+  import { initials } from '$lib/utils/initial';
 
     export let msg: any;
     export let username: string = '';
+    export let userId: number | null = null;
     export let isOwn: boolean = false;
     export let onDelete: ((id: number) => void) | null = null;
-
-    function initials(name: string) {
-        if (!name) return '?';
-        return name
-            .split(' ')
-            .map((n) => n[0] || '')
-            .slice(0, 2)
-            .join('')
-            .toUpperCase();
-    }
 
     function safeTime(dateLike: any) {
         try {
@@ -95,7 +88,18 @@
     {#if !isOwn}
         <div class="flex items-start gap-2">
             <div class="w-8 h-8 rounded-full flex-none bg-gray-200 text-gray-700 flex items-center justify-center text-sm font-semibold">
-                {initials(username)}
+                {#if userId && userId !== $user?.id}
+                    <a
+                        href={'/user/' + userId}
+                        title={`Voir le profil de ${username}`}
+                        aria-label={`Ouvrir le profil public de ${username}`}
+                        rel="noopener"
+                    >
+                        {initials(username)}
+                    </a>
+                {:else}
+                    {initials(username)}
+                {/if}
             </div>
             <div
                 role="button"

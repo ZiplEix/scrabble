@@ -2,6 +2,7 @@
     import type { Writable } from "svelte/store";
     import { user } from "$lib/stores/user";
     import GameMenu from "./GameMenu.svelte";
+  import { goto } from "$app/navigation";
 
     let {
         game,
@@ -81,9 +82,10 @@
         <!-- Mini-scoreboard -->
         <div class="flex items-center gap-2 mb-1">
             {#each players as p, i}
-                <div
+                <a
                     class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-white text-[11px] text-gray-800 ring-1 ring-black/5 shadow-sm whitespace-nowrap"
                     title={`${p.username} · ${p.score} pts`}
+                    href={p.id !== $user?.id ? `/user/${p.id}` : undefined}
                 >
                     <span class="relative h-6 w-6 shrink-0 grid place-items-center rounded-full bg-emerald-600 text-white text-[11px] font-semibold">
                         {initials(p.username)}
@@ -92,7 +94,7 @@
                         {/if}
                     </span>
                     <span class="tabular-nums font-semibold">{p.score}</span>
-                </div>
+                </a>
             {/each}
         </div>
     </div>

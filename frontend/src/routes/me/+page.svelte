@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
     import { user } from '$lib/stores/user';
     import { api } from '$lib/api';
-    import MeStats from '$lib/components/MeStats.svelte';
+    import UserStats from '$lib/components/UserStats.svelte';
     import MeAccount from '$lib/components/MeAccount.svelte';
     import MeOptions from '$lib/components/MeOptions.svelte';
     import { defaultUserInfos, type UserInfos } from '$lib/types/user_infos';
@@ -33,32 +33,41 @@
         <h1 class="text-2xl font-semibold">Mon profil</h1>
     </div>
 
-    <!-- Tabs -->
-    <div class="flex items-center gap-3 mb-5">
-        <button
-            onclick={() => (active = 'stats')}
-            class="flex-1 text-sm py-3 rounded-lg text-center {active === 'stats' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}"
-        >
-            Statistiques
-        </button>
-        <button
-            onclick={() => (active = 'account')}
-            class="flex-1 text-sm py-3 rounded-lg text-center {active === 'account' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}"
-        >
-            Compte
-        </button>
-        <button
-            onclick={() => (active = 'options')}
-            class="flex-1 text-sm py-3 rounded-lg text-center {active === 'options' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}"
-        >
-            Options
-        </button>
+    <!-- Tabs (segmented control like home) -->
+    <div class="mb-5">
+        <div class="w-full max-w-md mx-auto">
+            <div class="w-full rounded-full bg-white ring-1 ring-black/5 p-1 shadow-sm">
+                <div class="grid grid-cols-3 gap-1">
+                    <button
+                        class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {active==='stats' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
+                        aria-pressed={active==='stats'}
+                        onclick={() => (active = 'stats')}
+                    >
+                        Statistiques
+                    </button>
+                    <button
+                        class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {active==='account' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
+                        aria-pressed={active==='account'}
+                        onclick={() => (active = 'account')}
+                    >
+                        Compte
+                    </button>
+                    <button
+                        class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {active==='options' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
+                        aria-pressed={active==='options'}
+                        onclick={() => (active = 'options')}
+                    >
+                        Options
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Content -->
-    <section class="bg-white shadow-sm rounded-lg p-6">
+    <section>
         {#if active === 'stats'}
-            <MeStats userInfos={userInfos} />
+            <UserStats userInfos={userInfos} />
         {:else if active === 'account'}
             <MeAccount user={$user} />
         {:else}

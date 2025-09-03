@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { UserInfos } from "$lib/types/user_infos";
-    let { userInfos }: { userInfos: UserInfos } = $props();
+    export let userInfos: UserInfos;
 </script>
 
 <div class="rounded-2xl bg-white/90 backdrop-blur-md ring-1 ring-black/5 shadow-lg p-4">

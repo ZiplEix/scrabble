@@ -44,7 +44,8 @@
 		players = players.filter(p => p !== player);
 	}
 
-	async function createGame() {
+	async function createGame(event: Event) {
+        event.preventDefault();
 		error = '';
 		if (name.trim().length === 0) {
 			error = 'Le nom de la partie est obligatoire';
@@ -73,7 +74,7 @@
 <main class="max-w-sm mx-auto px-4 py-6">
 	<h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Créer une nouvelle partie</h1>
 
-	<form on:submit|preventDefault={createGame} class="flex flex-col gap-4">
+	<form onsubmit={createGame} class="flex flex-col gap-4">
 		<input
 			class="border rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
 			type="text"
@@ -98,7 +99,7 @@
 
 			<button
 				type="button"
-				on:click={addPlayer}
+						onclick={addPlayer}
 				class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 text-sm font-semibold rounded"
 			>
 				Ajouter
@@ -113,7 +114,7 @@
 						<button
 							type="button"
 							class="text-red-500 hover:text-red-700 font-bold"
-							on:click={() => removePlayer(player)}
+								onclick={() => removePlayer(player)}
 						>
 							✕
 						</button>

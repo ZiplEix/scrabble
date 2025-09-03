@@ -28,7 +28,7 @@
     }
 </script>
 
-<svelte:window on:click={handleWindowClick} on:keydown={handleWindowKey} />
+<svelte:window onclick={handleWindowClick} on:keydown={handleWindowKey} />
 
 <div class="relative px-3 flex items-center gap-2" bind:this={root}>
     <!-- chat redirection -->

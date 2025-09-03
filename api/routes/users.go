@@ -7,7 +7,10 @@ import (
 )
 
 func setupUsersRoutes(e *echo.Echo) {
+	// authenticated routes under /users
 	r := e.Group("/users", middleware.RequireAuth)
-
 	r.GET("/suggest", controller.SuggestUsers)
+
+	// public user info: /user/:id
+	e.GET("/user/:id", controller.GetUserPublic)
 }

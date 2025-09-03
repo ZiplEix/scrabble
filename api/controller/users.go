@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/ZiplEix/scrabble/api/models/response"
@@ -26,4 +27,29 @@ func SuggestUsers(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, suggestions)
+}
+
+// GetUserPublic retourne les informations publiques d'un utilisateur par id
+func GetUserPublic(c echo.Context) error {
+	idParam := c.Param("id")
+	if idParam == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "missing id")
+	}
+
+	// Convert id to int64
+	var uid int64
+	_, err := fmt.Sscanf(idParam, "%d", &uid)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+
+	user, err := services.GetUserPublicByID(uid)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch user")
+	}
+	if user == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "user not found")
+	}
+
+	return c.JSON(http.StatusOK, user)
 }

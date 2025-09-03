@@ -81,9 +81,9 @@
     }
 </script>
 
-<div>
-    <h2 class="text-lg font-medium mb-4">Options</h2>
-    <div class="mb-4">
+<div class="rounded-2xl bg-white/90 backdrop-blur-md ring-1 ring-black/5 shadow-lg p-4">
+    <h2 class="text-lg font-medium mb-3">Options</h2>
+    <div class="mb-2">
         <!-- turn off/on all the types of notifications -->
         <div class="flex items-center justify-between">
             <div>
@@ -99,7 +99,7 @@
             </div>
         </div>
         <!-- Notifications type -->
-        <div class="pl-4 pt-4 gap-1 flex flex-col">
+        <div class="pl-4 pt-4 gap-2 flex flex-col">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium">A votre tour de jouer</p>

@@ -55,7 +55,7 @@
 				</p>
 			</div>
 			<button
-				on:click={installApp}
+				onclick={installApp}
 				class="ml-4 bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded"
 			>
 				Installer
@@ -68,7 +68,7 @@
 			<p>Souhaitez-vous activer les notifications ?</p>
 			<button
 				class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded ml-4 text-sm"
-				on:click={askNotificationPermission}
+				onclick={askNotificationPermission}
 			>
 				Activer
 			</button>

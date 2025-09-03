@@ -6,6 +6,7 @@
 	import { onMount } from "svelte";
 	import { get, writable } from "svelte/store";
 	import GameMenu from "$lib/components/GameMenu.svelte";
+import UserLink from "$lib/components/UserLink.svelte";
 
     let game: GameInfo | null = $state<GameInfo | null>(null);
 	let error = $state('');
@@ -107,10 +108,10 @@
 					</div>
 
 					<!-- Ligne 2: joueur + heure + date en petites infos -->
-					<div class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-						<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 ring-1 ring-black/5">
-							Par <strong class="ml-1 text-gray-800">{getUsername(move.player_id)}</strong>
-						</span>
+									<div class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 ring-1 ring-black/5">
+											Par <UserLink id={move.player_id} username={getUsername(move.player_id)} />
+										</span>
 						<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 ring-1 ring-black/5">
 							{new Date(move.played_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
 						</span>

@@ -12,7 +12,8 @@
 	import { user } from '$lib/stores/user';
   	import { gameStore } from '$lib/stores/game';
   	import GameHeader from '$lib/components/GameHeader.svelte';
-  import GameSkeleton from '$lib/components/GameSkeleton.svelte';
+  	import GameSkeleton from '$lib/components/GameSkeleton.svelte';
+	import UserLink from '$lib/components/UserLink.svelte';
 
 	let gameId = $state<string | null>(null);
 	let game = $state<GameInfo | null>(null);

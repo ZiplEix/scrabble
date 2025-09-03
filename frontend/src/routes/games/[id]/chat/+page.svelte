@@ -178,6 +178,7 @@
                 <ChatBubble
                     msg={item.msg}
                     username={msg_username}
+                    userId={item.msg.user_id}
                     isOwn={msg_username === current_username}
                     onDelete={item.msg.user_id === currentUser?.id ? removeMessage : null}
                 />

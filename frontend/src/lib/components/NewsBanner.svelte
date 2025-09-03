@@ -45,7 +45,7 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/40"></div>
         <div class="relative bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 z-10">
-            <button aria-label="Fermer" class="absolute top-3 right-3 text-gray-300 hover:text-gray-700" on:click={closeNews}>
+            <button aria-label="Fermer" class="absolute top-3 right-3 text-gray-300 hover:text-gray-700" onclick={closeNews}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
