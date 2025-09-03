@@ -490,14 +490,16 @@
 				<div class="flex flex-col gap-2">
 					{#each (game.status === 'ended' ? sortedPlayers : game.players) as player, i}
 					{@const playerClass = game.status === "ended" ? "bg-gray-50" : player.id === game.current_turn ? "bg-green-100 border-green-400" : "bg-gray-50"}
-						<div class="flex justify-between items-center p-2 rounded border
-							{playerClass}">
+						<a class="flex justify-between items-center p-2 rounded border
+							{playerClass}"
+							href={player.id !== $user?.id ? `/user/${player.id}` : undefined}
+						>
 							<span>
 								{#if game.status === 'ended'}{i+1}.&nbsp;{/if}
 								{player.username}
 							</span>
 							<span class="font-bold">{player.score}</span>
-						</div>
+						</a>
 					{/each}
 				</div>
 				<div class="mt-6 flex gap-2">
