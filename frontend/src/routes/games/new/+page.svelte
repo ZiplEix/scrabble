@@ -72,45 +72,46 @@
 
 <HeaderBar title="Nouvelle partie" back={true} />
 <main class="max-w-sm mx-auto px-4 py-6">
-	<h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Créer une nouvelle partie</h1>
+	<h1 class="text-2xl font-bold mb-4 text-center text-gray-800">Créer une nouvelle partie</h1>
 
-	<form onsubmit={createGame} class="flex flex-col gap-4">
-		<input
-			class="border rounded px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-			type="text"
-			placeholder="Nom de la partie"
-			bind:value={name}
-			required
-		/>
-
-		<div class="flex gap-2">
+	<div class="mx-auto rounded-sm ring-1 ring-black/5 bg-white shadow p-4">
+		<form onsubmit={createGame} class="flex flex-col gap-4">
 			<input
-				list="user-suggestions"
-				class="border rounded px-4 py-3 text-sm flex-grow focus:outline-none focus:ring-2 focus:ring-green-500"
+				class="w-full bg-white rounded-lg px-4 py-3 text-sm placeholder-gray-400 shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
 				type="text"
-				placeholder="Ajouter un joueur (ex: alice)"
-				bind:value={newPlayer}
+				placeholder="Nom de la partie"
+				bind:value={name}
+				required
 			/>
+
+			<div class="flex gap-2">
+				<input
+					list="user-suggestions"
+					class="bg-white rounded-lg px-4 py-3 text-sm flex-grow placeholder-gray-400 shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+					type="text"
+					placeholder="Ajouter un joueur (ex: alice)"
+					bind:value={newPlayer}
+				/>
 			<datalist id="user-suggestions">
 				{#each suggestions as user}
 					<option value={user} ></option>
 				{/each}
 			</datalist>
 
-			<button
-				type="button"
-						onclick={addPlayer}
-				class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 text-sm font-semibold rounded"
-			>
-				Ajouter
-			</button>
+				<button
+					type="button"
+							onclick={addPlayer}
+				class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 text-sm font-semibold rounded"
+				>
+					Ajouter
+				</button>
 		</div>
 
 		{#if players.length > 0}
 			<ul class="space-y-2">
 				{#each players as player}
-					<li class="flex justify-between items-center bg-gray-100 px-3 py-2 rounded text-sm">
-						<span>{player}</span>
+					<li class="flex justify-between items-center bg-emerald-50 px-3 py-2 rounded text-sm">
+						<span class="text-gray-800">{player}</span>
 						<button
 							type="button"
 							class="text-red-500 hover:text-red-700 font-bold"
@@ -134,5 +135,6 @@
 		>
 			{loading ? 'Création...' : 'Créer la partie'}
 		</button>
-	</form>
+		</form>
+	</div>
 </main>
