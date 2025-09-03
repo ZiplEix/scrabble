@@ -284,7 +284,10 @@
 						console.log('[page] onDropFromRack', { char, x, y, id });
 						// called when an item from the rack is dropped on the board via svelte-dnd-action
 						const cell = game!.board[y][x];
-						if (cell) {
+						// consider both historic board cells and tiles placed during this turn
+						const currentMoves = get(pendingMove);
+						const occupiedByPending = currentMoves.some(m => m.x === x && m.y === y);
+						if (cell || occupiedByPending) {
 							// target occupied -> restore tile into originalRack so it doesn't disappear
 							originalRack.update(r => {
 								// if we already have the id in the rack, do nothing
