@@ -33,7 +33,7 @@
 
         <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
             <span class="text-sm text-gray-700">Inscription</span>
-            <span class="text-sm font-medium text-gray-900">{(user && (user as any).created_at) ? new Date((user as any).created_at).toLocaleString() : '—'}</span>
+            <span class="text-sm font-medium text-gray-900">{(user && (user as any).created_at) ? new Date((user as any).created_at).toLocaleDateString('fr-FR') : '—'}</span>
         </div>
     </div>
 
