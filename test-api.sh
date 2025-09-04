@@ -41,7 +41,8 @@ cd ..
 
 echo "Running tests..."
 pwd
-cd api && go test ./... -v
+# Run packages sequentially to avoid concurrent tests interfering with the shared test database
+cd api && go test ./... -v -p 1
 
 # Capture the test result
 TEST_RESULT=$?
