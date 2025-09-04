@@ -176,6 +176,14 @@ func DeleteGame(userID int64, gameID string) error {
 		return err
 	}
 
+	if _, err := tx.Exec(`DELETE FROM messages WHERE game_id = $1`, gameID); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(`DELETE FROM game_message_reads WHERE game_id = $1`, gameID); err != nil {
+		return err
+	}
+
 	if _, err := tx.Exec(`DELETE FROM games WHERE id = $1`, gameID); err != nil {
 		return err
 	}
