@@ -58,7 +58,7 @@
     }
 </script>
 
-<div class="min-h-[100dvh]">
+<div class="">
 	<!-- HEADER (centré, sans bordure) -->
 	<header class="px-4 pt-5 text-center">
 		<h1 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
