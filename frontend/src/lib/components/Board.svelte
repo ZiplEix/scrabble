@@ -5,6 +5,7 @@
 	import { letterValues } from '$lib/lettres_value';
 	import { dndzone } from 'svelte-dnd-action';
 	import { tick } from 'svelte';
+  	import type { GameInfo } from '$lib/types/game_infos';
 
 	let { game, onPlaceLetter, onDropFromRack, onTakeFromBoard }: {
 		game: GameInfo | null;
@@ -125,19 +126,19 @@
 		}
 	});
 
-	function handleDragOver(e: DragEvent) {
-		e.preventDefault();
-	}
+	// function handleDragOver(e: DragEvent) {
+	// 	e.preventDefault();
+	// }
 
-	function handleDragEnter(e: DragEvent, el: HTMLElement) {
-		e.preventDefault();
-		el.classList.add('drop-target');
-	}
+	// function handleDragEnter(e: DragEvent, el: HTMLElement) {
+	// 	e.preventDefault();
+	// 	el.classList.add('drop-target');
+	// }
 
-	function handleDragLeave(e: DragEvent, el: HTMLElement) {
-		e.preventDefault();
-		el.classList.remove('drop-target');
-	}
+	// function handleDragLeave(e: DragEvent, el: HTMLElement) {
+	// 	e.preventDefault();
+	// 	el.classList.remove('drop-target');
+	// }
 
 	function handleCellClick(x: number, y: number) {
 		// only act if there's a pending move at these coords
@@ -152,38 +153,38 @@
 		}
 	}
 
-	function handleDrop(e: DragEvent, x: number, y: number) {
-		e.preventDefault();
-		// prevent other handlers (e.g. svelte-dnd-action) from intercepting this drop
-		try { e.stopImmediatePropagation?.(); } catch {};
-		e.stopPropagation();
-		try {
-			let char: string | undefined;
-			const raw = e.dataTransfer?.getData('text/plain');
-			if (raw) {
-				try {
-					const data = JSON.parse(raw);
-					char = data?.char || data;
-				} catch (err) {
-					// maybe raw is just a single char
-					char = raw;
-				}
-			}
-			// fallback to global (some DnD libs strip dataTransfer)
-			if (!char && (window as any).__draggedTile) {
-				char = (window as any).__draggedTile.char;
-			}
-			if (!char) return;
-			// placement handled directly (drag-drop); call onPlaceLetter to reuse existing placement logic
-			// prefer move effect
-			try { if (e.dataTransfer) { e.dataTransfer.dropEffect = 'move'; } } catch (err) {}
-			onPlaceLetter(x, y, game!.board[y][x]);
-			// clear global fallback
-			try { (window as any).__draggedTile = null; } catch (err) {}
-		} catch (err) {
-			console.error('drop parse error', err);
-		}
-	}
+	// function handleDrop(e: DragEvent, x: number, y: number) {
+	// 	e.preventDefault();
+	// 	// prevent other handlers (e.g. svelte-dnd-action) from intercepting this drop
+	// 	try { e.stopImmediatePropagation?.(); } catch {};
+	// 	e.stopPropagation();
+	// 	try {
+	// 		let char: string | undefined;
+	// 		const raw = e.dataTransfer?.getData('text/plain');
+	// 		if (raw) {
+	// 			try {
+	// 				const data = JSON.parse(raw);
+	// 				char = data?.char || data;
+	// 			} catch (err) {
+	// 				// maybe raw is just a single char
+	// 				char = raw;
+	// 			}
+	// 		}
+	// 		// fallback to global (some DnD libs strip dataTransfer)
+	// 		if (!char && (window as any).__draggedTile) {
+	// 			char = (window as any).__draggedTile.char;
+	// 		}
+	// 		if (!char) return;
+	// 		// placement handled directly (drag-drop); call onPlaceLetter to reuse existing placement logic
+	// 		// prefer move effect
+	// 		try { if (e.dataTransfer) { e.dataTransfer.dropEffect = 'move'; } } catch (err) {}
+	// 		onPlaceLetter(x, y, game!.board[y][x]);
+	// 		// clear global fallback
+	// 		try { (window as any).__draggedTile = null; } catch (err) {}
+	// 	} catch (err) {
+	// 		console.error('drop parse error', err);
+	// 	}
+	// }
 
 	function handleConsider(detail: any) {
 		try { (window as any).__dndActive = true; } catch {}

@@ -7,6 +7,7 @@
     import { goto } from "$app/navigation";
     import GameMenu from "$lib/components/GameMenu.svelte";
     import { extractDefinitions, getDefinition, type DefinitionGroup, type WiktionaryDefinition } from "$lib/utils/get_definition";
+  	import type { GameInfo } from "$lib/types/game_infos";
 
     type Definition = {
         word: string,

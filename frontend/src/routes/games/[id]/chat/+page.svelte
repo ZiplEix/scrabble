@@ -9,6 +9,7 @@
     import { tick } from 'svelte';
     import ChatBubble from '$lib/components/ChatBubble.svelte';
     import HeaderBar from '$lib/components/HeaderBar.svelte';
+    import type { GameInfo } from '$lib/types/game_infos';
 
     const gameId = get(page).params.id;
 

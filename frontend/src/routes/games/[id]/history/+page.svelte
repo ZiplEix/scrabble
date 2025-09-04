@@ -6,7 +6,8 @@
 	import { onMount } from "svelte";
 	import { get, writable } from "svelte/store";
 	import GameMenu from "$lib/components/GameMenu.svelte";
-import UserLink from "$lib/components/UserLink.svelte";
+	import UserLink from "$lib/components/UserLink.svelte";
+	import type { GameInfo } from "$lib/types/game_infos";
 
     let game: GameInfo | null = $state<GameInfo | null>(null);
 	let error = $state('');

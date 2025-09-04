@@ -18,8 +18,6 @@ export function protectFrenchPunctuation(text: string, nbspType: NbspType = 'nor
     return text.replace(/ (\?|!|:|;|»)/g, `${nbsp}$1`);
 }
 
-export default protectFrenchPunctuation;
-
 /**
  * Escape HTML special chars to avoid XSS when rendering as HTML.
  */

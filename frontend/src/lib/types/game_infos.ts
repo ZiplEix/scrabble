@@ -1,11 +1,11 @@
-type PlayerInfo = {
+export type PlayerInfo = {
     id: number;
     username: string;
     score: number;
     position: number;
 };
 
-type MoveData = {
+export type MoveData = {
     dir: 'H' | 'V';
     letters: {
         char: string;
@@ -20,13 +20,13 @@ type MoveData = {
     type?: '' | 'pass';
 }
 
-type MoveInfo = {
+export type MoveInfo = {
     player_id: number;
     move: MoveData;
     played_at: string;
 };
 
-type GameInfo = {
+export type GameInfo = {
     id: string;
     name: string;
     board: string[][];

@@ -13,7 +13,7 @@
   	import { gameStore } from '$lib/stores/game';
   	import GameHeader from '$lib/components/GameHeader.svelte';
   	import GameSkeleton from '$lib/components/GameSkeleton.svelte';
-	import UserLink from '$lib/components/UserLink.svelte';
+  	import type { GameInfo } from '$lib/types/game_infos';
 
 	let gameId = $state<string | null>(null);
 	let game = $state<GameInfo | null>(null);
@@ -75,6 +75,33 @@
 			}
 		}
 	});
+
+	// retry loader utilisé par le bouton "Réessayer" du message d'erreur
+	async function retryLoad() {
+		if (!gameId) return;
+		loading = true;
+		error = '';
+		try {
+			const res = await api.get(`/game/${gameId}`);
+			game = res.data;
+			gameStore.set(game);
+			cancelPendingMove();
+			originalRack.set(game!.your_rack.split('').map((char, i) => ({ id: `${i}-${char}-${crypto.randomUUID()}`, char })));
+		} catch (e: any) {
+			error = e?.response?.data?.error || 'Erreur lors du chargement de la partie';
+		} finally {
+			loading = false;
+		}
+	}
+
+	const adminEmail = 'leroyerbaptiste@gmail.com';
+
+	// mailto construit dynamiquement pour ouvrir un mail pré-rempli vers l'admin
+	function buildAdminMailto() {
+		const subject = encodeURIComponent(`Problème partie ${gameId}`);
+		const body = encodeURIComponent(`ID partie: ${gameId}\nErreur: ${error}\nURL: ${typeof location !== 'undefined' ? location.href : ''}`);
+		return `mailto:${adminEmail}?subject=${subject}&body=${body}`;
+	}
 
 	function onPlaceLetter(x: number, y: number, cell: string) {
 		const currentMoves = get(pendingMove);
@@ -262,7 +289,22 @@
 {#if loading}
 	<GameSkeleton />
 {:else if error}
-	<p class="text-center text-red-600 mt-8">{error}</p>
+	<div class="flex-1 grid place-items-center px-3" style="min-height: calc(100dvh - 64px);">
+		<div class="w-full max-w-[640px]">
+			<div class="mx-auto rounded-2xl bg-white/90 backdrop-blur-md ring-1 ring-black/5 shadow-lg p-6 text-center">
+				<div class="mx-auto w-12 h-12 rounded-full bg-amber-100/60 flex items-center justify-center text-amber-700 mb-3">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				</div>
+				<h3 class="text-lg font-semibold text-gray-800">Impossible de charger la partie</h3>
+				<p class="mt-2 text-sm text-gray-600">{error}</p>
+				<p class="mt-1 text-sm text-gray-600">Si le problème persiste, merci d'ouvrir un ticket ou de contacter un administrateur.</p>
+				<div class="mt-4 flex gap-2 justify-center">
+					<button class="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-md hover:bg-emerald-200" onclick={retryLoad}>Réessayer</button>
+					<a href="/" class="px-4 py-2 bg-white ring-1 ring-black/5 text-gray-700 rounded-md hover:bg-gray-50">Accueil</a>
+				</div>
+			</div>
+		</div>
+	</div>
 {:else if game}
 	<!-- Main colonne sans fixed -->
 	<div class="flex flex-col overflow-hidden bg-gradient-to-b from-emerald-50 to-white"

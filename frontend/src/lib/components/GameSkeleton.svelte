@@ -20,11 +20,15 @@
 
     <!-- Main skeleton -->
     <main class="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <!-- Board placeholder -->
+        <!-- Board placeholder: affichage d'une grille 15x15 vide (sans lettres ni labels) -->
         <div class="flex-1 grid place-items-center px-3 min-h-0">
             <div class="mx-auto w-full max-w-[min(95vw,640px)]">
                 <div class="mx-auto rounded-sm ring-1 ring-black/5 bg-white p-2" style="width: min(95vw, 100%); height: min(95vw, 100%);">
-                    <div class="w-full h-full rounded bg-gray-100 animate-pulse" style="height: 100%;"></div>
+                    <div class="grid grid-cols-15 gap-[1px] w-full h-full animate-pulse" aria-hidden="true">
+                        {#each Array(225) as _, i}
+                            <div class="relative aspect-square w-full bg-emerald-50 border border-emerald-100 rounded-sm"></div>
+                        {/each}
+                    </div>
                 </div>
             </div>
         </div>
@@ -60,3 +64,9 @@
     </main>
     <span class="sr-only">Chargement…</span>
 </div>
+
+<style>
+    :global(.grid-cols-15) {
+        grid-template-columns: repeat(15, minmax(0, 1fr));
+    }
+</style>

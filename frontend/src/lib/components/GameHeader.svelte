@@ -2,7 +2,7 @@
     import type { Writable } from "svelte/store";
     import { user } from "$lib/stores/user";
     import GameMenu from "./GameMenu.svelte";
-  import { goto } from "$app/navigation";
+    import type { GameInfo } from "$lib/types/game_infos";
 
     let {
         game,
