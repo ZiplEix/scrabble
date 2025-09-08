@@ -3,7 +3,6 @@ module github.com/ZiplEix/scrabble/api
 go 1.23.1
 
 require (
-	github.com/Unity-Technologies/echozap v1.1.6
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
