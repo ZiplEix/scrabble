@@ -57,6 +57,28 @@ func VerifyUser(username, password string) (*dbModels.User, error) {
 	return &user, nil
 }
 
+func VerifyAdmin(username, password string) (*dbModels.User, error) {
+	var user dbModels.User
+	var role string
+	query := `SELECT id, username, password, created_at, role FROM users WHERE username = $1`
+	err := database.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Password, &user.CreatedAt, &role)
+	if err == pgx.ErrNoRows {
+		return nil, errors.New("user not found")
+	} else if err != nil {
+		return nil, err
+	}
+
+	if role != "admin" {
+		return nil, errors.New("user is not an admin")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, errors.New("invalid credentials")
+	}
+
+	return &user, nil
+}
+
 func UpdateUserPassword(username, newPassword string) error {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {

@@ -20,6 +20,11 @@ air:
 front:
 	@cd frontend && npm run dev
 
+## admin:	Run the admin interface in development mode
+.PHONY: admin
+admin:
+	@cd admin-dashboard && npm run dev
+
 ## db:	Start the database using Docker Compose
 .PHONY: db
 db:
@@ -35,13 +40,16 @@ migrate-up:
 migrate-down:
 	@cd migrations && go run ./down/down.go --dsn $(POSTGRES_URL) --dir .
 
+## tests:	Run all tests (API and frontend)
 .PHONY: tests
 tests: tests-api tests-frontend
 
+## tests-api:	Run API tests
 .PHONY: tests-api
 tests-api:
 	@./test-api.sh
 
+## tests-frontend:	Run frontend tests
 .PHONY: tests-frontend
 tests-frontend:
 	@./test-front.sh

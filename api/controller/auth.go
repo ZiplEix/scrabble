@@ -102,6 +102,43 @@ func Login(c echo.Context) error {
 	return c.JSON(http.StatusOK, response.AuthResponse{Token: tokenString})
 }
 
+func AdminLogin(c echo.Context) error {
+	var req request.LoginRequest
+	if err := c.Bind(&req); err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "bind_failed",
+			"body":   "LoginRequest",
+		})
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error":   fmt.Sprintf("invalid request: %v", err),
+			"message": "Requête invalide, veuillez vérifier les données saisies",
+		})
+	}
+
+	username := strings.ToLower(strings.TrimSpace(req.Username))
+	logctx.Add(c, "username", username)
+
+	user, err := services.VerifyAdmin(username, req.Password)
+	if err != nil {
+		logctx.Add(c, "reason", "invalid_credentials")
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"error":   fmt.Sprintf("failed to verify user %s: %v", username, err),
+			"message": "Mot de passe ou nom d'utilisateur incorrect",
+		})
+	}
+
+	tokenString, err := utils.GenerateToken(*user)
+	if err != nil {
+		logctx.Add(c, "reason", "token_generation_failed")
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error":   fmt.Sprintf("failed to create token for user %s: %v", username, err),
+			"message": "Erreur interne du serveur lors de la création du token d'authentification, veuillez réessayer plus tard",
+		})
+	}
+
+	return c.JSON(http.StatusOK, response.AuthResponse{Token: tokenString})
+}
+
 func ChangePassword(c echo.Context) error {
 	var req request.ChangePasswordRequest
 	if err := c.Bind(&req); err != nil {
