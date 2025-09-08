@@ -124,10 +124,12 @@ func TestGetUserByUsername(t *testing.T) {
 	_, err := CreateUser("frank", "top")
 	require.NoError(t, err)
 
-	u := GetUserByUsername("frank")
+	u, err := GetUserByUsername("frank")
 	require.NotNil(t, u)
 	assert.Equal(t, "frank", u.Username)
+	assert.NoError(t, err)
 
-	u2 := GetUserByUsername("ghost")
+	u2, err2 := GetUserByUsername("ghost")
 	assert.Nil(t, u2)
+	assert.Error(t, err2)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ZiplEix/scrabble/api/middleware/logctx"
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/ZiplEix/scrabble/api/utils"
@@ -14,11 +15,16 @@ import (
 func GetMe(c echo.Context) error {
 	userID, ok := utils.GetUserID(c)
 	if !ok {
+		logctx.Add(c, "reason", "unauthorized")
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 	}
 
 	me, err := services.GetMeInfo(userID)
 	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_fetch_user_info",
+			"error":  err.Error(),
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch user info")
 	}
 
@@ -28,11 +34,16 @@ func GetMe(c echo.Context) error {
 func UpdatePrefs(c echo.Context) error {
 	userID, ok := utils.GetUserID(c)
 	if !ok {
+		logctx.Add(c, "reason", "unauthorized")
 		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 	}
 
 	var req request.UpdatePrefsRequest
 	if err := c.Bind(&req); err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "bind_failed",
+			"body":   err.Error(),
+		})
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("invalid request: %v", err),
 			"message": "Requête invalide, veuillez vérifier les données saisies",
@@ -51,6 +62,10 @@ func UpdatePrefs(c echo.Context) error {
 	}
 
 	if err := services.UpdateUserNotificationPrefs(userID, prefs); err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_update_prefs",
+			"error":  err.Error(),
+		})
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to update prefs"})
 	}
 	return c.NoContent(http.StatusOK)
@@ -60,11 +75,16 @@ func UpdatePrefs(c echo.Context) error {
 func GetUnreadMessagesCountHandler(c echo.Context) error {
 	userID, ok := utils.GetUserID(c)
 	if !ok {
+		logctx.Add(c, "reason", "unauthorized")
 		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized, no user_id"})
 	}
 
 	cnt, err := services.GetTotalUnreadMessagesForUser(userID)
 	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_get_unread_count",
+			"error":  err.Error(),
+		})
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, echo.Map{"unread_count": cnt})
@@ -74,6 +94,7 @@ func GetUnreadMessagesCountHandler(c echo.Context) error {
 func GetUnreadMessagesHandler(c echo.Context) error {
 	userID, ok := utils.GetUserID(c)
 	if !ok {
+		logctx.Add(c, "reason", "unauthorized")
 		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized, no user_id"})
 	}
 
@@ -89,6 +110,10 @@ func GetUnreadMessagesHandler(c echo.Context) error {
 
 	msgs, err := services.GetUnreadMessagesForUser(userID, limit)
 	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_get_unread_messages",
+			"error":  err.Error(),
+		})
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, msgs)

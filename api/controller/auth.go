@@ -5,18 +5,21 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ZiplEix/scrabble/api/middleware/logctx"
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/models/response"
 	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 func Register(c echo.Context) error {
 	var req request.RegisterRequest
 	if err := c.Bind(&req); err != nil {
-		zap.L().Error("invalid registration payload", zap.Error(err), zap.String("payload", fmt.Sprintf("%+v", req)))
+		logctx.Merge(c, map[string]any{
+			"reason": "bind_failed",
+			"body":   "RegisterRequest",
+		})
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("invalid request: %v", err),
 			"message": "Requête invalide, veuillez vérifier les données saisies",
@@ -24,8 +27,9 @@ func Register(c echo.Context) error {
 	}
 
 	username := strings.ToLower(strings.TrimSpace(req.Username))
+	logctx.Add(c, "username", username)
 	if username == "" {
-		zap.L().Error("username is required", zap.String("username", username))
+		logctx.Add(c, "reason", "username_required")
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   "username is required",
 			"message": "Le nom d'utilisateur est requis",
@@ -35,12 +39,14 @@ func Register(c echo.Context) error {
 	user, err := services.CreateUser(username, req.Password)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			logctx.Add(c, "reason", "username_already_exists")
 			return c.JSON(http.StatusConflict, echo.Map{
 				"error":   fmt.Sprintf("username %s already exists: %v", username, err),
 				"message": "Le nom d'utilisateur existe déjà, veuillez en choisir un autre",
 			})
 		}
 
+		logctx.Add(c, "reason", "user_creation_failed")
 		return c.JSON(http.StatusInternalServerError, echo.Map{
 			"error":   fmt.Sprintf("failed to create user: %v", err),
 			"message": "Erreur lors de la création de l'utilisateur, veuillez vérifier",
@@ -49,6 +55,7 @@ func Register(c echo.Context) error {
 
 	tokenString, err := utils.GenerateToken(*user)
 	if err != nil {
+		logctx.Add(c, "reason", "token_generation_failed")
 		return c.JSON(http.StatusInternalServerError, echo.Map{
 			"error":   fmt.Sprintf("failed to create token for user %s: %v", username, err),
 			"message": "Erreur interne du serveur lors de la création du token d'authentification, veuillez réessayer plus tard",
@@ -61,7 +68,10 @@ func Register(c echo.Context) error {
 func Login(c echo.Context) error {
 	var req request.LoginRequest
 	if err := c.Bind(&req); err != nil {
-		zap.L().Error("invalid login payload", zap.Error(err), zap.String("payload", fmt.Sprintf("%+v", req)))
+		logctx.Merge(c, map[string]any{
+			"reason": "bind_failed",
+			"body":   "LoginRequest",
+		})
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("invalid request: %v", err),
 			"message": "Requête invalide, veuillez vérifier les données saisies",
@@ -69,9 +79,11 @@ func Login(c echo.Context) error {
 	}
 
 	username := strings.ToLower(strings.TrimSpace(req.Username))
+	logctx.Add(c, "username", username)
 
 	user, err := services.VerifyUser(username, req.Password)
 	if err != nil {
+		logctx.Add(c, "reason", "invalid_credentials")
 		return c.JSON(http.StatusUnauthorized, echo.Map{
 			"error":   fmt.Sprintf("failed to verify user %s: %v", username, err),
 			"message": "Mot de passe ou nom d'utilisateur incorrect",
@@ -80,6 +92,7 @@ func Login(c echo.Context) error {
 
 	tokenString, err := utils.GenerateToken(*user)
 	if err != nil {
+		logctx.Add(c, "reason", "token_generation_failed")
 		return c.JSON(http.StatusInternalServerError, echo.Map{
 			"error":   fmt.Sprintf("failed to create token for user %s: %v", username, err),
 			"message": "Erreur interne du serveur lors de la création du token d'authentification, veuillez réessayer plus tard",
@@ -92,7 +105,10 @@ func Login(c echo.Context) error {
 func ChangePassword(c echo.Context) error {
 	var req request.ChangePasswordRequest
 	if err := c.Bind(&req); err != nil {
-		zap.L().Error("invalid change password payload", zap.Error(err), zap.String("payload", fmt.Sprintf("%+v", req)))
+		logctx.Merge(c, map[string]any{
+			"reason": "bind_failed",
+			"body":   "ChangePasswordRequest",
+		})
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   fmt.Sprintf("invalid request: %v", err),
 			"message": "Requête invalide, veuillez vérifier les données saisies",
@@ -101,7 +117,7 @@ func ChangePassword(c echo.Context) error {
 
 	username := strings.ToLower(strings.TrimSpace(req.Username))
 	if username == "" {
-		zap.L().Error("username is required", zap.String("username", username))
+		logctx.Add(c, "reason", "username_required")
 		return c.JSON(http.StatusBadRequest, echo.Map{
 			"error":   "username is required",
 			"message": "Le nom d'utilisateur est requis",
@@ -123,10 +139,10 @@ func ConnectAS(c echo.Context) error {
 	// get the user from the query parameter "user"
 	username := strings.ToLower(strings.TrimSpace(c.QueryParam("user")))
 
-	user := services.GetUserByUsername(username)
-	if user == nil {
+	user, err := services.GetUserByUsername(username)
+	if err != nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
-			"error":   fmt.Sprintf("user %s not found", username),
+			"error":   fmt.Sprintf("user %s not found: %v", username, err),
 			"message": "Utilisateur non trouvé",
 		})
 	}

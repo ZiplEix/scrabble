@@ -19,8 +19,7 @@ func IsUserInGame(userID int64, gameID string) (bool, error) {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		zap.L().Error("failed to validate user in game", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
-		return false, err
+		return false, fmt.Errorf("failed to validate user in game: %w", err)
 	}
 	return true, nil
 }
@@ -42,7 +41,7 @@ func CreateMessage(userID int64, gameID, content string, meta map[string]any) (m
 			metaJSON = b
 		} else {
 			// ignore meta on marshal failure
-			zap.L().Warn("failed to marshal message meta", zap.Error(err))
+			// zap.L().Warn("failed to marshal message meta", zap.Error(err))
 		}
 	}
 

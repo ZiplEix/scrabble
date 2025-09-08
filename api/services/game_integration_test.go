@@ -108,7 +108,9 @@ func TestCreateGame_RematchChecks(t *testing.T) {
 	require.NotNil(t, gid2)
 
 	// other user cannot rematch from this original
-	u2 := GetUserByUsername("bob").ID
+	userBob, err := GetUserByUsername("bob")
+	require.NoError(t, err)
+	u2 := userBob.ID
 	gid3, err := CreateGame(u2, "rev2", []string{"alice"}, &orig)
 	require.Error(t, err)
 	assert.Nil(t, gid3)
@@ -144,7 +146,10 @@ func TestDeleteGame_OnlyCreator(t *testing.T) {
 	require.NoError(t, err)
 
 	// non creator cannot delete
-	err = DeleteGame(GetUserByUsername("guest").ID, gid.String())
+	userGuest, err := GetUserByUsername("guest")
+	require.NoError(t, err)
+	err = DeleteGame(userGuest.ID, gid.String())
+	// non-creator cannot delete
 	require.Error(t, err)
 
 	// creator can delete
@@ -170,7 +175,9 @@ func TestRenameGame_OnlyCreator(t *testing.T) {
 	assert.Equal(t, "new-name", name)
 
 	// forbidden as non-creator
-	err = RenameGame(GetUserByUsername("other").ID, gid.String(), "x")
+	userOther, err := GetUserByUsername("other")
+	require.NoError(t, err)
+	err = RenameGame(userOther.ID, gid.String(), "x")
 	require.Error(t, err)
 }
 

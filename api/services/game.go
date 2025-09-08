@@ -334,11 +334,9 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	var currentTurn int64
 	err := database.QueryRow(`SELECT current_turn FROM games WHERE id = $1`, gameID).Scan(&currentTurn)
 	if err != nil {
-		zap.L().Error("failed to get current turn", zap.Error(err), zap.String("game_id", gameID))
-		return fmt.Errorf("game not found")
+		return fmt.Errorf("game not found: %v", err)
 	}
 	if currentTurn != userID {
-		zap.L().Error("not your turn", zap.Int64("user_id", userID), zap.String("game_id", gameID))
 		return fmt.Errorf("not your turn")
 	}
 
@@ -346,26 +344,21 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	var rack string
 	err = database.QueryRow(`SELECT rack FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&rack)
 	if err != nil {
-		zap.L().Error("failed to get player rack", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
-		return fmt.Errorf("player not in game")
+		return fmt.Errorf("player not in game: %v", err)
 	}
 
 	// Déduction automatique des jokers si le client ne les a pas marqués
 	resolvedLetters, err := resolveBlanks(rack, req.Letters)
 	if err != nil {
-		zap.L().Error("invalid move after resolveBlanks", zap.Error(err), zap.String("rack", rack), zap.Any("letters", req.Letters))
 		return fmt.Errorf("invalid move: you don't have the required letters")
 	}
 	req.Letters = resolvedLetters
 	if !rackContains(rack, req.Letters) {
-		zap.L().Error("invalid move: player does not have required letters", zap.String("rack", rack), zap.Any("letters", req.Letters), zap.String("game_id", gameID))
 		return fmt.Errorf("invalid move: you don't have the required letters")
 	}
 	if len(req.Letters) == 0 {
-		zap.L().Error("no letters provided in move request", zap.String("game_id", gameID))
 		return fmt.Errorf("no letters provided")
 	} else if len(req.Letters) > 7 {
-		zap.L().Error("cannot place more than 7 letters in one move", zap.Int("letters_count", len(req.Letters)), zap.String("game_id", gameID))
 		return fmt.Errorf("cannot place more than 7 letters in one move")
 	}
 
@@ -383,7 +376,6 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		}
 	}
 	if !sameRow && !sameCol {
-		zap.L().Error("letters must be aligned in the same row or column", zap.Any("letters", req.Letters), zap.String("game_id", gameID))
 		return fmt.Errorf("letters must be aligned in the same row or column")
 	}
 
@@ -412,7 +404,6 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 			}
 		}
 		if !found {
-			zap.L().Error("first move must cover the center cell", zap.Any("letters", req.Letters), zap.String("game_id", gameID))
 			return fmt.Errorf("first move must cover the center cell")
 		}
 	} else {
@@ -430,14 +421,12 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 			}
 		}
 		if !touchesExisting {
-			zap.L().Error("word must connect to existing letters", zap.Any("letters", req.Letters), zap.String("game_id", gameID))
 			return fmt.Errorf("word must connect to existing letters")
 		}
 	}
 
 	// 6. Appliquer les lettres
 	if err := applyLetters(&board, req.Letters); err != nil {
-		zap.L().Error("failed to apply letters to board", zap.Error(err), zap.Any("letters", req.Letters), zap.String("game_id", gameID))
 		return err
 	}
 
@@ -485,7 +474,6 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 	for _, w := range words {
 		if !word.WordExists(w) {
-			zap.L().Error("invalid word played", zap.String("word", w), zap.String("game_id", gameID))
 			return fmt.Errorf("invalid word played: %s", w)
 		}
 	}
@@ -493,7 +481,6 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	// 8. Recalcul rack et score
 	newRack, err := updatePlayerRack(gameID, userID, rack, req.Letters)
 	if err != nil {
-		zap.L().Error("failed to update player rack", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
 		return fmt.Errorf("failed to update rack: %v", err)
 	}
 	// Reconstruire les positions de jokers depuis l'historique des coups
@@ -512,15 +499,13 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	moveJSON, _ := json.Marshal(req)
 	_, err = database.Exec(`INSERT INTO game_moves (game_id, player_id, move) VALUES ($1, $2, $3)`, gameID, userID, moveJSON)
 	if err != nil {
-		zap.L().Error("failed to insert move", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
 		return fmt.Errorf("failed to insert move: %v", err)
 	}
 
 	// 10. Mise à jour transactionnelle et met le pass_count à 0
 	tx, err := database.DB.BeginTx(context.Background(), nil)
 	if err != nil {
-		zap.L().Error("failed to begin transaction", zap.Error(err), zap.String("game_id", gameID))
-		return err
+		return fmt.Errorf("failed to begin transaction: %v", err)
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
@@ -531,26 +516,22 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	newBoardJSON, _ := json.Marshal(board)
 	_, err = tx.Exec(`UPDATE games SET board = $1, pass_count = 0 WHERE id = $2`, newBoardJSON, gameID)
 	if err != nil {
-		zap.L().Error("failed to update game board", zap.Error(err), zap.String("game_id", gameID))
-		return err
+		return fmt.Errorf("failed to update game board: %v", err)
 	}
 	_, err = tx.Exec(`UPDATE game_players SET rack = $1, score = score + $2 WHERE game_id = $3 AND player_id = $4`, newRack, moveScore, gameID, userID)
 	if err != nil {
-		zap.L().Error("failed to update game player", zap.Error(err), zap.String("game_id", gameID), zap.Int64("user_id", userID))
-		return err
+		return fmt.Errorf("failed to update game player: %v", err)
 	}
 
 	var currentPosition int
 	err = tx.QueryRow(`SELECT position FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&currentPosition)
 	if err != nil {
-		zap.L().Error("failed to get player position", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
-		return err
+		return fmt.Errorf("failed to get player position: %v", err)
 	}
 	var nextPlayerID int64
 	err = tx.QueryRow(`SELECT player_id FROM game_players WHERE game_id = $1 AND position = (($2 + 1) % (SELECT COUNT(*) FROM game_players WHERE game_id = $1))`, gameID, currentPosition).Scan(&nextPlayerID)
 	if err != nil {
-		zap.L().Error("failed to get next player ID", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
-		return err
+		return fmt.Errorf("failed to get next player ID: %v", err)
 	}
 
 	// Si le rack du joueur est vide ET que le sac est vide, on termine la partie
@@ -558,15 +539,13 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	if err := tx.QueryRow(
 		`SELECT available_letters FROM games WHERE id = $1`, gameID,
 	).Scan(&bag); err != nil {
-		zap.L().Error("failed to get available letters", zap.Error(err), zap.String("game_id", gameID))
-		return err
+		return fmt.Errorf("failed to get available letters: %w", err)
 	}
 	if len(newRack) == 0 && len(bag) == 0 {
 		if err := finishGame(tx, gameID, userID); err != nil {
 			return err
 		}
 		if err := tx.Commit(); err != nil {
-			zap.L().Error("failed to commit transaction after finishGame", zap.Error(err), zap.String("game_id", gameID))
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
 		return nil
@@ -575,12 +554,10 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	// Sinon, passe au joueur suivant
 	_, err = tx.Exec(`UPDATE games SET current_turn = $1 WHERE id = $2`, nextPlayerID, gameID)
 	if err != nil {
-		zap.L().Error("failed to update current turn", zap.Error(err), zap.Int64("next_player_id", nextPlayerID), zap.String("game_id", gameID))
-		return err
+		return fmt.Errorf("failed to update current turn: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		zap.L().Error("failed to commit transaction", zap.Error(err), zap.String("game_id", gameID))
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 

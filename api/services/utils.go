@@ -167,8 +167,7 @@ func validatePlayerInGame(gameID string, userID int64) error {
 	var dummy int
 	err := database.QueryRow(`SELECT 1 FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, userID).Scan(&dummy)
 	if err != nil {
-		zap.L().Error("failed to validate player in game", zap.Error(err), zap.Int64("user_id", userID), zap.String("game_id", gameID))
-		return errors.New("unauthorized or game not found")
+		return fmt.Errorf("failed to validate player in game: %v", err)
 	}
 	return nil
 }
@@ -177,13 +176,11 @@ func loadBoard(gameID string) ([15][15]string, error) {
 	var boardRaw []byte
 	err := database.QueryRow(`SELECT board FROM games WHERE id = $1`, gameID).Scan(&boardRaw)
 	if err != nil {
-		zap.L().Error("failed to load game board", zap.Error(err), zap.String("game_id", gameID))
-		return [15][15]string{}, errors.New("failed to load board")
+		return [15][15]string{}, fmt.Errorf("failed to load game board: %v", err)
 	}
 	var board [15][15]string
 	if err := json.Unmarshal(boardRaw, &board); err != nil {
-		zap.L().Error("failed to unmarshal game board", zap.Error(err), zap.String("game_id", gameID))
-		return board, errors.New("invalid board data")
+		return board, fmt.Errorf("failed to unmarshal game board: %v", err)
 	}
 	return board, nil
 }
@@ -344,8 +341,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 			`UPDATE game_players SET score = score + $1 WHERE game_id = $2 AND player_id = $3`,
 			totalLeftover, gameID, lastPlayerID,
 		); err != nil {
-			zap.L().Error("failed to update last player score", zap.Error(err), zap.String("game_id", gameID), zap.Int64("last_player_id", lastPlayerID))
-			return err
+			return fmt.Errorf("failed to update last player score: %w", err)
 		}
 	}
 
@@ -369,8 +365,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 	if err := tx.QueryRow(
 		`SELECT username FROM users WHERE id = $1`, winnerID,
 	).Scan(&winnerUsername); err != nil {
-		zap.L().Error("failed to get winner username", zap.Error(err), zap.Int64("winner_id", winnerID))
-		return err
+		return fmt.Errorf("failed to get winner username: %w", err)
 	}
 
 	// marquer la partie comme terminée avec le nom du gagnant
@@ -383,16 +378,14 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		winnerUsername.String, gameID,
 	)
 	if err != nil {
-		zap.L().Error("failed to update game status", zap.Error(err), zap.String("game_id", gameID))
-		return err
+		return fmt.Errorf("failed to update game status: %w", err)
 	}
 
 	var gameName string
 	if err := tx.QueryRow(
 		`SELECT name FROM games WHERE id = $1`, gameID,
 	).Scan(&gameName); err != nil {
-		zap.L().Error("failed to get game name", zap.Error(err), zap.String("game_id", gameID))
-		return err
+		return fmt.Errorf("failed to get game name: %w", err)
 	}
 
 	sendNotif := func(uid int64, payload utils.NotificationPayload) {
@@ -424,15 +417,13 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		}
 		var username sql.NullString
 		if err := tx.QueryRow(`SELECT username FROM users WHERE id = $1`, l.pid).Scan(&username); err != nil {
-			zap.L().Error("failed to get player username", zap.Error(err), zap.Int64("player_id", l.pid))
-			return err
+			return fmt.Errorf("failed to get player username: %w", err)
 		}
 		var userPts int64
 		if err := tx.QueryRow(
 			`SELECT score FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, l.pid,
 		).Scan(&userPts); err != nil {
-			zap.L().Error("failed to get player score", zap.Error(err), zap.Int64("player_id", l.pid))
-			return err
+			return fmt.Errorf("failed to get player score: %w", err)
 		}
 		if username.Valid {
 			sendNotif(l.pid, utils.NotificationPayload{
