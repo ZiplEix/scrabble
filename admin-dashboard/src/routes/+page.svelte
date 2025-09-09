@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+    import { goto } from '$app/navigation';
     import LoginForm from '$lib/components/LoginForm.svelte';
     import { user } from '$lib/stores/user';
 </script>

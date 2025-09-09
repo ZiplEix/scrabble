@@ -1,17 +1,21 @@
 <script lang="ts">
     import { api } from '$lib/api';
+  import { user } from '$lib/stores/user';
     import { createEventDispatcher } from 'svelte';
     const dispatch = createEventDispatcher();
 
-    let username = '';
-    let password = '';
-    let error: string | null = null;
+    let username = $state('');
+    let password = $state('');
+    let error: string | null = $state(null);
 
     async function submit(e: Event) {
         e.preventDefault();
         error = null;
         try {
-            await api.post('/auth/admin/login', { username, password });
+            const userNameToStore = username.trim().toLowerCase();
+            console.log('Attempting login for', userNameToStore);
+            const res = await api.post('/auth/admin/login', { username: userNameToStore, password });
+            user.set({ username: userNameToStore, token: res.data.token });
             dispatch('success');
         } catch (err) {
             error = 'Échec de la connexion';
