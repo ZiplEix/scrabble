@@ -25,7 +25,6 @@
             statsError = statsRes;
         } else {
             stats = statsRes;
-            console.log('Fetched stats:', stats);
         }
     });
 </script>

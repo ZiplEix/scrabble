@@ -23,3 +23,21 @@ func GetAdminStats(c echo.Context) error {
 
 	return c.JSON(200, res)
 }
+
+func GetLogsStats(c echo.Context) error {
+	logctx.Add(c, "role", "admin")
+
+	res, err := services.GetLogsStats()
+	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_get_logs_stats",
+			"error":  err.Error(),
+		})
+		return c.JSON(500, echo.Map{
+			"error":   "failed to get logs stats",
+			"message": "Erreur lors de la récupération des statistiques de logs",
+		})
+	}
+
+	return c.JSON(200, res)
+}

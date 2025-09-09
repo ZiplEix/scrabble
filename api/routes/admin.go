@@ -10,4 +10,5 @@ func setupAdminRoutes(e *echo.Echo) {
 	a := e.Group("/admin", middleware.RequireAuth, middleware.RequireAdmin)
 
 	a.GET("/stats", controller.GetAdminStats)
+	a.GET("/stats/logs", controller.GetLogsStats)
 }
