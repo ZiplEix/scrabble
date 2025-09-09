@@ -1,22 +1,8 @@
 <script lang="ts">
     import { logout } from '$lib/stores/user';
-    import MinimalLineChart from '$lib/components/MinimalLineChart.svelte';
     import LogsTable from '$lib/components/LogsTable.svelte';
     import TopStats from '$lib/components/TopStats.svelte';
-  import { onMount } from 'svelte';
-  import { api } from '$lib/api';
-
-    // mock 48 points (last 48 hours) - random-ish but smoothed
-    const points: number[] = Array.from({ length: 48 }, (_, i) => {
-        const base = 20 + Math.sin(i / 6) * 6 + Math.random() * 6;
-        return Math.round(base + (i > 36 ? 8 : 0));
-    });
-
-    // generate hour labels for last 48 hours, e.g. '00h', '01h' ...
-    const labels: string[] = Array.from({ length: 48 }, (_, i) => {
-        const d = new Date(Date.now() - (47 - i) * 60 * 60 * 1000);
-        return d.getHours().toString().padStart(2, '0') + 'h';
-    });
+    import LogsGraph from '$lib/components/LogsGraph.svelte';
 
     // mock last 10 logs (replace with API call later)
     type LogEntry = { level: 'info' | 'warn' | 'error'; date: string; route: string; message: string };
@@ -29,15 +15,6 @@
             message: `Example log message number ${i + 1} — some extra details that will be truncated in the table view.`
         };
     });
-
-    onMount(async () => {
-        try {
-            const res = await api.get('/admin/stats/logs');
-            console.log(res.data);
-        } catch (err) {
-            console.error('Failed to fetch dashboard data:', err);
-        }
-    })
 </script>
 
 <div class="min-h-screen bg-slate-900 text-white">
@@ -76,11 +53,7 @@
 
             <!-- Minimal 48-hour requests chart -->
             <section class="mb-8">
-                <div class="bg-white/4 rounded-lg p-4">
-                    <div class="w-full">
-                        <MinimalLineChart height={200} data={points} labels={labels} xTickStep={6} color="#60a5fa" strokeWidth={1.6} />
-                    </div>
-                </div>
+                <LogsGraph />
             </section>
 
             <!-- Last 10 logs table -->
