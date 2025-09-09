@@ -235,7 +235,10 @@
                         <tr><td colspan="8" class="px-3 py-4 text-center text-white/60">Chargement...</td></tr>
                     {:else}
                         {#each filtered as log}
-                            <tr class="border-t border-white/6">
+                            <tr
+                                class="border-t border-white/6 hover:bg-white/6 hover:cursor-pointer"
+                                on:click={() => window.location.href=`/dashboard/logs/${log.id}`}
+                            >
                                 <td class="px-3 py-2 align-top">
                                     <input type="checkbox" checked={selected.has(log.id)} on:change={() => toggleSelect(log.id)} />
                                 </td>

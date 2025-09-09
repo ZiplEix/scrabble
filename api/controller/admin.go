@@ -87,3 +87,24 @@ func GetLogs(c echo.Context) error {
 		"logs": logs,
 	})
 }
+
+func GetLogByID(c echo.Context) error {
+	logctx.Add(c, "role", "admin")
+	idS := c.Param("id")
+	id, err := strconv.ParseInt(idS, 10, 64)
+	if err != nil {
+		logctx.Merge(c, map[string]any{"reason": "invalid_id", "id": idS, "error": err.Error()})
+		return c.JSON(400, echo.Map{"error": "invalid id"})
+	}
+
+	entry, err := services.GetLogByID(id)
+	if err != nil {
+		logctx.Merge(c, map[string]any{"reason": "failed_to_get_log", "error": err.Error()})
+		return c.JSON(500, echo.Map{"error": "failed to get log"})
+	}
+	if entry == nil {
+		return c.JSON(404, echo.Map{"error": "not found"})
+	}
+
+	return c.JSON(200, entry)
+}

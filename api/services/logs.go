@@ -235,3 +235,94 @@ func GetLogs(page int) ([]response.LogResumeEntry, error) {
 
 	return out, nil
 }
+
+// GetLogByID retourne une seule entrée de log par son ID
+func GetLogByID(id int64) (*response.LogResumeEntry, error) {
+	row := database.QueryRow(`
+		SELECT id, received_at, raw, req_id
+		FROM logs
+		WHERE id = $1
+	`, id)
+
+	var rid int64
+	var receivedAt time.Time
+	var raw string
+	var reqID sql.NullString
+
+	if err := row.Scan(&rid, &receivedAt, &raw, &reqID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	parsed := map[string]any{}
+	_ = json.Unmarshal([]byte(raw), &parsed)
+
+	// extract fields similar to GetLogs
+	level := "info"
+	if v, ok := parsed["level"]; ok {
+		if s, ok := v.(string); ok {
+			level = s
+		}
+	}
+	msg := ""
+	if v, ok := parsed["msg"]; ok {
+		if s, ok := v.(string); ok {
+			msg = s
+		}
+	}
+	route := ""
+	if v, ok := parsed["route"]; ok {
+		if s, ok := v.(string); ok {
+			route = s
+		}
+	}
+	username := ""
+	if v, ok := parsed["username"]; ok {
+		if s, ok := v.(string); ok {
+			username = s
+		}
+	}
+	method := ""
+	if v, ok := parsed["method"]; ok {
+		if s, ok := v.(string); ok {
+			method = s
+		}
+	}
+	status := 0
+	if v, ok := parsed["status"]; ok {
+		switch vv := v.(type) {
+		case float64:
+			status = int(vv)
+		case int:
+			status = vv
+		case string:
+			if n, err := strconv.Atoi(vv); err == nil {
+				status = n
+			}
+		}
+	}
+	reason := ""
+	if v, ok := parsed["reason"]; ok {
+		if s, ok := v.(string); ok {
+			reason = s
+		}
+	}
+
+	entry := &response.LogResumeEntry{
+		ID:        rid,
+		Level:     level,
+		Date:      receivedAt,
+		Route:     route,
+		Message:   msg,
+		Raw:       parsed,
+		RequestID: reqID.String,
+		Username:  username,
+		Method:    method,
+		Status:    status,
+		Reason:    reason,
+	}
+
+	return entry, nil
+}
