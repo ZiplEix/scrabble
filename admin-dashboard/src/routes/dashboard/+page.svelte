@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { logout } from '$lib/stores/user';
     import TopStats from '$lib/components/TopStats.svelte';
     import LogsGraph from '$lib/components/LogsGraph.svelte';
     import DashboardLogsTable from '$lib/components/DashboardLogsTable.svelte';

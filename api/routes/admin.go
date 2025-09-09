@@ -12,4 +12,5 @@ func setupAdminRoutes(e *echo.Echo) {
 	a.GET("/stats", controller.GetAdminStats)
 	a.GET("/stats/logs", controller.GetLogsStats)
 	a.GET("/logs/resume", controller.GetLogsResume)
+	a.GET("/logs", controller.GetLogs)
 }

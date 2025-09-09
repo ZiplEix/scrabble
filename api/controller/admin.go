@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/ZiplEix/scrabble/api/middleware/logctx"
 	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/labstack/echo/v4"
@@ -57,4 +60,30 @@ func GetLogsResume(c echo.Context) error {
 	}
 
 	return c.JSON(200, res)
+}
+
+func GetLogs(c echo.Context) error {
+	logctx.Add(c, "role", "admin")
+
+	pageS := c.QueryParam("page")
+	page, err := strconv.Atoi(pageS)
+	if err != nil || page < 1 {
+		page = 0
+	}
+
+	logs, err := services.GetLogs(page)
+	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_get_logs",
+			"error":  fmt.Errorf("failed to get logs for page '%d': %w", page, err),
+		})
+		return c.JSON(500, echo.Map{
+			"error":   "failed to get logs",
+			"message": "Erreur lors de la récupération du résumé des logs",
+		})
+	}
+
+	return c.JSON(200, echo.Map{
+		"logs": logs,
+	})
 }

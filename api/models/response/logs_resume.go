@@ -11,4 +11,8 @@ type LogResumeEntry struct {
 	Message   string         `json:"message"`
 	Raw       map[string]any `json:"raw"`
 	RequestID string         `json:"request_id,omitempty"`
+	Username  string         `json:"username,omitempty"`
+	Method    string         `json:"method,omitempty"`
+	Status    int            `json:"status,omitempty"`
+	Reason    string         `json:"reason,omitempty"`
 }
