@@ -4,10 +4,12 @@
     export let delta: number | null = null;
     export let icon: string | null = null;
 
-    function deltaIsPositive(d: number | null) {
+    // returns 'positive' | 'negative' | 'zero' | null
+    function deltaSign(d: number | null): 'positive' | 'negative' | 'zero' | null {
         if (d === null) return null;
-        console.log('Delta value:', d);
-        return d > 0;
+        if (d > 0) return 'positive';
+        if (d < 0) return 'negative';
+        return 'zero';
     }
 </script>
 
@@ -22,14 +24,19 @@
 
     <div class="mt-2 h-6">
         {#if delta != null}
-            {#if deltaIsPositive(delta)}
+            {#if deltaSign(delta) === 'positive'}
                 <div class="inline-flex items-center gap-1 text-emerald-300 text-sm">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12l7-7 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <span>{delta}%</span>
                 </div>
-            {:else}
+            {:else if deltaSign(delta) === 'negative'}
                 <div class="inline-flex items-center gap-1 text-rose-300 text-sm">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 19V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 12l-7 7-7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>{delta}%</span>
+                </div>
+            {:else}
+                <div class="inline-flex items-center gap-1 text-white/60 text-sm">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <span>{delta}%</span>
                 </div>
             {/if}
