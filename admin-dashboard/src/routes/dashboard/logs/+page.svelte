@@ -26,6 +26,8 @@
     let qStatus = '';
     let qReason = '';
     let levelFilter: string = 'all';
+    // include admin logs from server
+    let includeAdmin = false;
 
     // selection
     let selected = new Set<number>();
@@ -99,7 +101,8 @@
 
     async function fetchPage(p: number) {
         try {
-            const res = await api.get(`/admin/logs?page=${p}`);
+            const adminParam = includeAdmin ? '&admin=1' : '';
+            const res = await api.get(`/admin/logs?page=${p}${adminParam}`);
             const items = res.data?.logs || [];
             const normalized = items.map((it: any, idx: number) => ({
                 id: it.id ?? (p - 1) * PAGE_SIZE + idx + 1,
@@ -144,6 +147,20 @@
         }
     });
 
+    async function reloadWithAdmin() {
+        loading = true;
+        page = 1;
+        logs = [];
+        filtered = [];
+        try {
+            const n = await fetchPage(1);
+            hasMore = n === PAGE_SIZE;
+            page = 1;
+        } finally {
+            loading = false;
+        }
+    }
+
     async function loadMore() {
         if (loadingMore || !hasMore) return;
         loadingMore = true;
@@ -166,7 +183,7 @@
 
     <!-- Filters -->
     <section class="mb-4 bg-white/4 rounded-lg p-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div class="flex items-center gap-2">
                 <label for="filter-level" class="text-sm text-white/70 w-24">Niveau</label>
                 <select id="filter-level" bind:value={levelFilter} on:change={applyFilters} class="bg-white/5 px-2 py-1 rounded">
@@ -200,6 +217,14 @@
             <div class="flex items-center gap-2">
                 <label for="filter-reason" class="text-sm text-white/70 w-24">Reason</label>
                 <input id="filter-reason" class="bg-white/5 px-2 py-1 rounded flex-1" placeholder="invalid_credentials" bind:value={qReason} on:input={applyFilters} />
+            </div>
+            
+            <div class="flex items-center gap-2 justify-end md:justify-start">
+                <label class="text-sm text-white/70 w-24">Admin</label>
+                <div class="flex items-center gap-2">
+                    <input id="include-admin" type="checkbox" bind:checked={includeAdmin} on:change={reloadWithAdmin} />
+                    <label for="include-admin" class="text-sm text-white/80">Inclure logs admin</label>
+                </div>
             </div>
         </div>
     </section>

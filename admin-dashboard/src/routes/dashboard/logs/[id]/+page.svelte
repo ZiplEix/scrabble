@@ -32,7 +32,7 @@
         log = null;
         try {
             const nid = Number(idParam);
-            const res = await api.get(`/admin/log/${nid}`);
+            const res = await api.get(`/admin/log/${nid}?admin=true`);
             const found = res.data;
             if (!found) {
                 err = `Log ${idParam} introuvable`;
