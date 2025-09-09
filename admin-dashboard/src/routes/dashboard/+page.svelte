@@ -1,18 +1,8 @@
 <script lang="ts">
-    import { user, logout } from '$lib/stores/user';
-    import { onMount } from 'svelte';
-    import StatCard from '$lib/components/StatCard.svelte';
+    import { logout } from '$lib/stores/user';
     import MinimalLineChart from '$lib/components/MinimalLineChart.svelte';
     import LogsTable from '$lib/components/LogsTable.svelte';
-
-    // placeholder values — replace with API data
-    const stats = {
-        activeUsersWeek: 842,
-        gamesCreatedWeek: 123,
-        gamesActive: 37,
-        messagesWeek: 1450,
-        ticketsWeek: 12
-    };
+    import TopStats from '$lib/components/TopStats.svelte';
 
     // mock 48 points (last 48 hours) - random-ish but smoothed
     const points: number[] = Array.from({ length: 48 }, (_, i) => {
@@ -36,10 +26,6 @@
             route: `/api/v1/resource/${i % 5}`,
             message: `Example log message number ${i + 1} — some extra details that will be truncated in the table view.`
         };
-    });
-
-    onMount(() => {
-        // future: fetch dashboard summary data
     });
 </script>
 
@@ -74,17 +60,7 @@
 
             <!-- Top stats row -->
             <section class="mb-6">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <StatCard title="Utilisateurs actifs (semaine)" value={stats.activeUsersWeek} delta="+5%" icon="<svg class='w-6 h-6 text-white' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M16 11c1.657 0 3-1.343 3-3S17.657 5 16 5s-3 1.343-3 3 1.343 3 3 3zM8 11c1.657 0 3-1.343 3-3S9.657 5 8 5 5 6.343 5 8s1.343 3 3 3zM8 13c-2.667 0-8 1.333-8 4v2h16v-2c0-2.667-5.333-4-8-4zM16 13c-.29 0-.577.014-.86.041C15.284 14.16 17 15 17 15v2h3v-2c0-2.667-5.333-4-3-4z'/></svg>" />
-
-                    <StatCard title="Parties créées (semaine)" value={stats.gamesCreatedWeek} delta="+8%" icon="<svg class='w-6 h-6 text-white' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='M12 8v8M8 12h8'/></svg>" />
-
-                    <StatCard title="Parties en cours" value={stats.gamesActive} delta="-2%" icon="<svg class='w-6 h-6 text-white' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='M5 3v18l15-9L5 3z'/></svg>" />
-
-                    <StatCard title="Messages envoyés (semaine)" value={stats.messagesWeek} delta="+12%" icon="<svg class='w-6 h-6 text-white' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'/></svg>" />
-
-                    <StatCard title="Tickets créés (semaine)" value={stats.ticketsWeek} delta="+0%" icon="<svg class='w-6 h-6 text-white' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='M3 8v8a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2z'/></svg>" />
-                </div>
+                <TopStats />
             </section>
 
             <!-- Minimal 48-hour requests chart -->

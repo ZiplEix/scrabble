@@ -17,4 +17,5 @@ func SetupRoutes(e *echo.Echo) {
 	setupUsersRoutes(e)
 	setupNotificationsRoutes(e)
 	SetupMeRoutes(e)
+	setupAdminRoutes(e)
 }
