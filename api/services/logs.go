@@ -11,15 +11,28 @@ import (
 )
 
 // GetLogsStats returns labels (hour strings) and counts per hour for last 48 hours
-func GetLogsStats() (*response.LogsStatsResponse, error) {
+func GetLogsStats(includeAdmin bool) (*response.LogsStatsResponse, error) {
 	// query counts grouped by hour
-	rows, err := database.Query(`
-        SELECT date_trunc('hour', received_at) AS hr, COUNT(*)
-        FROM logs
-        WHERE received_at >= now() - interval '48 hours'
-        GROUP BY hr
-        ORDER BY hr
-    `)
+	var rows *sql.Rows
+	var err error
+	if includeAdmin {
+		rows, err = database.Query(`
+			SELECT date_trunc('hour', received_at) AS hr, COUNT(*)
+			FROM logs
+			WHERE received_at >= now() - interval '48 hours'
+			GROUP BY hr
+			ORDER BY hr
+		`)
+	} else {
+		rows, err = database.Query(`
+			SELECT date_trunc('hour', received_at) AS hr, COUNT(*)
+			FROM logs
+			WHERE received_at >= now() - interval '48 hours'
+			  AND COALESCE(raw->>'role','') != 'admin'
+			GROUP BY hr
+			ORDER BY hr
+		`)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -59,17 +72,29 @@ func GetLogsStats() (*response.LogsStatsResponse, error) {
 }
 
 // GetLogsResume returns the last N logs (default 10) with parsed fields from the raw JSONB
-func GetLogsResume(limit int) ([]response.LogResumeEntry, error) {
+func GetLogsResume(limit int, includeAdmin bool) ([]response.LogResumeEntry, error) {
 	if limit <= 0 {
 		limit = 10
 	}
 
-	rows, err := database.Query(`
-		SELECT id, received_at, raw, req_id
-		FROM logs
-		ORDER BY received_at DESC
-		LIMIT $1
-	`, limit)
+	var rows *sql.Rows
+	var err error
+	if includeAdmin {
+		rows, err = database.Query(`
+			SELECT id, received_at, raw, req_id
+			FROM logs
+			ORDER BY received_at DESC
+			LIMIT $1
+		`, limit)
+	} else {
+		rows, err = database.Query(`
+			SELECT id, received_at, raw, req_id
+			FROM logs
+			WHERE COALESCE(raw->>'role','') != 'admin'
+			ORDER BY received_at DESC
+			LIMIT $1
+		`, limit)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -126,24 +151,43 @@ func GetLogsResume(limit int) ([]response.LogResumeEntry, error) {
 }
 
 // GetLogs renvoie les logs paginés (page=1 => logs 0-49, page=2 => 50-99, etc). Si page <= 0, renvoie tous les logs.
-func GetLogs(page int) ([]response.LogResumeEntry, error) {
+func GetLogs(page int, includeAdmin bool) ([]response.LogResumeEntry, error) {
 	const pageSize = 50
 	var rows *sql.Rows
 	var err error
 	if page > 0 {
 		offset := (page - 1) * pageSize
-		rows, err = database.Query(`
-			 SELECT id, received_at, raw, req_id
-			 FROM logs
-			 ORDER BY received_at DESC
-			 LIMIT $1 OFFSET $2
-		 `, pageSize, offset)
+		if includeAdmin {
+			rows, err = database.Query(`
+				 SELECT id, received_at, raw, req_id
+				 FROM logs
+				 ORDER BY received_at DESC
+				 LIMIT $1 OFFSET $2
+			 `, pageSize, offset)
+		} else {
+			rows, err = database.Query(`
+				 SELECT id, received_at, raw, req_id
+				 FROM logs
+				 WHERE COALESCE(raw->>'role','') != 'admin'
+				 ORDER BY received_at DESC
+				 LIMIT $1 OFFSET $2
+			 `, pageSize, offset)
+		}
 	} else {
-		rows, err = database.Query(`
-			 SELECT id, received_at, raw, req_id
-			 FROM logs
-			 ORDER BY received_at DESC
-		 `)
+		if includeAdmin {
+			rows, err = database.Query(`
+				 SELECT id, received_at, raw, req_id
+				 FROM logs
+				 ORDER BY received_at DESC
+			 `)
+		} else {
+			rows, err = database.Query(`
+				 SELECT id, received_at, raw, req_id
+				 FROM logs
+				 WHERE COALESCE(raw->>'role','') != 'admin'
+				 ORDER BY received_at DESC
+			 `)
+		}
 	}
 	if err != nil {
 		return nil, err
@@ -237,12 +281,21 @@ func GetLogs(page int) ([]response.LogResumeEntry, error) {
 }
 
 // GetLogByID retourne une seule entrée de log par son ID
-func GetLogByID(id int64) (*response.LogResumeEntry, error) {
-	row := database.QueryRow(`
-		SELECT id, received_at, raw, req_id
-		FROM logs
-		WHERE id = $1
-	`, id)
+func GetLogByID(id int64, includeAdmin bool) (*response.LogResumeEntry, error) {
+	var row *sql.Row
+	if includeAdmin {
+		row = database.QueryRow(`
+			SELECT id, received_at, raw, req_id
+			FROM logs
+			WHERE id = $1
+		`, id)
+	} else {
+		row = database.QueryRow(`
+			SELECT id, received_at, raw, req_id
+			FROM logs
+			WHERE id = $1 AND COALESCE(raw->>'role','') != 'admin'
+		`, id)
+	}
 
 	var rid int64
 	var receivedAt time.Time

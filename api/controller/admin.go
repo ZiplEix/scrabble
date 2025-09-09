@@ -30,7 +30,10 @@ func GetAdminStats(c echo.Context) error {
 func GetLogsStats(c echo.Context) error {
 	logctx.Add(c, "role", "admin")
 
-	res, err := services.GetLogsStats()
+	adminQ := c.QueryParam("admin")
+	includeAdmin := adminQ == "true" || adminQ == "1"
+
+	res, err := services.GetLogsStats(includeAdmin)
 	if err != nil {
 		logctx.Merge(c, map[string]any{
 			"reason": "failed_to_get_logs_stats",
@@ -47,7 +50,9 @@ func GetLogsStats(c echo.Context) error {
 
 func GetLogsResume(c echo.Context) error {
 	logctx.Add(c, "role", "admin")
-	res, err := services.GetLogsResume(10)
+	adminQ := c.QueryParam("admin")
+	includeAdmin := adminQ == "true" || adminQ == "1"
+	res, err := services.GetLogsResume(10, includeAdmin)
 	if err != nil {
 		logctx.Merge(c, map[string]any{
 			"reason": "failed_to_get_log_resume",
@@ -71,7 +76,10 @@ func GetLogs(c echo.Context) error {
 		page = 0
 	}
 
-	logs, err := services.GetLogs(page)
+	adminQ := c.QueryParam("admin")
+	includeAdmin := adminQ == "true" || adminQ == "1"
+
+	logs, err := services.GetLogs(page, includeAdmin)
 	if err != nil {
 		logctx.Merge(c, map[string]any{
 			"reason": "failed_to_get_logs",
@@ -97,7 +105,10 @@ func GetLogByID(c echo.Context) error {
 		return c.JSON(400, echo.Map{"error": "invalid id"})
 	}
 
-	entry, err := services.GetLogByID(id)
+	adminQ := c.QueryParam("admin")
+	includeAdmin := adminQ == "true" || adminQ == "1"
+
+	entry, err := services.GetLogByID(id, includeAdmin)
 	if err != nil {
 		logctx.Merge(c, map[string]any{"reason": "failed_to_get_log", "error": err.Error()})
 		return c.JSON(500, echo.Map{"error": "failed to get log"})
