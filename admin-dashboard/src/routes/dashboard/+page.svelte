@@ -1,20 +1,8 @@
 <script lang="ts">
     import { logout } from '$lib/stores/user';
-    import LogsTable from '$lib/components/LogsTable.svelte';
     import TopStats from '$lib/components/TopStats.svelte';
     import LogsGraph from '$lib/components/LogsGraph.svelte';
-
-    // mock last 10 logs (replace with API call later)
-    type LogEntry = { level: 'info' | 'warn' | 'error'; date: string; route: string; message: string };
-    const logs: LogEntry[] = Array.from({ length: 10 }, (_, i) => {
-        const level = (i % 3 === 0) ? 'error' : (i % 3 === 1) ? 'warn' : 'info';
-        return {
-            level,
-            date: new Date(Date.now() - i * 60 * 1000).toISOString(),
-            route: `/api/v1/resource/${i % 5}`,
-            message: `Example log message number ${i + 1} — some extra details that will be truncated in the table view.`
-        };
-    });
+    import DashboardLogsTable from '$lib/components/DashboardLogsTable.svelte';
 </script>
 
 <div class="min-h-screen bg-slate-900 text-white">
@@ -58,7 +46,7 @@
 
             <!-- Last 10 logs table -->
             <section class="mb-8">
-                <LogsTable {logs} />
+                <DashboardLogsTable />
             </section>
         </div>
     </div>

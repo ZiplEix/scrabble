@@ -41,3 +41,20 @@ func GetLogsStats(c echo.Context) error {
 
 	return c.JSON(200, res)
 }
+
+func GetLogsResume(c echo.Context) error {
+	logctx.Add(c, "role", "admin")
+	res, err := services.GetLogsResume(10)
+	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_get_log_resume",
+			"error":  err.Error(),
+		})
+		return c.JSON(500, echo.Map{
+			"error":   "failed to get logs resume",
+			"message": "Erreur lors de la récupération du résumé des logs",
+		})
+	}
+
+	return c.JSON(200, res)
+}

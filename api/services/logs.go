@@ -1,6 +1,8 @@
 package services
 
 import (
+	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/ZiplEix/scrabble/api/database"
@@ -53,4 +55,71 @@ func GetLogsStats() (*response.LogsStatsResponse, error) {
 	}
 
 	return &response.LogsStatsResponse{Labels: labels, Data: data}, nil
+}
+
+// GetLogsResume returns the last N logs (default 10) with parsed fields from the raw JSONB
+func GetLogsResume(limit int) ([]response.LogResumeEntry, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+
+	rows, err := database.Query(`
+		SELECT id, received_at, raw, req_id
+		FROM logs
+		ORDER BY received_at DESC
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []response.LogResumeEntry
+	for rows.Next() {
+		var id int64
+		var receivedAt time.Time
+		var raw string
+		var reqID sql.NullString
+
+		if err := rows.Scan(&id, &receivedAt, &raw, &reqID); err != nil {
+			return nil, err
+		}
+
+		// try to parse raw JSON as a map
+		parsed := map[string]any{}
+		_ = json.Unmarshal([]byte(raw), &parsed)
+
+		// extract common fields
+		level := "info"
+		if v, ok := parsed["level"]; ok {
+			if s, ok := v.(string); ok {
+				level = s
+			}
+		}
+		msg := ""
+		if v, ok := parsed["msg"]; ok {
+			if s, ok := v.(string); ok {
+				msg = s
+			}
+		}
+		route := ""
+		if v, ok := parsed["route"]; ok {
+			if s, ok := v.(string); ok {
+				route = s
+			}
+		}
+
+		entry := response.LogResumeEntry{
+			ID:        id,
+			Level:     level,
+			Date:      receivedAt,
+			Route:     route,
+			Message:   msg,
+			Raw:       parsed,
+			RequestID: reqID.String,
+		}
+		out = append(out, entry)
+	}
+
+	return out, nil
 }
