@@ -70,7 +70,7 @@ func CreateMessage(userID int64, gameID, content string, meta map[string]any) (m
 		}
 
 		var users []int
-		rows, err := database.Query(`SELECT user_id FROM game_players WHERE game_id = $1`, gameID)
+		rows, err := database.Query(`SELECT player_id FROM game_players WHERE game_id = $1`, gameID)
 		if err != nil {
 			zap.L().Warn("failed to fetch game players", zap.Error(err), zap.String("game_id", gameID))
 			return
