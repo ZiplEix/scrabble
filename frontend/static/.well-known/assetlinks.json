@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "zip.baptiste.scrabble.twa",
+        "sha256_cert_fingerprints": ["59:0D:93:DE:52:C2:2D:FE:1F:AB:D1:6A:63:70:C8:FD:35:72:EE:37:D9:B4:3D:2D:70:0F:FE:70:15:59:97:F8"]
+      }
+    }]
