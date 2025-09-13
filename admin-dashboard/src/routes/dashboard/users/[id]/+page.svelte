@@ -4,6 +4,7 @@
     import { api } from "$lib/api";
     import { onMount } from "svelte";
     import type { User } from "../type";
+  import { goto } from "$app/navigation";
 
     let user: User | null = $state(null);
     let loading = $state(true);
@@ -33,6 +34,10 @@
             loading = false;
         }
     });
+
+    function gotoGame(gameID: string) {
+        goto(`/dashboard/games/${gameID}`);
+    }
 </script>
 
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -81,7 +86,11 @@
                     </thead>
                     <tbody>
                         {#each user.games as g}
-                            <tr class="border-t border-white/6">
+                            <tr
+                                class="border-t border-white/6 hover:bg-white/6 hover:cursor-pointer"
+                                onclick="{() => gotoGame(g.id)}"
+                                role="button"
+                            >
                                 <td class="px-3 py-2 text-xs text-white/70">{g.id}</td>
                                 <td class="px-3 py-2 text-sm text-white/90">{g.name}</td>
                                 <td class="px-3 py-2 text-xs text-white/70">{g.status}</td>
