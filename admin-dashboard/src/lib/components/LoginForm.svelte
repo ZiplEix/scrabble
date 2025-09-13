@@ -23,7 +23,7 @@
     }
 </script>
 
-<form class="space-y-3" on:submit|preventDefault={submit}>
+<form class="space-y-3" onsubmit={submit}>
     {#if error}
         <div class="text-sm text-red-300">{error}</div>
     {/if}
