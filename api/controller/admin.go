@@ -119,3 +119,43 @@ func GetLogByID(c echo.Context) error {
 
 	return c.JSON(200, entry)
 }
+
+func GetAllUsers(c echo.Context) error {
+	logctx.Add(c, "role", "admin")
+
+	users, err := services.GetAllUsers()
+	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_get_all_users",
+			"error":  err.Error(),
+		})
+		return c.JSON(500, echo.Map{
+			"error":   "failed to get all users",
+			"message": "Erreur lors de la récupération de tous les utilisateurs",
+		})
+	}
+
+	return c.JSON(200, echo.Map{
+		"users": users,
+	})
+}
+
+func GetAdminUserByID(c echo.Context) error {
+	logctx.Add(c, "role", "admin")
+	idS := c.Param("id")
+	id, err := strconv.ParseInt(idS, 10, 64)
+	if err != nil {
+		logctx.Merge(c, map[string]any{"reason": "invalid_id", "id": idS, "error": err.Error()})
+		return c.JSON(400, echo.Map{"error": "invalid id"})
+	}
+
+	user, err := services.GetAdminUserByID(id)
+	if err != nil {
+		logctx.Merge(c, map[string]any{"reason": "failed_to_get_admin_user", "error": err.Error()})
+		return c.JSON(500, echo.Map{"error": "failed to get admin user"})
+	}
+	if user == nil {
+		return c.JSON(404, echo.Map{"error": "not found"})
+	}
+	return c.JSON(200, echo.Map{"user": user})
+}
