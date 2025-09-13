@@ -3,6 +3,9 @@
       "target": {
         "namespace": "android_app",
         "package_name": "zip.baptiste.scrabble.twa",
-        "sha256_cert_fingerprints": ["59:0D:93:DE:52:C2:2D:FE:1F:AB:D1:6A:63:70:C8:FD:35:72:EE:37:D9:B4:3D:2D:70:0F:FE:70:15:59:97:F8"]
+        "sha256_cert_fingerprints": [
+          "59:0D:93:DE:52:C2:2D:FE:1F:AB:D1:6A:63:70:C8:FD:35:72:EE:37:D9:B4:3D:2D:70:0F:FE:70:15:59:97:F8",
+          "4A:C0:14:E6:21:A3:DF:66:52:41:E5:92:0B:BA:0A:B4:03:64:A1:2F:92:D1:44:55:60:D9:98:42:39:5E:FD:44"
+        ]
       }
     }]
