@@ -191,6 +191,111 @@ func DeleteGame(userID int64, gameID string) error {
 	return tx.Commit()
 }
 
+// GetAdminGameDetail retourne toutes les infos d'une partie pour l'admin (incluant racks et sac), hors chat
+func GetAdminGameDetail(gameID string) (*response.GameInfo, error) {
+	// 1. Récupère info partie
+	gameQuery := `
+	   SELECT id, name, board, available_letters,
+			current_turn, status, created_by,
+			winner_username, ended_at, pass_count
+	   FROM games
+	   WHERE id = $1
+	`
+	var (
+		boardJSON      []byte
+		avail          string
+		game           response.GameInfo
+		createdBy      int64
+		winnerUsername sql.NullString
+		endedAt        sql.NullTime
+	)
+	err := database.QueryRow(gameQuery, gameID).Scan(
+		&game.ID, &game.Name, &boardJSON, &avail,
+		&game.CurrentTurn, &game.Status, &createdBy,
+		&winnerUsername, &endedAt, &game.PassCount,
+	)
+	if err != nil {
+		return nil, err
+	}
+	game.AvailableLetters = avail
+	game.RemainingLetters = len(avail)
+	_ = json.Unmarshal(boardJSON, &game.Board)
+
+	if winnerUsername.Valid {
+		game.WinnerUsername = winnerUsername.String
+	}
+	if endedAt.Valid {
+		game.EndedAt = &endedAt.Time
+	}
+
+	// 2. Récupère les joueurs (avec racks)
+	playerRows, err := database.Query(`
+		SELECT gp.player_id, u.username, gp.score, gp.position, gp.rack
+		FROM game_players gp
+		JOIN users u ON gp.player_id = u.id
+		WHERE gp.game_id = $1
+		ORDER BY gp.position
+	`, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer playerRows.Close()
+
+	for playerRows.Next() {
+		var p response.PlayerInfo
+		err := playerRows.Scan(&p.ID, &p.Username, &p.Score, &p.Position, &p.Rack)
+		if err != nil {
+			return nil, err
+		}
+		if p.ID == game.CurrentTurn {
+			game.CurrentTurnName = p.Username
+		}
+		game.Players = append(game.Players, p)
+	}
+
+	// 3. Récupère l’historique des coups
+	moveRows, err := database.Query(`
+		SELECT player_id, move, created_at
+		FROM game_moves
+		WHERE game_id = $1
+		ORDER BY created_at ASC
+	`, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer moveRows.Close()
+
+	for moveRows.Next() {
+		var mv response.MoveInfo
+		var moveJSON []byte
+		if err := moveRows.Scan(&mv.PlayerID, &moveJSON, &mv.PlayedAt); err != nil {
+			return nil, err
+		}
+		_ = json.Unmarshal(moveJSON, &mv.Move)
+		game.Moves = append(game.Moves, mv)
+	}
+
+	// 4. Reconstruit les positions de jokers déjà posés pour affichage front
+	blanks := buildBoardBlanks(gameID)
+	if len(blanks) > 0 {
+		game.BlankTiles = make([]response.BoardBlank, 0, len(blanks))
+		for p := range blanks {
+			game.BlankTiles = append(game.BlankTiles, response.BoardBlank{X: p.X, Y: p.Y})
+		}
+	}
+
+	// YourRack et IsYourGame ne sont pas pertinents côté admin
+	game.YourRack = ""
+	game.IsYourGame = false
+
+	return &game, nil
+}
+
+// GetAdminGameByID délègue vers GetAdminGameDetail pour conserver l'API existante
+func GetAdminGameByID(gameID string) (*response.GameInfo, error) {
+	return GetAdminGameDetail(gameID)
+}
+
 func RenameGame(userID int64, gameID string, newName string) error {
 	var createdBy int64
 	err := database.QueryRow(`SELECT created_by FROM games WHERE id = $1`, gameID).Scan(&createdBy)
@@ -730,6 +835,89 @@ func GetGamesByUserID(userID int64) ([]response.GameSummary, error) {
 	}
 
 	return games, nil
+}
+
+// GetAllGamesAdmin returns a compact list of all games with useful admin fields
+func GetAllGamesAdmin() ([]response.AdminGameSummary, error) {
+	// We gather: basic game fields + creator username, players_count, moves_count, last_play_time
+	query := `
+		SELECT
+			g.id::text,
+			g.name,
+			g.status,
+			g.created_at,
+			g.current_turn,
+			COALESCE(ct.username, '') AS current_turn_username,
+			COALESCE(g.winner_username, '') AS winner_username,
+			g.ended_at,
+			g.pass_count,
+			COALESCE(p.players_count, 0) AS players_count,
+			COALESCE(m.moves_count, 0)   AS moves_count,
+			COALESCE(m.last_play_time, g.created_at) AS last_play_time,
+			COALESCE(cb.username, '') AS created_by_username
+		FROM games g
+		LEFT JOIN users ct ON ct.id = g.current_turn
+		LEFT JOIN users cb ON cb.id = g.created_by
+		LEFT JOIN (
+			SELECT game_id, COUNT(*) AS players_count
+			FROM game_players
+			GROUP BY game_id
+		) p ON p.game_id = g.id
+		LEFT JOIN (
+			SELECT game_id, COUNT(*) AS moves_count, MAX(created_at) AS last_play_time
+			FROM game_moves
+			GROUP BY game_id
+		) m ON m.game_id = g.id
+		ORDER BY g.created_at DESC
+	`
+	rows, err := database.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query admin games: %w", err)
+	}
+	defer rows.Close()
+
+	var out []response.AdminGameSummary
+	for rows.Next() {
+		var g response.AdminGameSummary
+		var currentTurn sql.NullInt64
+		var currentTurnUsername string
+		var winnerUsername string
+		var endedAt sql.NullTime
+		var createdByUsername string
+		if err := rows.Scan(
+			&g.ID,
+			&g.Name,
+			&g.Status,
+			&g.CreatedAt,
+			&currentTurn,
+			&currentTurnUsername,
+			&winnerUsername,
+			&endedAt,
+			&g.PassCount,
+			&g.PlayersCount,
+			&g.MovesCount,
+			&g.LastPlayTime,
+			&createdByUsername,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan admin games: %w", err)
+		}
+		if currentTurn.Valid {
+			v := currentTurn.Int64
+			g.CurrentTurnUserID = &v
+		}
+		g.CurrentTurnUsername = currentTurnUsername
+		g.WinnerUsername = winnerUsername
+		if endedAt.Valid {
+			t := endedAt.Time
+			g.EndedAt = &t
+		}
+		g.CreatedByUsername = createdByUsername
+		out = append(out, g)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating admin games: %w", err)
+	}
+	return out, nil
 }
 
 func SimulateScore(gameID string, userID int64, letters []request.PlacedLetter) (int, error) {

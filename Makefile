@@ -23,7 +23,7 @@ front:
 ## admin:	Run the admin interface in development mode
 .PHONY: admin
 admin:
-	@cd admin-dashboard && npm run dev
+	@cd admin-dashboard && npm run dev -- --host
 
 ## db:	Start the database using Docker Compose
 .PHONY: db

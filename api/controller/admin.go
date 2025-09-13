@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"database/sql"
 	"fmt"
 	"strconv"
 
@@ -158,4 +159,32 @@ func GetAdminUserByID(c echo.Context) error {
 		return c.JSON(404, echo.Map{"error": "not found"})
 	}
 	return c.JSON(200, echo.Map{"user": user})
+}
+
+func GetAdminGames(c echo.Context) error {
+	logctx.Add(c, "role", "admin")
+	games, err := services.GetAllGamesAdmin()
+	if err != nil {
+		logctx.Merge(c, map[string]any{"reason": "failed_to_get_admin_games", "error": err.Error()})
+		return c.JSON(500, echo.Map{"error": "failed to get games"})
+	}
+	return c.JSON(200, echo.Map{"games": games})
+}
+
+// GET /admin/game/:id
+func GetAdminGameByID(c echo.Context) error {
+	logctx.Add(c, "role", "admin")
+	id := c.Param("id")
+	game, err := services.GetAdminGameByID(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(404, echo.Map{"error": "not found"})
+		}
+		logctx.Merge(c, map[string]any{"reason": "failed_to_get_admin_game", "error": err.Error()})
+		return c.JSON(500, echo.Map{"error": "failed to get admin game"})
+	}
+	if game == nil {
+		return c.JSON(404, echo.Map{"error": "not found"})
+	}
+	return c.JSON(200, echo.Map{"game": game})
 }
