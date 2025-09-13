@@ -8,6 +8,26 @@ node_modules
 /.svelte-kit
 /build
 
+# Android / Bubblewrap
+app/build/
+.gradle/
+**/.cxx/
+local.properties
+**/local.properties
+.idea/
+*.iml
+captures/
+
+# --- Signatures & bundles ---
+*.keystore
+*.jks
+*.keystore.properties
+*.aab
+*.apk
+*.apks
+*.idsig
+*.mapping
+
 # OS
 .DS_Store
 Thumbs.db
