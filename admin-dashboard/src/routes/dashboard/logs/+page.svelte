@@ -108,8 +108,8 @@
                 id: it.id ?? (p - 1) * PAGE_SIZE + idx + 1,
                 date: it.date ?? it.received_at ?? new Date().toISOString(),
                 level: it.level ?? (it.raw?.level || 'info'),
-                route: it.route || (it.raw && (it.raw.route || it.raw.path)) || '',
-                message: it.message || (it.raw && (it.raw.msg || it.raw.message)),
+                route: (it.route || (it.raw && (it.raw.route || it.raw.path)) || ''),
+                message: ((it.message || (it.raw && (it.raw.msg || it.raw.message))) as string).replace('http_request', '').trim(),
                 username: it.username ?? it.raw?.username ?? undefined,
                 method: it.method ?? it.raw?.method ?? undefined,
                 status: it.status ?? it.raw?.status ?? undefined,
@@ -186,11 +186,16 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div class="flex items-center gap-2">
                 <label for="filter-level" class="text-sm text-white/70 w-24">Niveau</label>
-                <select id="filter-level" bind:value={levelFilter} on:change={applyFilters} class="bg-white/5 px-2 py-1 rounded">
-                    <option value="all">Tous</option>
-                    <option value="info">Info</option>
-                    <option value="warn">Warn</option>
-                    <option value="error">Error</option>
+                <select
+                    id="filter-level"
+                    bind:value={levelFilter}
+                    on:change={applyFilters}
+                    class="px-2 py-1 rounded bg-white/5 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/20"
+                >
+                    <option class="text-black" value="all">Tous</option>
+                    <option class="text-black" value="info">Info</option>
+                    <option class="text-black" value="warn">Warn</option>
+                    <option class="text-black" value="error">Error</option>
                 </select>
             </div>
 
@@ -218,9 +223,8 @@
                 <label for="filter-reason" class="text-sm text-white/70 w-24">Reason</label>
                 <input id="filter-reason" class="bg-white/5 px-2 py-1 rounded flex-1" placeholder="invalid_credentials" bind:value={qReason} on:input={applyFilters} />
             </div>
-            
             <div class="flex items-center gap-2 justify-end md:justify-start">
-                <label class="text-sm text-white/70 w-24">Admin</label>
+                <label class="text-sm text-white/70 w-24" for="include-admin">Admin</label>
                 <div class="flex items-center gap-2">
                     <input id="include-admin" type="checkbox" bind:checked={includeAdmin} on:change={reloadWithAdmin} />
                     <label for="include-admin" class="text-sm text-white/80">Inclure logs admin</label>
@@ -282,7 +286,7 @@
                                 <td class="px-3 py-2 align-top text-xs text-white/70">{log.status}</td>
                                 <td class="px-3 py-2 align-top text-xs text-white/70">{log.username}</td>
                                 <td class="px-3 py-2 align-top">
-                                    <div class="truncate text-white/90">{log.message}{log.reason? ` — ${log.reason}`: ''}</div>
+                                    <div class="truncate text-white/90">{log.reason}</div>
                                 </td>
                             </tr>
                         {/each}
