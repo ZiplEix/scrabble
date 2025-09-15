@@ -19,8 +19,12 @@
 	}
 
 	let loading = true;
+	let saving = false;
 	let err: string | null = null;
 	let report: Report | null = null;
+
+	const statuses = ['open', 'in_progress', 'resolved', 'rejected'];
+	const types = ['bug', 'suggestion', 'feedback'];
 
 	async function loadReport() {
 		loading = true;
@@ -55,6 +59,25 @@
 	onMount(() => {
 		loadReport();
 	});
+
+	async function updateReport() {
+		if (!report) return;
+		saving = true;
+		try {
+			await api.patch(`/report/${report.id}`, {
+				title: report.title,
+				content: report.content,
+				status: report.status,
+				type: report.type,
+			});
+			alert('Ticket mis à jour');
+		} catch (e: any) {
+			console.error('Erreur mise à jour ticket', e);
+			alert(e?.response?.data?.error || 'Erreur lors de la mise à jour');
+		} finally {
+			saving = false;
+		}
+	}
 </script>
 
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -80,16 +103,50 @@
 				<div><span class="text-white/60">ID:</span> <span class="text-white/90">{report.id}</span></div>
 				<div><span class="text-white/60">Créé le:</span> <span class="text-white/90">{new Date(report.created_at).toLocaleString()}</span></div>
 				<div><span class="text-white/60">MAJ le:</span> <span class="text-white/90">{new Date(report.updated_at).toLocaleString()}</span></div>
-				<div><span class="text-white/60">Statut:</span> <span class="text-white/90">{report.status}</span></div>
 				<div><span class="text-white/60">Priorité:</span> <span class="text-white/90">{report.priority}</span></div>
-				<div><span class="text-white/60">Type:</span> <span class="text-white/90">{report.type}</span></div>
 				<div><span class="text-white/60">Auteur:</span> <span class="text-white/90">{report.username}</span></div>
 			</div>
 		</section>
 
 		<section class="bg-white/4 rounded-lg p-4">
-			<h2 class="text-lg font-semibold mb-3">Contenu</h2>
-			<div class="whitespace-pre-wrap text-white/90 text-sm">{report.content}</div>
+			<h2 class="text-lg font-semibold mb-4">Édition</h2>
+			<form class="space-y-4" on:submit|preventDefault={updateReport}>
+				<div>
+					<label class="block text-sm text-white/70 mb-1" for="title">Titre</label>
+					<input id="title" class="w-full bg-white/10 border border-white/10 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" type="text" bind:value={report.title} required />
+				</div>
+
+				<div>
+					<label class="block text-sm text-white/70 mb-1" for="content">Contenu</label>
+					<textarea id="content" rows="8" class="w-full bg-white/10 border border-white/10 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" bind:value={report.content} required></textarea>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label class="block text-sm text-white/70 mb-1" for="type">Type</label>
+						<select id="type" class="w-full bg-white text-gray-900 border border-white/10 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" bind:value={report.type}>
+							{#each types as t}
+								<option value={t}>{t}</option>
+							{/each}
+						</select>
+					</div>
+					<div>
+						<label class="block text-sm text-white/70 mb-1" for="status">Statut</label>
+						<select id="status" class="w-full bg-white text-gray-900 border border-white/10 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" bind:value={report.status}>
+							{#each statuses as s}
+								<option value={s}>{s}</option>
+							{/each}
+						</select>
+					</div>
+				</div>
+
+				<div class="pt-2">
+					<button type="submit" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded px-4 py-2 text-sm font-semibold" disabled={saving}>
+						{#if saving}Enregistrement...{/if}
+						{#if !saving}Enregistrer{/if}
+					</button>
+				</div>
+			</form>
 		</section>
 	{:else}
 		<div class="text-white/70">Ticket introuvable.</div>
