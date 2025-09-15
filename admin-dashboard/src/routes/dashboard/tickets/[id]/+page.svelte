@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
 	import { api } from '$lib/api';
+    import { goto } from '$app/navigation';
 
 	let idParam = get(page).params.id;
 
@@ -22,6 +23,7 @@
 	let saving = false;
 	let err: string | null = null;
 	let report: Report | null = null;
+	let deleting = false;
 
 	const statuses = ['open', 'in_progress', 'resolved', 'rejected'];
 	const types = ['bug', 'suggestion', 'feedback'];
@@ -76,6 +78,23 @@
 			alert(e?.response?.data?.error || 'Erreur lors de la mise à jour');
 		} finally {
 			saving = false;
+		}
+	}
+
+	async function deleteReport() {
+		if (!report) return;
+		const ok = confirm(`Supprimer définitivement le ticket #${report.id} ?`);
+		if (!ok) return;
+		deleting = true;
+		try {
+			await api.delete(`/report/${report.id}`);
+			alert('Ticket supprimé');
+			goto('/dashboard/tickets');
+		} catch (e: any) {
+			console.error('Erreur suppression ticket', e);
+			alert(e?.response?.data?.error || 'Erreur lors de la suppression');
+		} finally {
+			deleting = false;
 		}
 	}
 </script>
@@ -140,10 +159,14 @@
 					</div>
 				</div>
 
-				<div class="pt-2">
-					<button type="submit" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded px-4 py-2 text-sm font-semibold" disabled={saving}>
+				<div class="pt-2 flex items-center gap-3">
+					<button type="submit" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded px-4 py-2 text-sm font-semibold" disabled={saving || deleting}>
 						{#if saving}Enregistrement...{/if}
 						{#if !saving}Enregistrer{/if}
+					</button>
+					<button type="button" class="bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded px-4 py-2 text-sm font-semibold" on:click={deleteReport} disabled={saving || deleting}>
+						{#if deleting}Suppression...{/if}
+						{#if !deleting}Supprimer{/if}
 					</button>
 				</div>
 			</form>

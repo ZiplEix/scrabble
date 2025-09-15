@@ -13,6 +13,9 @@
 		error = '';
 		success = false;
 
+		content = content.trim();
+		title = title.trim();
+
 		if (!title || !content) {
 			error = 'Veuillez remplir tous les champs obligatoires.';
 			return;
