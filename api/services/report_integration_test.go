@@ -36,7 +36,7 @@ func TestCreateAndGetReport(t *testing.T) {
 	u, err := CreateUser("rep_user", "pwd")
 	require.NoError(t, err)
 
-	id, err := CreateReport(u.ID, "Titre", "Contenu")
+	id, err := CreateReport(u.ID, "Titre", "Contenu", "suggestion")
 	require.NoError(t, err)
 	require.Greater(t, id, int64(0))
 
@@ -47,6 +47,7 @@ func TestCreateAndGetReport(t *testing.T) {
 	assert.Equal(t, "Titre", r.Title)
 	assert.Equal(t, "Contenu", r.Content)
 	assert.Equal(t, "open", r.Status)
+	assert.Equal(t, "suggestion", r.Type)
 	assert.NotEmpty(t, r.CreatedAt)
 	assert.NotEmpty(t, r.UpdatedAt)
 	assert.Equal(t, "rep_user", r.Username)
@@ -58,9 +59,9 @@ func TestGetAllReports(t *testing.T) {
 	require.NoError(t, err)
 
 	// create multiple reports
-	_, _ = CreateReport(u.ID, "R1", "C1")
-	_, _ = CreateReport(u.ID, "R2", "C2")
-	_, _ = CreateReport(u.ID, "R3", "C3")
+	_, _ = CreateReport(u.ID, "R1", "C1", "bug")
+	_, _ = CreateReport(u.ID, "R2", "C2", "bug")
+	_, _ = CreateReport(u.ID, "R3", "C3", "bug")
 
 	all, err := GetAllReports()
 	require.NoError(t, err)
@@ -74,7 +75,7 @@ func TestUpdateReportStatus(t *testing.T) {
 	resetReports(t)
 	u, err := CreateUser("rep_status", "pwd")
 	require.NoError(t, err)
-	id, err := CreateReport(u.ID, "Status", "Body")
+	id, err := CreateReport(u.ID, "Status", "Body", "bug")
 	require.NoError(t, err)
 
 	err = UpdateReportStatus(strconv.FormatInt(id, 10), "in_progress")
@@ -93,7 +94,7 @@ func TestUpdateReport_Fields(t *testing.T) {
 	resetReports(t)
 	u, err := CreateUser("rep_update", "pwd")
 	require.NoError(t, err)
-	id, err := CreateReport(u.ID, "OldT", "OldC")
+	id, err := CreateReport(u.ID, "OldT", "OldC", "bug")
 	require.NoError(t, err)
 
 	err = UpdateReport(strconv.FormatInt(id, 10), request.UpdateReportRequest{
@@ -118,7 +119,7 @@ func TestDeleteReport(t *testing.T) {
 	resetReports(t)
 	u, err := CreateUser("rep_delete", "pwd")
 	require.NoError(t, err)
-	id, err := CreateReport(u.ID, "T", "C")
+	id, err := CreateReport(u.ID, "T", "C", "bug")
 	require.NoError(t, err)
 
 	err = DeleteReport(strconv.FormatInt(id, 10))
@@ -141,10 +142,10 @@ func TestGetReportsByUserID(t *testing.T) {
 	require.NoError(t, err)
 
 	// reports for u1
-	_, _ = CreateReport(u1.ID, "u1 R1", "C")
-	_, _ = CreateReport(u1.ID, "u1 R2", "C")
+	_, _ = CreateReport(u1.ID, "u1 R1", "C", "bug")
+	_, _ = CreateReport(u1.ID, "u1 R2", "C", "bug")
 	// report for u2
-	_, _ = CreateReport(u2.ID, "u2 R1", "C")
+	_, _ = CreateReport(u2.ID, "u2 R1", "C", "bug")
 
 	list1, err := GetReportsByUserID(u1.ID)
 	require.NoError(t, err)

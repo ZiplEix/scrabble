@@ -27,12 +27,12 @@ func CreateReport(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
-	if req.Title == "" || req.Content == "" {
+	if req.Title == "" || req.Content == "" || req.Type == "" {
 		logctx.Add(c, "reason", "title_and_content_required")
-		return echo.NewHTTPError(http.StatusBadRequest, "title and content are required")
+		return echo.NewHTTPError(http.StatusBadRequest, "title, content and type are required")
 	}
 
-	reportID, err := services.CreateReport(userID, req.Title, req.Content)
+	reportID, err := services.CreateReport(userID, req.Title, req.Content, req.Type)
 	if err != nil {
 		logctx.Merge(c, map[string]any{
 			"reason": "failed_to_create_report",

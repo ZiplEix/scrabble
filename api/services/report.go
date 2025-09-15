@@ -10,13 +10,13 @@ import (
 	"github.com/ZiplEix/scrabble/api/models/response"
 )
 
-func CreateReport(userID int64, title, content string) (int64, error) {
+func CreateReport(userID int64, title, content, rType string) (int64, error) {
 	var reportID int64
 	err := database.DB.QueryRow(`
-		INSERT INTO reports (user_id, title, content, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO reports (user_id, title, content, type, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
-	`, userID, title, content, time.Now(), time.Now()).Scan(&reportID)
+	`, userID, title, content, rType, time.Now(), time.Now()).Scan(&reportID)
 
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert report: %w", err)
