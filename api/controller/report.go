@@ -185,6 +185,16 @@ func UpdateReport(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid status value")
 	}
 
+	if req.Type != "" {
+		switch req.Type {
+		case "bug", "suggestion", "feedback", "other":
+			// ok
+		default:
+			logctx.Add(c, "reason", "invalid_type_value")
+			return echo.NewHTTPError(http.StatusBadRequest, "invalid type value")
+		}
+	}
+
 	if err := services.UpdateReport(reportID, req); err != nil {
 		logctx.Merge(c, map[string]any{
 			"reason": "failed_to_update_report",

@@ -155,6 +155,12 @@ func UpdateReport(reportID string, req request.UpdateReportRequest) error {
 		argIndex++
 	}
 
+	if req.Type != "" {
+		updates = append(updates, fmt.Sprintf("type = $%d", argIndex))
+		args = append(args, req.Type)
+		argIndex++
+	}
+
 	if len(updates) == 0 {
 		return fmt.Errorf("nothing to update")
 	}
