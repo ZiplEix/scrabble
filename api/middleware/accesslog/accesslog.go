@@ -49,6 +49,7 @@ func Middleware() echo.MiddlewareFunc {
 				zap.Int64("latency_ms", lat.Milliseconds()),
 				zap.String("remote_ip", c.RealIP()),
 				zap.String("user_agent", req.UserAgent()),
+				zap.String("body", fmt.Sprint(req.Body)),
 			}
 
 			for k, v := range logctx.All(c) {
