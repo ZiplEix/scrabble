@@ -2,8 +2,10 @@
 package accesslog
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -24,6 +26,15 @@ func isPreflight(c echo.Context) bool {
 func Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			// Read and store body for logging
+			var bodyStr string
+			if c.Request().Body != nil {
+				bodyBytes, _ := io.ReadAll(c.Request().Body)
+				bodyStr = string(bodyBytes)
+				// Restore body for handler
+				c.Request().Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+			}
+
 			start := time.Now()
 			err := next(c)
 			lat := time.Since(start)
@@ -49,7 +60,7 @@ func Middleware() echo.MiddlewareFunc {
 				zap.Int64("latency_ms", lat.Milliseconds()),
 				zap.String("remote_ip", c.RealIP()),
 				zap.String("user_agent", req.UserAgent()),
-				zap.String("body", fmt.Sprint(req.Body)),
+				zap.String("body", bodyStr),
 			}
 
 			for k, v := range logctx.All(c) {
