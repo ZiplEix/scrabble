@@ -54,11 +54,15 @@ func initLogger() (*zap.Logger, func(context.Context) error) {
 func main() {
 	zlog, pgClose := initLogger()
 
+	// Start log retention: purge logs older than 7 days every 24h
+	stopRetention := StartLogRetention(database.DB, 7*24*time.Hour, 24*time.Hour)
+
 	defer func() {
 		_ = zlog.Sync()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = pgClose(ctx)
+		_ = stopRetention(ctx)
 	}()
 
 	e := echo.New()
