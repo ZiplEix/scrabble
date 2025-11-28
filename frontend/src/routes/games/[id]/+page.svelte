@@ -12,7 +12,8 @@
 	import { user } from '$lib/stores/user';
   	import { gameStore } from '$lib/stores/game';
   	import GameHeader from '$lib/components/GameHeader.svelte';
-  	import GameSkeleton from '$lib/components/GameSkeleton.svelte';
+        import GameSkeleton from '$lib/components/GameSkeleton.svelte';
+        import ConfettiBurst from '$lib/components/ConfettiBurst.svelte';
   	import type { GameInfo } from '$lib/types/game_infos';
 
 	let gameId = $state<string | null>(null);
@@ -161,7 +162,16 @@
 		}
 	);
 
-	let submitting = $state(false);
+        let submitting = $state(false);
+        let confettiBursts = $state<number[]>([]);
+
+        function triggerConfetti() {
+                const id = Date.now() + Math.random();
+                confettiBursts = [...confettiBursts, id];
+                setTimeout(() => {
+                        confettiBursts = confettiBursts.filter((burst) => burst !== id);
+                }, 2500);
+        }
 
 	async function playMove() {
 		submitting = true;
@@ -191,16 +201,21 @@
 			score: get(moveScore)
 		};
 
-		try {
-			await api.post(`/game/${gameId}/play`, body);
-			const res = await api.get(`/game/${gameId}`);
-			game = res.data;
-			gameStore.set(game);
+                const isScrabbleMove = move.length === 7;
+
+                try {
+                        await api.post(`/game/${gameId}/play`, body);
+                        const res = await api.get(`/game/${gameId}`);
+                        game = res.data;
+                        gameStore.set(game);
 			originalRack.set(game!.your_rack.split('').map((char, i) => ({
 				id: `${i}-${char}-${crypto.randomUUID()}`,
 				char
-			})));
-			pendingMove.set([]);
+                        }))); 
+                        pendingMove.set([]);
+                        if (isScrabbleMove) {
+                                triggerConfetti();
+                        }
 		} catch (e: any) {
 			const msg = e?.response?.data?.message || 'Erreur lors de la validation du coup.';
 			alert(msg);
@@ -513,9 +528,14 @@
 		</main>
 	</div>
 
-	<!-- Modal classement -->
-	{#if $showScores}
-		<div class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <!-- Effet confetti -->
+        {#each confettiBursts as burst (burst)}
+                <ConfettiBurst />
+        {/each}
+
+        <!-- Modal classement -->
+        {#if $showScores}
+                <div class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
 			<div class="bg-white rounded-lg shadow-lg w-[90vw] max-w-sm p-6">
 				{#if game?.status === 'ended'}
 					<h3 class="text-lg font-semibold mb-2 text-center">

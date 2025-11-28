@@ -466,6 +466,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	} else if len(req.Letters) > 7 {
 		return fmt.Errorf("cannot place more than 7 letters in one move")
 	}
+	isScrabble := len(req.Letters) == 7
 
 	// 3. Vérification alignement
 	sameRow := true
@@ -687,6 +688,36 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
 	}
 	_ = utils.SendNotificationToUserByID(nextPlayerID, notificationPayload)
+
+	if isScrabble {
+		rows, err := database.Query(`SELECT player_id FROM game_players WHERE game_id = $1 AND player_id <> $2`, gameID, userID)
+		if err != nil {
+			zap.L().Warn("failed to load players for scrabble notification", zap.Error(err), zap.String("game_id", gameID))
+			return nil
+		}
+		defer rows.Close()
+
+		payload := utils.NotificationPayload{
+			Title: "Scrabble !",
+			Body:  fmt.Sprintf("%s a posé ses 7 lettres d'un coup dans %s 🎉", username, gameName),
+			Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
+		}
+
+		for rows.Next() {
+			var otherPlayerID int64
+			if err := rows.Scan(&otherPlayerID); err != nil {
+				zap.L().Warn("failed to scan scrabble notification target", zap.Error(err), zap.String("game_id", gameID))
+				continue
+			}
+			if err := utils.SendNotificationToUserByID(otherPlayerID, payload); err != nil {
+				zap.L().Debug("unable to send scrabble notification", zap.Error(err), zap.String("game_id", gameID), zap.Int64("target_user_id", otherPlayerID))
+			}
+		}
+
+		if err := rows.Err(); err != nil {
+			zap.L().Warn("error iterating scrabble notification targets", zap.Error(err), zap.String("game_id", gameID))
+		}
+	}
 
 	return nil
 }
