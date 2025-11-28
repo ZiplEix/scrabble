@@ -10,10 +10,12 @@
 
 	// TODO: Replace this object when you want to show a different nouveauté.
 	const newsBanner: NewsBanner = {
-        title: 'Nouvelle fonctionnalité — Lettre blanche / Joker',
+        title: 'Nouvelle infra - Pour vous rien de change, pour nous beaucoup !',
         message:
-            "Vous pouvez désormais consulter le dictionnaire des mots joués pendant une partie. Cliquez sur un mot pour en voir la définition.",
-        image: '/news/joker_tile_annonce.png'
+            "Nous avons migré notre infrastructure vers des serveurs plus performants et sécurisés. " +
+            "Cette mise à jour nous permet d'améliorer la vitesse de chargement et la fiabilité de notre service. " +
+            "Merci de votre confiance continue !",
+        image: '/news/infra-change_annonce.png'
 	};
 
 	const LOCAL_KEY = 'closedBannerTitle';
@@ -55,7 +57,11 @@
                 {#if newsBanner.image}
                     <img src={newsBanner.image} alt="Annonce : white tile" class="w-full h-auto rounded" />
                 {/if}
-                <p class="text-sm text-gray-500 mt-2">Applicable uniquement aux parties créées après l'annonce.</p>
+                <p class="text-sm text-gray-500 mt-2">
+                    Nous avons migré notre infrastructure vers des serveurs plus performants et sécurisés.
+                    <br />
+                    Cette mise à jour nous permet d'améliorer la vitesse de chargement et la fiabilité de notre service.
+                </p>
             </div>
         </div>
     </div>
