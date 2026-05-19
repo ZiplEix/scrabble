@@ -21,7 +21,7 @@ export const RANKS: RankInfo[] = [
     {
         key: 'bronze',
         label: 'Bronze',
-        minRating: 1500,
+        minRating: 200,
         accentClass: 'text-orange-700 ring-orange-300',
         softClass: 'bg-orange-100 text-orange-700',
         icon: '/rank_icon/bronze.png'
@@ -29,7 +29,7 @@ export const RANKS: RankInfo[] = [
     {
         key: 'argent',
         label: 'Argent',
-        minRating: 1650,
+        minRating: 300,
         accentClass: 'text-slate-700 ring-slate-300',
         softClass: 'bg-slate-100 text-slate-700',
         icon: '/rank_icon/silver.png'
@@ -37,7 +37,7 @@ export const RANKS: RankInfo[] = [
     {
         key: 'or',
         label: 'Or',
-        minRating: 1800,
+        minRating: 400,
         accentClass: 'text-amber-700 ring-amber-300',
         softClass: 'bg-amber-100 text-amber-700',
         icon: '/rank_icon/gold.png'
@@ -45,17 +45,18 @@ export const RANKS: RankInfo[] = [
     {
         key: 'platine',
         label: 'Platine',
-        minRating: 1950,
+        minRating: 500,
         accentClass: 'text-cyan-700 ring-cyan-300',
         softClass: 'bg-cyan-100 text-cyan-700',
         icon: '/rank_icon/platinium.png'
     }
 ];
 
-export function getRankInfo(rating: number): RankInfo {
+export function getRankInfo(rating: number | string): RankInfo {
+    const val = Number(rating) || 0;
     let current = RANKS[0];
     for (const rank of RANKS) {
-        if (rating >= rank.minRating) {
+        if (val >= rank.minRating) {
             current = rank;
         }
     }

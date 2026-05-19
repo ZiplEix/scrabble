@@ -73,7 +73,7 @@ func GetUserPublic(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
-// GetLeaderboard retourne le classement global par rating Elo
+// GetLeaderboard retourne le classement global par rating
 func GetLeaderboard(c echo.Context) error {
 	limit := 100
 	offset := 0

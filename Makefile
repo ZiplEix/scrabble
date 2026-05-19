@@ -40,6 +40,11 @@ migrate-up:
 migrate-down:
 	@cd migrations && go run ./down/down.go --dsn $(POSTGRES_URL) --dir .
 
+## recalculate-ips:	Recalculate all user IPS from last 10 games
+.PHONY: recalculate-ips
+recalculate-ips:
+	@cd api && go run cmd/recalculate-ips/main.go
+
 ## tests:	Run all tests (API and frontend)
 .PHONY: tests
 tests: tests-api tests-frontend

@@ -43,12 +43,12 @@
 <main class="max-w-2xl mx-auto px-4 py-6">
     <section class="mb-4">
         <div class="rounded-2xl bg-emerald-50 ring-1 ring-black/5 p-4">
-            <h2 class="text-lg font-bold text-gray-900">Classement Elo</h2>
+            <h2 class="text-lg font-bold text-gray-900">Classement IPS</h2>
             <p class="text-[12px] text-gray-700 mt-1">
-                Top joueurs triés par score Elo. {total} joueur{total > 1 ? 's' : ''} au total.
+                Top joueurs triés par score IPS. {total} joueur{total > 1 ? 's' : ''} au total.
             </p>
             <a href="/leaderboard/info" class="inline-flex mt-3 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline">
-                Comprendre le système Elo et les rangs
+                Comprendre le système IPS et les rangs
             </a>
         </div>
     </section>

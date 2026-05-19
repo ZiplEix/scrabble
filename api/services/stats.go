@@ -18,7 +18,7 @@ func GetLeaderboard(limit int, offset int) (*response.LeaderboardResponse, error
 
 	// Comptage total
 	var total int
-	if err := database.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&total); err != nil {
+	if err := database.QueryRow(`SELECT COUNT(*) FROM users WHERE rating > 0`).Scan(&total); err != nil {
 		return nil, fmt.Errorf("failed to count users: %w", err)
 	}
 
@@ -31,6 +31,7 @@ func GetLeaderboard(limit int, offset int) (*response.LeaderboardResponse, error
 			COUNT(DISTINCT CASE WHEN gp.game_id IS NOT NULL THEN gp.game_id END) as games
 		FROM users u
 		LEFT JOIN game_players gp ON u.id = gp.player_id
+		WHERE u.rating > 0
 		GROUP BY u.id, u.username, u.rating
 		ORDER BY u.rating DESC
 		LIMIT $1 OFFSET $2

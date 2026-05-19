@@ -12,7 +12,7 @@ var mandatoryEnvVars = []string{
 }
 
 func InitEnv() {
-	godotenv.Load()
+	godotenv.Overload()
 
 	checkEnv()
 }

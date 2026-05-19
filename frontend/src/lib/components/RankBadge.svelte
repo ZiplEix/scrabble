@@ -46,7 +46,7 @@
         }
     };
 
-    const style = badgeStyles[rank.key];
+    const style = $derived(badgeStyles[rank.key]);
 </script>
 
 <div class="inline-flex items-center justify-center {sizeClasses[size]} rounded-full {style.bg} {style.ring} ring-2 shadow-md relative overflow-hidden" title={rank.label}>
