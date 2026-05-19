@@ -250,7 +250,7 @@ func computeMoveScore(board [15][15]string, placed []request.PlacedLetter, board
 		return wordScore * wordMultiplier
 	}
 
-	seen := make(map[string]bool)
+	seen := make(map[Pos]bool)
 	for _, l := range placed {
 		for _, dir := range [][2]int{{1, 0}, {0, 1}} {
 			dx, dy := dir[0], dir[1]
@@ -269,9 +269,10 @@ func computeMoveScore(board [15][15]string, placed []request.PlacedLetter, board
 				x += dx
 				y += dy
 			}
-			if len(word) > 1 && !seen[word] {
+			wordPos := Pos{startX, startY}
+			if len(word) > 1 && !seen[wordPos] {
 				total += calcWord(startX, startY, dx, dy)
-				seen[word] = true
+				seen[wordPos] = true
 			}
 		}
 	}
