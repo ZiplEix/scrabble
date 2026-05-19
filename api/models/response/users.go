@@ -11,6 +11,7 @@ type SuggestUsersResponse struct {
 type UserPublicResponse struct {
 	ID        int64     `json:"id"`
 	Username  string    `json:"username"`
+	Rating    int       `json:"rating"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	// Stats

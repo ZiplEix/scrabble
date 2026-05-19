@@ -5,6 +5,7 @@ import "time"
 type MeResponse struct {
 	ID                           int64     `json:"id"`
 	Username                     string    `json:"username"`
+	Rating                       int       `json:"rating"`
 	Role                         string    `json:"role"`
 	CreatedAt                    time.Time `json:"created_at"`
 	GamesCount                   int       `json:"games_count"`

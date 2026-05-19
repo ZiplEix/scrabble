@@ -13,5 +13,11 @@
                 Inscription
             </a>
         </div>
+        <div class="mt-4">
+            <a href="/leaderboard" class="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 20h12M7 20V9m5 11V4m5 16v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Voir le classement global
+            </a>
+        </div>
     </div>
 </section>

@@ -11,6 +11,10 @@ func setupUsersRoutes(e *echo.Echo) {
 	r := e.Group("/users", middleware.RequireAuth)
 	r.GET("/suggest", controller.SuggestUsers)
 
+	// public leaderboard
+	e.GET("/leaderboard", controller.GetLeaderboard)
+	e.GET("/stats/user/:id", controller.GetUserStats)
+
 	// public user info: /user/:id
 	e.GET("/user/:id", controller.GetUserPublic)
 }

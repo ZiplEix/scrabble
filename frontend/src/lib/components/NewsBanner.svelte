@@ -15,7 +15,7 @@
             "Nous avons migré notre infrastructure vers des serveurs plus performants et sécurisés. " +
             "Cette mise à jour nous permet d'améliorer la vitesse de chargement et la fiabilité de notre service. " +
             "Merci de votre confiance continue !",
-        image: '/news/infra-change_annonce.png'
+        image: '/news/elo_rank.png'
 	};
 
 	const LOCAL_KEY = 'closedBannerTitle';

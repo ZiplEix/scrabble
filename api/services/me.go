@@ -15,7 +15,7 @@ func GetMeInfo(userID int64) (response.MeResponse, error) {
 
 	// Basic user info
 	var createdAt time.Time
-	if err := database.QueryRow("SELECT id, username, role, created_at FROM users WHERE id = $1", userID).Scan(&res.ID, &res.Username, &res.Role, &createdAt); err != nil {
+	if err := database.QueryRow("SELECT id, username, rating, role, created_at FROM users WHERE id = $1", userID).Scan(&res.ID, &res.Username, &res.Rating, &res.Role, &createdAt); err != nil {
 		return res, err
 	}
 	res.CreatedAt = createdAt

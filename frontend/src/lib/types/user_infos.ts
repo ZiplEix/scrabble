@@ -1,6 +1,7 @@
 export type UserInfos = {
     id: number;
     username: string;
+    rating: number;
     role: string;
     created_at: string;
     games_count: number;
@@ -23,6 +24,7 @@ export type UserInfos = {
 export let defaultUserInfos = {
     id: 0,
     username: '',
+    rating: 1600,
     role: 'user',
     created_at: new Date().toISOString(),
     games_count: 0,

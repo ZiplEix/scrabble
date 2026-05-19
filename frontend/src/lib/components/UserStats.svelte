@@ -1,4 +1,5 @@
 <script lang="ts">
+    import RankBadge from '$lib/components/RankBadge.svelte';
     import type { UserInfos } from "$lib/types/user_infos";
     export let userInfos: UserInfos;
 </script>
@@ -6,6 +7,16 @@
 <div class="rounded-2xl bg-white/90 backdrop-blur-md ring-1 ring-black/5 shadow-lg p-4">
     <h2 class="text-lg font-medium mb-3">Statistiques</h2>
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div class="p-3 bg-emerald-50 rounded-lg text-center col-span-2 sm:col-span-1">
+            <div class="flex justify-center mb-2">
+                <RankBadge rating={userInfos.rating} size="lg" />
+            </div>
+            <div class="flex items-baseline justify-center gap-1">
+                <div class="text-xl font-bold text-gray-900">{userInfos.rating}</div>
+                <div class="text-[11px] text-gray-500">Elo</div>
+            </div>
+        </div>
+
         <div class="p-3 bg-emerald-50 rounded-lg text-center">
             <div class="text-sm text-gray-600">Parties jouées</div>
             <div class="text-xl font-bold text-gray-900">{userInfos.games_count}</div>

@@ -170,6 +170,9 @@
 	<!-- Actions globales (hors parties) -->
 	<div class="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+16px)] flex flex-col items-end gap-2 z-40">
 		<!-- Secondaires -->
+		<a href="/leaderboard" title="Classement" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Classement">
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 20h12M7 20V9m5 11V4m5 16v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+		</a>
 		<a href="/report" title="Reports" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Reports">
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
 		</a>

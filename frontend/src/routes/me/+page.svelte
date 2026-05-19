@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { user } from '$lib/stores/user';
     import { api } from '$lib/api';
+    import RankBadge from '$lib/components/RankBadge.svelte';
     import UserStats from '$lib/components/UserStats.svelte';
     import MeAccount from '$lib/components/MeAccount.svelte';
     import MeOptions from '$lib/components/MeOptions.svelte';

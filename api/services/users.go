@@ -37,7 +37,7 @@ func SuggestUsers(userID int64, query string) ([]response.SuggestUsersResponse, 
 func GetUserPublicByID(userID int64) (*response.UserPublicResponse, error) {
 	var u response.UserPublicResponse
 	var createdAt time.Time
-	err := database.QueryRow("SELECT id, username, role, created_at FROM users WHERE id = $1", userID).Scan(&u.ID, &u.Username, &u.Role, &createdAt)
+	err := database.QueryRow("SELECT id, username, rating, role, created_at FROM users WHERE id = $1", userID).Scan(&u.ID, &u.Username, &u.Rating, &u.Role, &createdAt)
 	if err != nil {
 		return nil, err
 	}

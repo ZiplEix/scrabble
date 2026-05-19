@@ -4,6 +4,7 @@
     import { api } from '$lib/api';
     import { goto } from '$app/navigation';
     import { defaultUserInfos, type UserInfos } from '$lib/types/user_infos';
+    import RankBadge from '$lib/components/RankBadge.svelte';
     import UserStats from '$lib/components/UserStats.svelte';
 
     let loading = true;
@@ -61,6 +62,10 @@
                             <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-2xl font-bold text-emerald-700">{userInfos.username ? userInfos.username.charAt(0).toUpperCase() : 'U'}</div>
                             <div>
                                 <div class="text-xl font-semibold">{userInfos.username}</div>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <RankBadge rating={userInfos.rating} size="md" />
+                                    <span class="text-sm text-gray-600">{userInfos.rating}</span>
+                                </div>
                                 <div class="text-sm text-gray-500">Rôle : {userInfos.role}</div>
                                 <div class="text-sm text-gray-500">Inscrit le : {new Date(userInfos.created_at).toLocaleDateString()}</div>
                             </div>

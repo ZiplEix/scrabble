@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -293,6 +294,32 @@ func rackPoints(rack string) int {
 	return pts
 }
 
+// calculateEloChange calcule le changement d'Elo pour deux joueurs
+// K = 32 (facteur de volatilité)
+// Rating cible = 1600 (permet des ratings plus bas et plus hauts)
+func calculateEloChange(player1Rating, player2Rating int, player1Won bool) (player1Change, player2Change int) {
+	const K = 32
+	const targetRating = 1600.0
+
+	// Expected score pour le joueur 1
+	exponent := float64(player2Rating-player1Rating) / 400.0
+	expectedScore := 1.0 / (1.0 + math.Pow(10, exponent))
+
+	// Score réel (1 si victoire, 0 si perte)
+	actualScore := 0.0
+	if player1Won {
+		actualScore = 1.0
+	}
+
+	// Changement Elo
+	change := int(K * (actualScore - expectedScore))
+
+	// Plus les ratings sont éloignés de la cible, moins le changement est grand
+	// (option: rendre plus conservative)
+
+	return change, -change // P1 gagne/perd X, P2 perd/gagne X
+}
+
 // tx is a transaction that must be committed by the caller
 func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 	type leftover struct {
@@ -432,6 +459,67 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 				Body:  fmt.Sprintf("%s a gagné avec %d points!\nVous avez terminé avec %d points.", winnerUsername.String, winnerScore, userPts),
 				Url:   fmt.Sprintf("https://scrabble.baptiste.zip/games/%s", gameID),
 			})
+		}
+	}
+
+	// Mise à jour des ratings Elo pour les joueurs (pair à pair)
+	// Pour un 2-joueurs: simple. Pour 3+: chaque joueur gagne/perd contre le gagnant globalement
+	playerScores := make(map[int64]int)
+	for _, l := range lefts {
+		playerScores[l.pid] = 0 // sera rempli via requête
+	}
+
+	// Récupère les scores finaux et ratings actuels
+	type PlayerEloInfo struct {
+		PlayerID int64
+		Score    int
+		Rating   int
+	}
+	var playersInfo []PlayerEloInfo
+
+	eloRows, err := tx.Query(
+		`SELECT gp.player_id, gp.score, u.rating
+         FROM game_players gp
+         JOIN users u ON gp.player_id = u.id
+         WHERE gp.game_id = $1
+         ORDER BY gp.score DESC`,
+		gameID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to query player elo info: %w", err)
+	}
+	defer eloRows.Close()
+
+	for eloRows.Next() {
+		var info PlayerEloInfo
+		if err := eloRows.Scan(&info.PlayerID, &info.Score, &info.Rating); err != nil {
+			return fmt.Errorf("failed to scan player elo info: %w", err)
+		}
+		playersInfo = append(playersInfo, info)
+	}
+	if err := eloRows.Err(); err != nil {
+		return fmt.Errorf("error iterating player elo: %w", err)
+	}
+
+	// Calculer les changements Elo: gagnant vs chaque autre joueur
+	for i := 0; i < len(playersInfo); i++ {
+		for j := i + 1; j < len(playersInfo); j++ {
+			// Joueur i a gagné contre joueur j
+			change1, change2 := calculateEloChange(playersInfo[i].Rating, playersInfo[j].Rating, true)
+
+			// Mettre à jour les ratings
+			if _, err := tx.Exec(
+				`UPDATE users SET rating = rating + $1 WHERE id = $2`,
+				change1, playersInfo[i].PlayerID,
+			); err != nil {
+				return fmt.Errorf("failed to update player %d elo: %w", playersInfo[i].PlayerID, err)
+			}
+			if _, err := tx.Exec(
+				`UPDATE users SET rating = rating + $1 WHERE id = $2`,
+				change2, playersInfo[j].PlayerID,
+			); err != nil {
+				return fmt.Errorf("failed to update player %d elo: %w", playersInfo[j].PlayerID, err)
+			}
 		}
 	}
 
