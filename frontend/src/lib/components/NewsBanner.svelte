@@ -10,12 +10,12 @@
 
 	// TODO: Replace this object when you want to show a different nouveauté.
 	const newsBanner: NewsBanner = {
-        title: 'Nouvelle infra - Pour vous rien de change, pour nous beaucoup !',
+        title: 'Nouveau classement Elo et système de rangs',
         message:
-            "Nous avons migré notre infrastructure vers des serveurs plus performants et sécurisés. " +
-            "Cette mise à jour nous permet d'améliorer la vitesse de chargement et la fiabilité de notre service. " +
-            "Merci de votre confiance continue !",
-        image: '/news/elo_rank.png'
+            "Le classement Elo est maintenant disponible, avec un système de rangs: Fer, Bronze, Argent, Or et Platine. " +
+            "Ton rang évolue automatiquement selon tes résultats en partie. " +
+            "Retrouve tous les détails dans la page Classement > Infos.",
+        image: '/news/elo_ranks.png'
 	};
 
 	const LOCAL_KEY = 'closedBannerTitle';
@@ -57,11 +57,8 @@
                 {#if newsBanner.image}
                     <img src={newsBanner.image} alt="Annonce : white tile" class="w-full h-auto rounded" />
                 {/if}
-                <p class="text-sm text-gray-500 mt-2">
-                    Nous avons migré notre infrastructure vers des serveurs plus performants et sécurisés.
-                    <br />
-                    Cette mise à jour nous permet d'améliorer la vitesse de chargement et la fiabilité de notre service.
-                </p>
+                <h2 class="text-lg font-semibold text-gray-900 mt-3 px-4 text-center">{newsBanner.title}</h2>
+                <p class="text-sm text-gray-600 mt-2 px-4 pb-4 text-center">{newsBanner.message}</p>
             </div>
         </div>
     </div>
