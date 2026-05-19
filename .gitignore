@@ -1,0 +1,7 @@
+.antigravitycli/
+.front.pid
+.api.pid
+node_modules/
+dist/
+build/
+.env

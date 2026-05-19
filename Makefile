@@ -18,12 +18,12 @@ air:
 ## front:	Run the frontend application in development mode
 .PHONY: front
 front:
-	@cd frontend && npm run dev
+	@cd frontend && bun run dev
 
 ## admin:	Run the admin interface in development mode
 .PHONY: admin
 admin:
-	@cd admin-dashboard && npm run dev -- --host
+	@cd admin-dashboard && bun run dev -- --host
 
 ## db:	Start the database using Docker Compose
 .PHONY: db

@@ -2,7 +2,7 @@ set -e;
 
 cd frontend;
 
-npm run dev >/dev/null 2>&1 & echo $$! > ../.front.pid;
+bun run dev >/dev/null 2>&1 & echo $$! > ../.front.pid;
 
 cd ..;
 
@@ -14,7 +14,7 @@ for i in $(seq 1 60); do
     sleep 0.5;
 done;
 
-cd frontend && npx cypress run;
+cd frontend && bunx cypress run;
 
 cd ..;
 if [ -f .front.pid ]; then

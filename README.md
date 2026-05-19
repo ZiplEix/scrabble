@@ -39,7 +39,7 @@ Monorepo du jeu de **Scrabble** en ligne :
 
 * **Docker** & **docker-compose** (recommandés pour la base de données)
 * **Go** (version selon `api/go.mod`)
-* **Node.js 20+** et **npm** (frontend)
+* **Bun** (runtime pour le frontend et l'admin)
 
 ---
 

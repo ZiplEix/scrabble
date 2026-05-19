@@ -68,7 +68,7 @@ frontend/
 
 ## Pré‑requis
 
-* Node.js 20+ (recommandé) et npm
+* **Bun**
 * API démarrée et accessible (voir README backend)
 
 ---
@@ -93,15 +93,15 @@ PUBLIC_VAPID_PUBLIC_KEY="<clé publique VAPID>"
 Depuis la racine du repo :
 
 ```bash
-make front  # équivaut à: cd frontend && npm run dev
+make front  # équivaut à: cd frontend && bun run dev
 ```
 
 ou directement :
 
 ```bash
 cd frontend
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 L’app écoute par défaut sur `http://localhost:5173/` (Vite dev server).
@@ -119,13 +119,13 @@ Compilation :
 
 ```bash
 cd frontend
-npm run build
-npm run preview  # test local
+bun run build
+bun run preview  # test local
 ```
 
 ### Docker (adapter‑node)
 
-Le `Dockerfile` produit une image Node qui lance `node build` sur le port **3000** :
+Le `Dockerfile` produit une image Bun qui lance `bun run build/index.js` sur le port **3000** :
 
 ```bash
 docker build -t scrabble-frontend ./frontend
