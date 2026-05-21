@@ -13,14 +13,36 @@
         actionHref?: string;
     };
 
-    // Ajouter une nouvelle annonce en tete de liste.
+    // Ajouter une nouvelle annonce en tête de liste.
     const announcements: Announcement[] = [
         {
-            id: '2026-05-21-puzzle-quotidien',
-            title: 'Nouveau: defi quotidien',
+            id: '2026-05-21-pose-tactile',
+            title: 'Pose rapide : Dites adieu au Drag & Drop !',
             message:
-                "Chaque jour, un puzzle est disponible avec un classement dedie. " +
-                "Tu peux voir ta grille, comparer tes resultats et suivre ta progression.",
+                "Posez vos tuiles d'une simple pression tactile ! Deux nouvelles méthodes ultra intuitives sont maintenant disponibles : \n" +
+                "1. Sélectionnez d'abord une case vide sur le plateau (qui clignote en doré), puis touchez la lettre souhaitée sur votre chevalet.\n" +
+                "2. Ou sélectionnez une lettre sur votre chevalet, puis touchez sa case de destination sur le plateau.\n" +
+                "3. Le drag and drop est bien sur toujours disponible.",
+            date: '21 mai 2026',
+            level: 'feature',
+            actionLabel: 'Découvrir maintenant',
+            actionHref: '/'
+        },
+        {
+            id: '2026-05-21-plateau-geant',
+            title: 'Plateau géant optimisé pour mobile',
+            message:
+                "Pour un confort tactile maximal sur vos téléphones, le plateau occupe désormais 100% de la largeur disponible. " +
+                "Les marges externes ont été optimisées et les arrondis de sélection ont été affinés pour un rendu épuré.",
+            date: '21 mai 2026',
+            level: 'info'
+        },
+        {
+            id: '2026-05-21-puzzle-quotidien',
+            title: 'Nouveau: défi quotidien',
+            message:
+                "Chaque jour, un puzzle est disponible avec un classement dédié. " +
+                "Tu peux voir ta grille, comparer tes résultats et suivre ta progression.",
             date: '21 mai 2026',
             level: 'feature',
             actionLabel: 'Voir le puzzle du jour',
@@ -149,7 +171,7 @@
                 </div>
 
                 <h2 class="text-xl font-semibold text-gray-900">{currentAnnouncement.title}</h2>
-                <p class="mt-3 text-sm leading-relaxed text-gray-600">{currentAnnouncement.message}</p>
+                <p class="mt-3 text-sm leading-relaxed text-gray-600 whitespace-pre-line">{currentAnnouncement.message}</p>
 
                 {#if currentAnnouncement.actionLabel && currentAnnouncement.actionHref}
                     <a
