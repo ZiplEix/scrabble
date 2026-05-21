@@ -14,7 +14,7 @@
 	const types = ['bug', 'suggestion', 'feedback'];
 
 	onMount(async () => {
-		reportId = $page.params.id;
+		reportId = $page.params.id ?? '';
 		if (!reportId) {
 			error = 'Aucun ID de report fourni.';
 			loading = false;

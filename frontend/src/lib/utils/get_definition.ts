@@ -1,23 +1,130 @@
+import { api } from "$lib/api";
+
 export type WiktionaryDefinition = {
     title: string;
     extract: string; // texte brut
     url: string; // lien vers la page
+    is_parsed?: boolean;
+    def?: DefinitionGroup[];
 } | null;
 
-const url = "https://www.larousse.fr/dictionnaires/francais/"
 export async function getDefinition(
     word: string
 ): Promise<WiktionaryDefinition> {
-    const res = await fetch(`${url}${encodeURIComponent(word)}`);
-    if (!res.ok) return null;
-    if (res.status === 404) return null;
+    const cleanWord = word.toUpperCase().trim();
+    if (!cleanWord) return null;
 
-    const HTML = await res.text();
+    // 1) Tentative d'interrogation du cache de l'API Go
+    try {
+        const cacheRes = await api.get(`/dictionary/${encodeURIComponent(cleanWord)}`);
+        if (cacheRes.status === 200 && cacheRes.data) {
+            // Cache Hit !
+            return {
+                title: cleanWord,
+                extract: "",
+                url: cacheRes.data.url || "",
+                is_parsed: true,
+                def: cacheRes.data.def || []
+            };
+        }
+    } catch (err: any) {
+        // En cas d'erreur 404, on continue vers le scraping.
+        if (err?.response?.status !== 404) {
+            console.warn(`Go API dictionary cache lookup failed for ${cleanWord}`, err);
+        }
+    }
+
+    // 2) Cache Miss : Scraping & parsing client-side
+
+    // Étape A : Wiktionnaire (Direct client-side CORS)
+    try {
+        const wiktUrl = `https://fr.wiktionary.org/w/api.php?action=query&format=json&prop=extracts&titles=${encodeURIComponent(cleanWord)}&origin=*`;
+        const res = await fetch(wiktUrl);
+        if (res.ok) {
+            const data = await res.json();
+            const pages = data?.query?.pages;
+            if (pages) {
+                const pageId = Object.keys(pages)[0];
+                if (pageId !== "-1" && pages[pageId] && pages[pageId].extract) {
+                    const extract = pages[pageId].extract;
+                    const defGroups = extractDefinitions(extract);
+                    if (defGroups && defGroups.length > 0) {
+                        const url = `https://fr.wiktionary.org/wiki/${encodeURIComponent(cleanWord)}`;
+                        
+                        // Sauvegarde asynchrone dans le cache DB
+                        try {
+                            await api.post('/dictionary', {
+                                word: cleanWord,
+                                definitions: { url, def: defGroups }
+                            });
+                        } catch (saveErr) {
+                            console.error(`Failed to save definition cache for ${cleanWord} from Wiktionnaire`, saveErr);
+                        }
+
+                        return {
+                            title: cleanWord,
+                            extract: "",
+                            url,
+                            is_parsed: true,
+                            def: defGroups
+                        };
+                    }
+                }
+            }
+        }
+    } catch (wiktErr) {
+        console.warn(`Direct Wiktionary fetch failed for ${cleanWord}, falling back to Larousse proxy`, wiktErr);
+    }
+
+    // Étape B : Fallback Larousse (via proxy car pas de CORS)
+    try {
+        const res = await fetch(`/api/larousse?word=${encodeURIComponent(cleanWord)}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.html) {
+                const defGroups = extractDefinitions(data.html);
+                const url = data.url || `https://www.larousse.fr/dictionnaires/francais/${encodeURIComponent(cleanWord.toLowerCase())}`;
+                
+                // Sauvegarde asynchrone dans le cache DB
+                try {
+                    await api.post('/dictionary', {
+                        word: cleanWord,
+                        definitions: { url, def: defGroups }
+                    });
+                } catch (saveErr) {
+                    console.error(`Failed to save definition cache for ${cleanWord} from Larousse`, saveErr);
+                }
+
+                return {
+                    title: cleanWord,
+                    extract: "",
+                    url,
+                    is_parsed: true,
+                    def: defGroups
+                };
+            }
+        }
+    } catch (larousseErr) {
+        console.error(`Larousse proxy fallback failed for ${cleanWord}`, larousseErr);
+    }
+
+    // Étape C : Aucun dictionnaire ne connaît le mot (Mot invalide).
+    // On met en cache un tableau vide pour éviter de répéter ces requêtes lentes à l'avenir !
+    try {
+        await api.post('/dictionary', {
+            word: cleanWord,
+            definitions: { url: "", def: [] }
+        });
+    } catch (saveErr) {
+        console.error(`Failed to save empty/invalid definition cache for ${cleanWord}`, saveErr);
+    }
 
     return {
-        title: word,
-        extract: HTML,
-        url: res.url,
+        title: cleanWord,
+        extract: "",
+        url: "",
+        is_parsed: true,
+        def: []
     };
 }
 

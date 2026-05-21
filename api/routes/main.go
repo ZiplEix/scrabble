@@ -19,4 +19,5 @@ func SetupRoutes(e *echo.Echo) {
 	setupNotificationsRoutes(e)
 	SetupMeRoutes(e)
 	setupAdminRoutes(e)
+	setupDictionaryRoutes(e)
 }

@@ -132,8 +132,12 @@
                     if (wikidef?.url) {
                         newDef.url = wikidef.url;
                     }
-                    if (wikidef && wikidef.extract) {
-                        newDef.def = extractDefinitions(wikidef.extract);
+                    if (wikidef) {
+                        if (wikidef.is_parsed && wikidef.def) {
+                            newDef.def = wikidef.def;
+                        } else if (wikidef.extract) {
+                            newDef.def = extractDefinitions(wikidef.extract);
+                        }
                     }
                 } catch (err) {
                     console.warn(`failed to fetch definition for ${word}`, err);
