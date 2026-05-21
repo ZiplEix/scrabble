@@ -1,64 +1,194 @@
 <script lang='ts'>
     import { onMount } from "svelte";
 
-    // --- Nouveautés / banderole ---
-	type NewsBanner = {
-		title: string;
-		message: string;
-		image?: string | null;
-	};
+    type AnnouncementLevel = 'info' | 'feature' | 'important';
 
-	// TODO: Replace this object when you want to show a different nouveauté.
-	const newsBanner: NewsBanner = {
-        title: 'Défi quotidien',
-        message:
-            "Chaque jour, un nouveau défi t'attend ! " +
-            "Relève le défi quotidien et gagne des points bonus. " +
-            "Plus tu en remportes, plus tu monteras dans le classement.",
-        image: '/news/puzzle_annonce.png'
-	};
+    type Announcement = {
+        id: string;
+        title: string;
+        message: string;
+        date: string;
+        level: AnnouncementLevel;
+        actionLabel?: string;
+        actionHref?: string;
+    };
 
-	const LOCAL_KEY = 'closedBannerTitle';
-	let showNews = false;
+    // Ajouter une nouvelle annonce en tete de liste.
+    const announcements: Announcement[] = [
+        {
+            id: '2026-05-21-puzzle-quotidien',
+            title: 'Nouveau: defi quotidien',
+            message:
+                "Chaque jour, un puzzle est disponible avec un classement dedie. " +
+                "Tu peux voir ta grille, comparer tes resultats et suivre ta progression.",
+            date: '21 mai 2026',
+            level: 'feature',
+            actionLabel: 'Voir le puzzle du jour',
+            actionHref: '/puzzles'
+        }
+    ];
+
+    const LOCAL_KEY = 'dismissedAnnouncements';
+    let dismissedIds = new Set<string>();
+    let unseenAnnouncements: Announcement[] = [];
+    let currentIndex = 0;
+    let showNews = false;
+
+    let currentAnnouncement: Announcement | null = null;
+    let canGoPrev = false;
+    let canGoNext = false;
+
+    $: currentAnnouncement = unseenAnnouncements[currentIndex] ?? null;
+    $: canGoPrev = currentIndex > 0;
+    $: canGoNext = currentIndex < unseenAnnouncements.length - 1;
 
     onMount(() => {
         try {
-            const closed = localStorage.getItem(LOCAL_KEY);
-            if (closed !== newsBanner.title) {
-                showNews = true;
-            }
+            const raw = localStorage.getItem(LOCAL_KEY);
+            const parsed = raw ? (JSON.parse(raw) as string[]) : [];
+            dismissedIds = new Set(parsed);
         } catch (e) {
-            console.warn('localStorage inaccessible pour la banderole', e);
+            console.warn('localStorage inaccessible pour les annonces', e);
+            dismissedIds = new Set();
         }
-    })
 
-    function closeNews() {
-		showNews = false;
+        unseenAnnouncements = announcements.filter((a) => !dismissedIds.has(a.id));
+        showNews = unseenAnnouncements.length > 0;
+        currentIndex = 0;
+    });
 
-		try {
-			localStorage.setItem(LOCAL_KEY, newsBanner.title);
-		} catch (e) {
-			console.warn('Impossible de sauvegarder la préférence de la banderole', e);
-		}
-	}
+    function persistDismissed() {
+        try {
+            localStorage.setItem(LOCAL_KEY, JSON.stringify(Array.from(dismissedIds)));
+        } catch (e) {
+            console.warn('Impossible de sauvegarder les annonces lues', e);
+        }
+    }
+
+    function closeCurrentAnnouncement() {
+        if (!currentAnnouncement) {
+            showNews = false;
+            return;
+        }
+
+        dismissedIds.add(currentAnnouncement.id);
+        persistDismissed();
+
+        unseenAnnouncements = announcements.filter((a) => !dismissedIds.has(a.id));
+        if (unseenAnnouncements.length === 0) {
+            showNews = false;
+            currentIndex = 0;
+            return;
+        }
+
+        if (currentIndex >= unseenAnnouncements.length) {
+            currentIndex = unseenAnnouncements.length - 1;
+        }
+    }
+
+    function closeAllAnnouncements() {
+        for (const announcement of unseenAnnouncements) {
+            dismissedIds.add(announcement.id);
+        }
+        persistDismissed();
+        unseenAnnouncements = [];
+        currentIndex = 0;
+        showNews = false;
+    }
+
+    function goPrev() {
+        if (canGoPrev) {
+            currentIndex -= 1;
+        }
+    }
+
+    function goNext() {
+        if (canGoNext) {
+            currentIndex += 1;
+        }
+    }
+
+    function onActionClick() {
+        closeCurrentAnnouncement();
+    }
+
+    function levelClasses(level: AnnouncementLevel) {
+        switch (level) {
+            case 'important':
+                return 'bg-rose-100 text-rose-800';
+            case 'feature':
+                return 'bg-emerald-100 text-emerald-800';
+            default:
+                return 'bg-sky-100 text-sky-800';
+        }
+    }
+
+    function levelLabel(level: AnnouncementLevel) {
+        switch (level) {
+            case 'important':
+                return 'Important';
+            case 'feature':
+                return 'Nouveaute';
+            default:
+                return 'Info';
+        }
+    }
 </script>
 
-{#if showNews}
+{#if showNews && currentAnnouncement}
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/40"></div>
-        <div class="relative bg-white rounded-lg shadow-lg max-w-[min(42rem,90vw)] max-h-[90vh] z-10 flex flex-col">
-            <button aria-label="Fermer" class="absolute top-3 right-3 text-gray-300 hover:text-gray-700" onclick={closeNews}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+        <div class="absolute inset-0 bg-black/50"></div>
 
-            <div class="flex flex-col items-center justify-center overflow-hidden">
-                {#if newsBanner.image}
-                    <img src={newsBanner.image} alt="Annonce : white tile" class="w-full h-auto max-h-[calc(90vh-6rem)] rounded object-contain" />
+        <div class="relative z-10 w-full max-w-xl rounded-2xl bg-white shadow-2xl">
+            <div class="p-6 sm:p-7">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <span class={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${levelClasses(currentAnnouncement.level)}`}>
+                        {levelLabel(currentAnnouncement.level)}
+                    </span>
+                    <span class="text-xs text-gray-500">{currentAnnouncement.date}</span>
+                </div>
+
+                <h2 class="text-xl font-semibold text-gray-900">{currentAnnouncement.title}</h2>
+                <p class="mt-3 text-sm leading-relaxed text-gray-600">{currentAnnouncement.message}</p>
+
+                {#if currentAnnouncement.actionLabel && currentAnnouncement.actionHref}
+                    <a
+                        class="mt-5 inline-flex rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                        href={currentAnnouncement.actionHref}
+                        onclick={onActionClick}
+                    >
+                        {currentAnnouncement.actionLabel}
+                    </a>
                 {/if}
-                <!-- <h2 class="text-lg font-semibold text-gray-900 mt-3 px-4 text-center">{newsBanner.title}</h2>
-                <p class="text-sm text-gray-600 mt-2 px-4 pb-4 text-center">{newsBanner.message}</p> -->
+
+                <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4">
+                    <div class="text-xs text-gray-500">
+                        {currentIndex + 1} / {unseenAnnouncements.length}
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button
+                            class="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 disabled:opacity-40"
+                            onclick={goPrev}
+                            disabled={!canGoPrev}
+                        >
+                            Precedent
+                        </button>
+                        <button
+                            class="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 disabled:opacity-40"
+                            onclick={goNext}
+                            disabled={!canGoNext}
+                        >
+                            Suivant
+                        </button>
+                        <button
+                            class="rounded-md bg-gray-900 px-3 py-2 text-sm text-white hover:bg-black"
+                            onclick={closeAllAnnouncements}
+                        >
+                            Tout marquer comme lu
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
