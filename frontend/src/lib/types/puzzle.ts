@@ -43,6 +43,7 @@ export type PuzzleDailyLeaderboard = {
 	score: number;
 	time_used: number;
 	attempts: number;
+	words_played?: PuzzleWordRecord[];
 	submitted_at: string;
 };
 

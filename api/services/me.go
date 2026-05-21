@@ -56,6 +56,17 @@ func GetMeInfo(userID int64) (response.MeResponse, error) {
 		return res, err
 	}
 
+	if v, p, err := stats.GetPuzzleWinsAndTop(userID); err == nil {
+		res.PuzzleWins = v
+		if p > 0 {
+			f := float64(p)
+			res.PuzzleWinsTopPercent = &f
+		}
+	} else {
+		// Si les tables puzzle ne sont pas encore présentes (environnement ancien), on garde 0.
+		res.PuzzleWins = 0
+	}
+
 	if v, p, err := stats.GetAvgScoreAndTop(userID); err == nil {
 		res.AvgScore = float64(v)
 		if p > 0 {

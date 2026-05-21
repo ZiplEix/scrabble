@@ -664,6 +664,7 @@ func GetPuzzleLeaderboard(ctx context.Context, puzzleID string, limit int, offse
 			u.username,
 			pa.score,
 			pa.time_used,
+			pa.words_played,
 			pa.submitted_at
 		FROM puzzle_attempts pa
 		JOIN users u ON pa.player_id = u.id
@@ -683,6 +684,7 @@ func GetPuzzleLeaderboard(ctx context.Context, puzzleID string, limit int, offse
 		var rank int
 		var score sql.NullInt64
 		var timeUsed sql.NullInt64
+		var wordsPlayedJSON sql.NullString
 		var submittedAt sql.NullTime
 		entry := &resp.PuzzleDailyLeaderboard{}
 
@@ -692,6 +694,7 @@ func GetPuzzleLeaderboard(ctx context.Context, puzzleID string, limit int, offse
 			&entry.Username,
 			&score,
 			&timeUsed,
+			&wordsPlayedJSON,
 			&submittedAt,
 		)
 		if err != nil {
@@ -703,6 +706,12 @@ func GetPuzzleLeaderboard(ctx context.Context, puzzleID string, limit int, offse
 		entry.TimeUsed = int(timeUsed.Int64)
 		entry.SubmittedAt = submittedAt.Time
 		entry.Attempts = 1 // Une tentative par joueur max
+		if wordsPlayedJSON.Valid {
+			var words []resp.PuzzleWordRecord
+			if err := json.Unmarshal([]byte(wordsPlayedJSON.String), &words); err == nil {
+				entry.WordsPlayed = words
+			}
+		}
 		leaderboard = append(leaderboard, entry)
 	}
 

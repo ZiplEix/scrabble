@@ -33,6 +33,14 @@
             {/if}
         </div>
 
+        <div class="p-3 bg-emerald-50 rounded-lg text-center">
+            <div class="text-sm text-gray-600">Puzzles gagnés</div>
+            <div class="text-xl font-bold text-gray-900">{userInfos.puzzle_wins ?? 0}</div>
+            {#if userInfos.puzzle_wins_top_percent !== undefined && (userInfos.puzzle_wins_top_percent ?? 0) > 0}
+                <div class="text-[11px] text-gray-500 mt-1">Top {Math.round(userInfos.puzzle_wins_top_percent)}%</div>
+            {/if}
+        </div>
+
         <div class="p-3 bg-amber-50 rounded-lg text-center">
             <div class="text-sm text-gray-600">Score moyen</div>
             <div class="text-xl font-bold text-gray-900">{Math.round(userInfos.avg_score ?? 0)}</div>

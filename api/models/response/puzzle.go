@@ -43,13 +43,14 @@ type PuzzleWordRecord struct {
 }
 
 type PuzzleDailyLeaderboard struct {
-	Rank        int       `json:"rank"`
-	PlayerID    int64     `json:"player_id"`
-	Username    string    `json:"username"`
-	Score       int       `json:"score"`
-	TimeUsed    int       `json:"time_used"`
-	Attempts    int       `json:"attempts"`
-	SubmittedAt time.Time `json:"submitted_at"`
+	Rank        int                `json:"rank"`
+	PlayerID    int64              `json:"player_id"`
+	Username    string             `json:"username"`
+	Score       int                `json:"score"`
+	TimeUsed    int                `json:"time_used"`
+	Attempts    int                `json:"attempts"`
+	WordsPlayed []PuzzleWordRecord `json:"words_played,omitempty"`
+	SubmittedAt time.Time          `json:"submitted_at"`
 }
 
 type PuzzleHistory struct {

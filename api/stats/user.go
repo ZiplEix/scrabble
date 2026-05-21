@@ -222,3 +222,61 @@ func GetBestMoveScoreAndTop(userID int64) (int, int, error) {
 	}
 	return best, top, nil
 }
+
+// GetPuzzleWinsAndTop returns (puzzle_wins, top_percent, error).
+// A puzzle is considered "won" if the user has a submitted score equal to the max submitted score for that puzzle.
+func GetPuzzleWinsAndTop(userID int64) (int, int, error) {
+	var wins int
+	if err := database.QueryRow(`
+		SELECT COUNT(DISTINCT pa.puzzle_id)
+		FROM puzzle_attempts pa
+		WHERE pa.player_id = $1
+		  AND pa.submitted_at IS NOT NULL
+		  AND pa.score IS NOT NULL
+		  AND pa.score = (
+			SELECT MAX(pa2.score)
+			FROM puzzle_attempts pa2
+			WHERE pa2.puzzle_id = pa.puzzle_id
+			  AND pa2.submitted_at IS NOT NULL
+			  AND pa2.score IS NOT NULL
+		  )
+	`, userID).Scan(&wins); err != nil && err != sql.ErrNoRows {
+		return 0, 0, err
+	}
+
+	var nf sql.NullFloat64
+	err := database.QueryRow(`
+		WITH per_user AS (
+			SELECT pa.player_id AS user_id,
+			       COUNT(DISTINCT pa.puzzle_id) AS puzzle_wins
+			FROM puzzle_attempts pa
+			WHERE pa.submitted_at IS NOT NULL
+			  AND pa.score IS NOT NULL
+			  AND pa.score = (
+				SELECT MAX(pa2.score)
+				FROM puzzle_attempts pa2
+				WHERE pa2.puzzle_id = pa.puzzle_id
+				  AND pa2.submitted_at IS NOT NULL
+				  AND pa2.score IS NOT NULL
+			  )
+			GROUP BY pa.player_id
+		), ranked AS (
+			SELECT user_id, puzzle_wins,
+				RANK() OVER (ORDER BY puzzle_wins DESC) AS rnk,
+				COUNT(*) OVER () AS total
+			FROM per_user
+		)
+		SELECT ROUND((100.0 * rnk / total)::numeric, 2)
+		FROM ranked WHERE user_id = $1
+	`, userID).Scan(&nf)
+	if err != nil && err != sql.ErrNoRows {
+		return 0, 0, err
+	}
+
+	top := 0
+	if err == nil && nf.Valid {
+		top = int(math.Round(nf.Float64))
+	}
+
+	return wins, top, nil
+}

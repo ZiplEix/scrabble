@@ -14,6 +14,8 @@ type MeResponse struct {
 	BestScoreTopPercent          *float64  `json:"best_score_top_percent,omitempty"`
 	Victories                    int       `json:"victories"`
 	VictoriesTopPercent          *float64  `json:"victories_top_percent,omitempty"`
+	PuzzleWins                   int       `json:"puzzle_wins"`
+	PuzzleWinsTopPercent         *float64  `json:"puzzle_wins_top_percent,omitempty"`
 	AvgScore                     float64   `json:"avg_score"`
 	AvgScoreTopPercent           *float64  `json:"avg_score_top_percent,omitempty"`
 	AvgPointsPerMove             float64   `json:"avg_points_per_move"`

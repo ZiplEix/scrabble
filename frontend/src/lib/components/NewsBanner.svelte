@@ -10,12 +10,12 @@
 
 	// TODO: Replace this object when you want to show a different nouveauté.
 	const newsBanner: NewsBanner = {
-        title: 'Nouveau classement Elo et système de rangs',
+        title: 'Défi quotidien',
         message:
-            "Le classement Elo est maintenant disponible, avec un système de rangs: Fer, Bronze, Argent, Or et Platine. " +
-            "Ton rang évolue automatiquement selon tes résultats en partie. " +
-            "Retrouve tous les détails dans la page Classement > Infos.",
-        image: '/news/elo_ranks.png'
+            "Chaque jour, un nouveau défi t'attend ! " +
+            "Relève le défi quotidien et gagne des points bonus. " +
+            "Plus tu en remportes, plus tu monteras dans le classement.",
+        image: '/news/puzzle_annonce.png'
 	};
 
 	const LOCAL_KEY = 'closedBannerTitle';
@@ -44,21 +44,21 @@
 </script>
 
 {#if showNews}
-    <div class="fixed inset-0 z-50 flex items-center justify-center">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/40"></div>
-        <div class="relative bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 z-10">
+        <div class="relative bg-white rounded-lg shadow-lg max-w-[min(42rem,90vw)] max-h-[90vh] z-10 flex flex-col">
             <button aria-label="Fermer" class="absolute top-3 right-3 text-gray-300 hover:text-gray-700" onclick={closeNews}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
 
-            <div class="flex flex-col items-center justify-center">
+            <div class="flex flex-col items-center justify-center overflow-hidden">
                 {#if newsBanner.image}
-                    <img src={newsBanner.image} alt="Annonce : white tile" class="w-full h-auto rounded" />
+                    <img src={newsBanner.image} alt="Annonce : white tile" class="w-full h-auto max-h-[calc(90vh-6rem)] rounded object-contain" />
                 {/if}
-                <h2 class="text-lg font-semibold text-gray-900 mt-3 px-4 text-center">{newsBanner.title}</h2>
-                <p class="text-sm text-gray-600 mt-2 px-4 pb-4 text-center">{newsBanner.message}</p>
+                <!-- <h2 class="text-lg font-semibold text-gray-900 mt-3 px-4 text-center">{newsBanner.title}</h2>
+                <p class="text-sm text-gray-600 mt-2 px-4 pb-4 text-center">{newsBanner.message}</p> -->
             </div>
         </div>
     </div>

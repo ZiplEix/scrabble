@@ -5,6 +5,7 @@
 	import { api } from '$lib/api';
 	import PuzzleTimer from '$lib/components/PuzzleTimer.svelte';
 	import GameBoard from '$lib/components/GameBoard.svelte';
+	import Board from '$lib/components/Board.svelte';
 	import { useBoardGame } from '$lib/hooks/useBoardGame.svelte';
 	import { pendingMove } from '$lib/stores/pendingMove';
 	import type { PuzzleInfo, PuzzleAttempt } from '$lib/types/puzzle';
@@ -20,6 +21,8 @@
 	let timeoutSeconds = $state(0);
 	let timedOut = $state(false);
 	let puzzleGame = $state<GameInfo | null>(null);
+	let submittedWords = $derived((submitted?.words_played ?? []) as Array<{ word: string; position: string; direction: string; score: number }>);
+	let submittedPuzzleGame = $derived(puzzleGame ? buildGameWithSubmittedWords(puzzleGame, submittedWords) : null);
 
 	const boardGame = useBoardGame({
 		get simulateScoreEndpoint() {
@@ -61,11 +64,31 @@
 				attemptId = startRes.data.attempt_id;
 				startedAt = new Date(startRes.data.started_at);
 				timeoutSeconds = startRes.data.timeout_seconds;
+			} else if (puzzle?.has_player_attempted) {
+				await loadSubmittedAttempt(puzzle.id);
 			}
 		} catch (e: any) {
 			error = e?.response?.data?.message || 'Erreur lors du chargement du puzzle';
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function loadSubmittedAttempt(puzzleId: string) {
+		try {
+			const historyRes = await api.get('/puzzles?limit=50&offset=0');
+			const history = (historyRes.data || []) as Array<{
+				id: string;
+				has_attempted: boolean;
+				player_attempt?: PuzzleAttempt;
+			}>;
+
+			const item = history.find((h) => h.id === puzzleId && h.has_attempted && h.player_attempt);
+			if (item?.player_attempt) {
+				submitted = item.player_attempt;
+			}
+		} catch (e) {
+			console.warn('Impossible de charger la tentative existante du puzzle', e);
 		}
 	}
 
@@ -161,6 +184,32 @@
 		};
 		return labels[level] || `Niveau ${level}`;
 	}
+
+	function buildGameWithSubmittedWords(base: GameInfo, words: Array<{ word: string; position: string; direction: string }>): GameInfo {
+		const board = base.board.map((row) => [...row]);
+
+		for (const w of words) {
+			const [sx, sy] = w.position.split(',').map((n) => Number.parseInt(n, 10));
+			if (!Number.isFinite(sx) || !Number.isFinite(sy)) continue;
+
+			const horizontal = w.direction === 'horizontal';
+			for (let i = 0; i < w.word.length; i++) {
+				const x = horizontal ? sx + i : sx;
+				const y = horizontal ? sy : sy + i;
+				if (x < 0 || x >= 15 || y < 0 || y >= 15) break;
+				const ch = w.word[i]?.toUpperCase?.() ?? '';
+				if (!ch) continue;
+				if (!board[y][x] || board[y][x] === ch) {
+					board[y][x] = ch;
+				}
+			}
+		}
+
+		return {
+			...base,
+			board
+		};
+	}
 </script>
 
 {#snippet historyButton()}
@@ -212,6 +261,32 @@
 							</p>
 						</div>
 					</div>
+					{#if submittedWords.length > 0}
+						<div class="mt-4 rounded-lg bg-white p-3 ring-1 ring-emerald-100">
+							<p class="text-sm font-semibold text-gray-900 mb-2">Grille de votre tentative</p>
+							<div class="mx-auto w-full max-w-[min(95vw,520px)]">
+								<div class="mx-auto rounded-sm ring-1 ring-black/5 bg-white shadow p-2" style="width: min(95vw, 100%); height: min(95vw, 100%);">
+									<Board
+										game={submittedPuzzleGame}
+										onPlaceLetter={() => {}}
+										onTakeFromBoard={() => {}}
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div class="mt-4 rounded-lg bg-white p-4 ring-1 ring-emerald-100">
+							<p class="text-sm font-semibold text-gray-900 mb-2">Vos mots joués</p>
+							<ul class="space-y-1">
+								{#each (submittedWords as Array<{ word: string; position: string; direction: string; score: number }>) as w}
+									<li class="flex items-center justify-between text-sm text-gray-700">
+										<span>{w.word} ({w.position}, {w.direction === 'horizontal' ? 'horizontale' : 'verticale'})</span>
+										<span class="font-semibold text-emerald-700">{w.score} pts</span>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					{/if}
 					<a href={puzzle ? `/puzzles/${puzzle.id}` : '/puzzles'} class="inline-flex mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700">
 						Voir le classement
 					</a>

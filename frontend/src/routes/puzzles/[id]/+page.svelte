@@ -27,6 +27,16 @@
 		const labels: Record<number, string> = { 0: 'Infini', 1: 'Facile', 2: 'Moyen', 3: 'Difficile' };
 		return labels[level] || 'Inconnu';
 	}
+
+	function normalizeBoard(raw: any): string[][] {
+		if (!Array.isArray(raw)) {
+			return Array.from({ length: 15 }, () => Array.from({ length: 15 }, () => ''));
+		}
+		return raw.map((row: any) => {
+			if (!Array.isArray(row)) return Array.from({ length: 15 }, () => '');
+			return row.map((cell: any) => (typeof cell === 'string' ? cell : ''));
+		});
+	}
 </script>
 
 {#snippet historyButton()}
@@ -73,7 +83,7 @@
 
 		<div class="rounded-lg border border-gray-200 p-6 bg-gray-50">
 			<h3 class="text-lg font-bold text-gray-900 mb-4">Classement du jour</h3>
-			<PuzzleLeaderboard puzzleId={puzzle.id} />
+			<PuzzleLeaderboard puzzleId={puzzle.id} puzzleBoard={normalizeBoard(puzzle.board)} />
 		</div>
 	{/if}
 </main>

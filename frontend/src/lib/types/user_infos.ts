@@ -10,6 +10,8 @@ export type UserInfos = {
     best_score_top_percent?: number;
     victories: number;
     victories_top_percent?: number;
+    puzzle_wins?: number;
+    puzzle_wins_top_percent?: number;
     avg_score: number;
     avg_score_top_percent?: number;
     avg_points_per_move?: number;
@@ -30,6 +32,7 @@ export let defaultUserInfos = {
     games_count: 0,
     best_score: 0,
     victories: 0,
+    puzzle_wins: 0,
     avg_score: 0,
     avg_points_per_move: 0,
     best_move_score: 0,
