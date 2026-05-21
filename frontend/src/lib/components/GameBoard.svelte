@@ -57,10 +57,13 @@
 		disabled = false,
 	}: Props = $props();
 
+	let selectedTile = $state<{ id: string; char: string } | null>(null);
+
 	function onPlaceLetter(x: number, y: number, _cell: string) {
-		// Placement par drag-drop uniquement (géré par onDropFromRack).
-		// Cette fonction reste pour compatibilité avec Board.svelte.
-		void x; void y;
+		if (selectedTile) {
+			onDropFromRack(selectedTile.char, x, y, selectedTile.id);
+			selectedTile = null; // deselect after placing
+		}
 	}
 
 	let hasPendingLetters = $derived($pendingMove.length > 0);
@@ -110,6 +113,15 @@
 								role="button"
 								tabindex="0"
 								draggable={!disabled}
+								onclick={() => {
+									if (!disabled) {
+										if (selectedTile?.id === item.id) {
+											selectedTile = null; // deselect
+										} else {
+											selectedTile = { id: item.id, char: item.char };
+										}
+									}
+								}}
 								ondragstart={(e) => {
 									e.dataTransfer?.setData('text/plain', JSON.stringify({ char: item.char }));
 									try { e.dataTransfer!.effectAllowed = 'move'; e.dataTransfer!.dropEffect = 'move'; } catch {}
@@ -120,13 +132,13 @@
 								ondragend={() => {
 									try { (window as any).__draggedTile = null; (window as any).__dndActive = false; } catch {}
 								}}
-								class="relative inline-flex m-1 w-11 h-11 rounded-xl text-center text-lg font-bold items-center justify-center select-none
-								bg-gradient-to-br from-amber-50 to-amber-100 text-gray-900 ring-1 ring-amber-300/60 shadow-sm
-								{disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:translate-y-[1px] active:scale-95 transition'}"
+								class="relative inline-flex m-1 w-11 h-11 rounded-xl text-center text-lg font-bold items-center justify-center select-none transition-all duration-150
+								{selectedTile?.id === item.id ? 'bg-gradient-to-br from-amber-100 to-amber-200 text-stone-900 ring-2 ring-brand-gold gold-glow scale-105 border-brand-gold/40' : 'bg-gradient-to-br from-amber-50 to-brand-gold-light text-stone-850 ring-1 ring-amber-300/50 shadow-sm'}
+								{disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:translate-y-[-1px] active:scale-95'}"
 								animate:flip={{ duration: 200, easing: cubicOut }}
 							>
 								{item.char}
-								<span class="absolute bottom-0.5 right-1 text-[10px] font-normal text-gray-600">
+								<span class="absolute bottom-0.5 right-1 text-[10px] font-normal text-stone-500">
 									{letterValues[item.char] ?? (item.char === '?' ? 0 : '')}
 								</span>
 							</div>

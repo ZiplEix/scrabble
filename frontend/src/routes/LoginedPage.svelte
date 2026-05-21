@@ -65,158 +65,143 @@
     }
 </script>
 
-<div class="">
-	<!-- HEADER (centré, sans bordure) -->
-	<header class="px-4 pt-5 text-center">
-		<h1 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
-			Scrabble
+<div class="px-4 py-6 max-w-xl mx-auto flex flex-col gap-6">
+	
+	<!-- HEADER -->
+	<header class="text-center">
+		<h1 class="text-3xl font-black tracking-tight bg-gradient-to-r from-brand-emerald to-brand-gold bg-clip-text text-transparent select-none">
+			SCRABBLE
 		</h1>
-		<p class="mt-1 text-[12px] text-gray-600">Joue avec tes amis, partout.</p>
+		<p class="text-[11px] font-semibold text-stone-500 uppercase tracking-widest mt-1">Jeu en famille</p>
 	</header>
 
-	<!-- HERO + CTA avec dégradé vert -->
-	<section class="px-4 pt-4 pb-3">
-		<div class="max-w-2xl mx-auto">
-			<div class="rounded-2xl bg-emerald-50 ring-1 ring-black/5 p-4">
+	<!-- HERO + CTA CARD -->
+	<section class="w-full">
+		<div class="rounded-3xl glass-card border border-white/60 p-5 shadow-xl relative overflow-hidden">
+			<!-- Spark decorations -->
+			<div class="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-brand-gold/10 blur-lg"></div>
+			<div class="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-brand-emerald/10 blur-lg"></div>
+
+			<div class="flex items-center justify-between gap-4 relative z-10">
+				<div class="min-w-0">
+					<h2 class="text-xl font-extrabold text-stone-800 truncate">Bonjour {$user?.username ?? 'joueur'} 👋</h2>
+					<p class="text-xs text-stone-500 mt-1 leading-normal">Reprenez une grille ou lancez un défi à un proche.</p>
+				</div>
+				<button 
+					onclick={createGame} 
+					class="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-emerald text-white shadow-lg shadow-brand-emerald/20 hover:bg-brand-emerald-hover active:scale-95 transition-all"
+					aria-label="Nouvelle partie"
+					title="Créer une nouvelle partie"
+				>
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+					</svg>
+				</button>
+			</div>
+		</div>
+
+		<!-- Daily challenge banner -->
+		{#if showDailyChallenge}
+			<a
+				href="/puzzles"
+				class="mt-4 block rounded-3xl bg-gradient-to-r from-brand-gold-light to-amber-50/70 border border-brand-gold/20 p-4 hover:border-brand-gold/40 shadow-md active:scale-[0.99] transition-all"
+				aria-label="Accéder au défi quotidien"
+			>
 				<div class="flex items-center justify-between gap-3">
 					<div class="min-w-0">
-						<h2 class="text-lg font-bold text-gray-900 truncate">Bonjour {$user?.username ?? 'joueur'} 👋</h2>
-						<p class="text-[12px] text-gray-700">Reprenez une partie ou lancez-en une nouvelle.</p>
+						<div class="flex items-center gap-1.5">
+							<span class="text-xs">🏆</span>
+							<p class="text-[10px] font-bold uppercase tracking-wider text-brand-gold-hover">Défi du jour</p>
+						</div>
+						<p class="text-sm font-extrabold text-stone-800 mt-1">Votre entraînement quotidien attend !</p>
+						<p class="text-[11px] text-stone-500 mt-0.5">Faites votre meilleure tentative et comparez votre score.</p>
 					</div>
-					<button onclick={createGame} class="inline-flex items-center gap-2 bg-green-600 text-white p-2 rounded-full shadow hover:bg-green-700">
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-						<span class="hidden sm:inline">Nouvelle</span>
-					</button>
+					<div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-white text-brand-gold border border-brand-gold/30 shadow-sm">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+						</svg>
+					</div>
 				</div>
-			</div>
+			</a>
+		{/if}
+	</section>
 
-			{#if showDailyChallenge}
-				<a
-					href="/puzzles"
-					class="mt-3 block rounded-2xl bg-gradient-to-r from-amber-50 to-lime-50 ring-1 ring-amber-200/70 p-4 hover:from-amber-100 hover:to-lime-100 transition"
-					aria-label="Accéder au défi quotidien"
+	<!-- SEGMENT CONTROL & SEARCH -->
+	<section class="flex flex-col gap-3">
+		<!-- Segment Controls (Rounded Tab) -->
+		<div class="rounded-2xl bg-stone-200/50 p-1 border border-stone-200/20">
+			<div class="grid grid-cols-3 gap-1">
+				<button
+					class="py-2.5 px-3 text-xs font-bold rounded-xl text-center transition-all {tab === 'myturn' ? 'bg-white text-brand-emerald shadow-md' : 'text-stone-600 hover:text-stone-800'}"
+					aria-pressed={tab === 'myturn'}
+					onclick={() => tab = 'myturn'}
 				>
-					<div class="flex items-center justify-between gap-3">
-						<div class="min-w-0">
-							<p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Défi du jour</p>
-							<p class="text-sm font-medium text-gray-900">Ton défi quotidien t'attend.</p>
-							<p class="text-xs text-gray-700 mt-0.5">Fais ta tentative et grimpe dans le classement.</p>
-						</div>
-						<div class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-white ring-1 ring-amber-200 text-amber-700">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-						</div>
-					</div>
-				</a>
-			{/if}
-		</div>
-	</section>
-
-	<!-- SEGMENTED CONTROL + SEARCH -->
-	<section class="px-4 pt-4 gap-2 flex flex-col mb-2">
-		<div class="w-full max-w-2xl mx-auto">
-			<div class="w-full rounded-full bg-white ring-1 ring-black/5 p-1 shadow-sm">
-				<div class="grid grid-cols-3 gap-1">
-					<button
-						class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {tab==='myturn' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
-						aria-pressed={tab==='myturn'}
-						onclick={() => tab='myturn'}
-					>
-						À mon tour
-					</button>
-					<button
-						class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {tab==='ongoing' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
-						aria-pressed={tab==='ongoing'}
-						onclick={() => tab='ongoing'}
-					>
-						En cours
-					</button>
-					<button
-						class="w-full text-center px-3 py-1.5 text-sm rounded-full transition {tab==='finished' ? 'bg-emerald-600 text-white shadow font-bold' : 'text-gray-700 hover:bg-gray-50'}"
-						aria-pressed={tab==='finished'}
-						onclick={() => tab='finished'}
-					>
-						Terminées
-					</button>
-				</div>
+					À mon tour
+				</button>
+				<button
+					class="py-2.5 px-3 text-xs font-bold rounded-xl text-center transition-all {tab === 'ongoing' ? 'bg-white text-brand-emerald shadow-md' : 'text-stone-600 hover:text-stone-800'}"
+					aria-pressed={tab === 'ongoing'}
+					onclick={() => tab = 'ongoing'}
+				>
+					En cours
+				</button>
+				<button
+					class="py-2.5 px-3 text-xs font-bold rounded-xl text-center transition-all {tab === 'finished' ? 'bg-white text-brand-emerald shadow-md' : 'text-stone-600 hover:text-stone-800'}"
+					aria-pressed={tab === 'finished'}
+					onclick={() => tab = 'finished'}
+				>
+					Terminées
+				</button>
 			</div>
 		</div>
-		<div class="w-full max-w-2xl mx-auto">
-			<div class="relative">
-				<svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-					<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
-					<path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-				</svg>
-				<input
-					class="w-full h-10 rounded-full bg-white ring-1 ring-black/5 shadow-sm pr-3 pl-9 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-					placeholder="Rechercher une partie..."
-					bind:value={q}
-					type="search"
-				/>
-			</div>
+
+		<!-- Search Bar -->
+		<div class="relative">
+			<svg class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+			</svg>
+			<input
+				class="w-full h-11 bg-white/70 border border-stone-200/80 rounded-2xl pr-4 pl-11 text-xs placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-emerald/40 focus:border-brand-emerald shadow-sm transition-all"
+				placeholder="Rechercher une partie par nom..."
+				bind:value={q}
+				type="search"
+			/>
 		</div>
 	</section>
 
-	<!-- LIST -->
-	<section class="px-4 py-3">
-		<div class="max-w-2xl mx-auto">
-			{#if tab === 'myturn'}
-				<GameList
-					games={myTurnGames.filter(g => g.name.toLowerCase().includes(q.toLowerCase()))}
-					{onDelete}
-					{onRename}
-					placeholder="Aucune partie à jouer pour le moment."
-					showTurnOf={true}
-					showLastPlayTime={true}
-					winning={false}
-				/>
-			{:else if tab === 'ongoing'}
-				<GameList
-					games={ongoingGame.filter(g => g.name.toLowerCase().includes(q.toLowerCase()))}
-					{onDelete}
-					{onRename}
-					placeholder="Aucune partie en cours."
-					showTurnOf={true}
-					showLastPlayTime={true}
-					winning={false}
-				/>
-			{:else}
-				<GameList
-					games={finishedGames.filter(g => g.name.toLowerCase().includes(q.toLowerCase()))}
-					{onDelete}
-					placeholder="Aucune partie terminée."
-					{onRename}
-					winning={true}
-					showTurnOf={false}
-					showLastPlayTime={false}
-				/>
-			{/if}
-		</div>
+	<!-- GAMES LIST -->
+	<section class="flex-1">
+		{#if tab === 'myturn'}
+			<GameList
+				games={myTurnGames.filter(g => g.name.toLowerCase().includes(q.toLowerCase()))}
+				{onDelete}
+				{onRename}
+				placeholder="Aucune partie en attente de votre coup ! ✨"
+				showTurnOf={true}
+				showLastPlayTime={true}
+				winning={false}
+			/>
+		{:else if tab === 'ongoing'}
+			<GameList
+				games={ongoingGame.filter(g => g.name.toLowerCase().includes(q.toLowerCase()))}
+				{onDelete}
+				{onRename}
+				placeholder="Aucune autre partie en cours en ce moment."
+				showTurnOf={true}
+				showLastPlayTime={true}
+				winning={false}
+			/>
+		{:else}
+			<GameList
+				games={finishedGames.filter(g => g.name.toLowerCase().includes(q.toLowerCase()))}
+				{onDelete}
+				placeholder="Aucune partie terminée pour l'instant."
+				{onRename}
+				winning={true}
+				showTurnOf={false}
+				showLastPlayTime={false}
+			/>
+		{/if}
 	</section>
 
-	<!-- Actions globales (hors parties) -->
-	<div class="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+16px)] flex flex-col items-end gap-2 z-40">
-		<!-- Secondaires -->
-		<a href="/leaderboard" title="Classement" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Classement">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 20h12M7 20V9m5 11V4m5 16v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-		</a>
-		<a href="/puzzles" title="Puzzle du jour" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Puzzle du jour">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-		</a>
-		<a href="/report" title="Reports" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Reports">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-		</a>
-		<a href="/me" title="Profil" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Profil">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" stroke="currentColor" stroke-width="2"/><path d="M4 20a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-		</a>
-		<!-- Principale: créer une partie -->
-		<button
-			onclick={createGame}
-			class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-600 text-white shadow-lg hover:bg-green-700 active:scale-95 transition"
-			style="padding-bottom: calc(env(safe-area-inset-bottom) / 4);"
-			aria-label="Créer une nouvelle partie"
-			title="Nouvelle partie"
-		>
-			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-		</button>
-	</div>
 </div>

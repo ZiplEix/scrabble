@@ -1,7 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import type { Writable } from "svelte/store";
-    import ChatRedirectionButton from "./ChatRedirectionButton.svelte";
 
     let { showScores, gameId }: {
         showScores: Writable<boolean>;
@@ -31,9 +30,6 @@
 <svelte:window onclick={handleWindowClick} on:keydown={handleWindowKey} />
 
 <div class="relative px-3 flex items-center gap-2" bind:this={root}>
-    <!-- chat redirection -->
-    <ChatRedirectionButton gameId={gameId} />
-
     <!-- burger/ellipsis menu opener -->
     <button
         class="shrink-0 h-9 w-9 grid place-items-center rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-700/30"
@@ -65,19 +61,6 @@
             >
                 🛠️ Reporter un bug
             </a>
-            <a
-                href={`/games/${gameId}/history`}
-                class="block px-3 py-2 text-sm hover:bg-gray-50"
-                onclick={closeMenu}
-            >
-                📜 Historique
-            </a>
-            <button
-                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between"
-                onclick={() => { goto(`/games/${gameId}/dictionnaire`); closeMenu(); }}
-            >
-                <span>📖 Dictionnaire</span>
-            </button>
         </div>
     {/if}
 </div>

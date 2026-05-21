@@ -141,10 +141,14 @@
 	// }
 
 	function handleCellClick(x: number, y: number) {
-		// only act if there's a pending move at these coords
 		const moves = get(pendingMove);
 		const idx = moves.findIndex(m => m.x === x && m.y === y);
-		if (idx === -1) return;
+		if (idx === -1) {
+			if (typeof onPlaceLetter === 'function') {
+				onPlaceLetter(x, y, '');
+			}
+			return;
+		}
 		if (typeof onTakeFromBoard === 'function') {
 			onTakeFromBoard(x, y);
 		} else {
