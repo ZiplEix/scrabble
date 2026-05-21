@@ -7,11 +7,22 @@
 	import { tick } from 'svelte';
   	import type { GameInfo } from '$lib/types/game_infos';
 
-	let { game, onPlaceLetter, onDropFromRack, onTakeFromBoard }: {
+	let {
+		game,
+		onPlaceLetter,
+		onDropFromRack,
+		onTakeFromBoard,
+		selectedBoardCell = null,
+		selectedTile = null,
+		onSelectBoardCell
+	}: {
 		game: GameInfo | null;
 		onPlaceLetter: (x: number, y: number, cell: string) => void;
 		onDropFromRack?: (char: string, x: number, y: number, id?: string) => void;
 		onTakeFromBoard?: (x: number, y: number) => void;
+		selectedBoardCell?: { x: number; y: number } | null;
+		selectedTile?: { id: string; char: string } | null;
+		onSelectBoardCell?: (x: number | null, y?: number | null) => void;
 	} = $props();
 
 	type DisplayCell = {
@@ -21,6 +32,7 @@
 		points: number | null;
 		className: string;
 		isPlacedLetter?: boolean;
+		isPending?: boolean;
 		isBlank?: boolean;
 	};
 
@@ -54,7 +66,7 @@
 				const inLastTurn = lastMoveCoords.some(p => p.x === x && p.y === y);
 				const isHistoricBlank = !!game?.blank_tiles?.some((b) => b.x === x && b.y === y);
 
-				let base = "relative aspect-square w-full text-center flex items-center justify-center border border-gray-300 cursor-pointer select-none overflow-hidden";
+				let base = "relative aspect-square w-full text-center flex items-center justify-center border border-black/5 cursor-pointer select-none overflow-hidden";
 				let color = "";
 
 				if (isPlacedLetter) {
@@ -66,31 +78,32 @@
 				} else {
 					switch (special) {
 						case "TW":
-							color = "bg-red-500 text-white text-xs";
+							color = "bg-rose-500 text-white text-[9px] sm:text-[11px] font-black tracking-tight";
 							break;
 						case "DW":
 						case "★":
-							color = "bg-pink-300 text-xs";
+							color = "bg-pink-300 text-stone-850 text-[9px] sm:text-[11px] font-black tracking-tight";
 							break;
 						case "TL":
-							color = "bg-blue-700 text-white text-xs";
+							color = "bg-blue-600 text-white text-[9px] sm:text-[11px] font-black tracking-tight";
 							break;
 						case "DL":
-							color = "bg-blue-400 text-xs";
+							color = "bg-sky-300 text-stone-850 text-[9px] sm:text-[11px] font-black tracking-tight";
 							break;
 						default:
-							color = "bg-green-600";
+							color = "bg-emerald-700";
 							break;
 					}
 				}
 
-					return {
+				return {
 					x, y,
 					char: displayed,
 					points: (pending?.blank || isHistoricBlank) ? 0 : (/^[A-Z]$/.test(displayed) ? letterValues[displayed] : null),
-						className: `${base} ${color}`,
-						isPlacedLetter,
-						isBlank: !!pending?.blank || isHistoricBlank
+					className: `${base} ${color}`,
+					isPlacedLetter,
+					isPending: !!pending,
+					isBlank: !!pending?.blank || isHistoricBlank
 				};
 			})
 		);
@@ -102,26 +115,54 @@
 	// track last hovered cell during drag to find true drop target
 	let lastHovered: { x: number; y: number } | null = null;
 
+	function mapCellToItem(c: DisplayCell, isSelected: boolean) {
+		let finalClassName = c.className;
+		if (isSelected) {
+			// Warm golden pulsing selection highlight using built-in Tailwind animate-pulse!
+			finalClassName = "relative aspect-square w-full text-center flex items-center justify-center cursor-pointer select-none overflow-hidden rounded-sm bg-amber-100 text-stone-900 ring-2 ring-brand-gold/50 border border-brand-gold animate-pulse z-10";
+		} else if (c.isPlacedLetter) {
+			// Clean, flat tile styling (no 3D effect, no hover scaling, completely static)
+			if (c.className.includes("bg-orange-200")) {
+				// Letters played in the last move
+				finalClassName = "relative aspect-square w-full text-center flex items-center justify-center select-none overflow-hidden rounded-sm bg-orange-100 text-orange-950 font-bold border border-orange-400";
+			} else {
+				// Regular played letters on the board
+				finalClassName = "relative aspect-square w-full text-center flex items-center justify-center select-none overflow-hidden rounded-sm bg-stone-50 text-stone-800 font-bold border border-stone-200";
+			}
+		} else if (c.isPending) {
+			// Pending letter placement: modern, extremely high-contrast, premium indigo style!
+			// Deep rich indigo background, solid white text, crisp borders & modern ring shadow
+			finalClassName = "relative aspect-square w-full text-center flex items-center justify-center cursor-pointer select-none overflow-hidden rounded-sm bg-indigo-600 text-white font-black border border-indigo-700 ring-2 ring-indigo-500/30 shadow-md z-10";
+		}
+
+		return {
+			id: `cell-${c.y}-${c.x}`,
+			slotId: `${c.y}-${c.x}`,
+			x: c.x,
+			y: c.y,
+			char: c.char,
+			points: c.points,
+			className: finalClassName,
+			disabled: !!c.isPlacedLetter,
+			dragDisabled: true,
+			type: 'board-cell',
+			isSelected,
+			isPending: c.isPending,
+			isBlank: c.isBlank
+		};
+	}
+
 	// rebuild base items from computedBoard whenever it changes
 	$effect(() => {
-		// when a dnd is active, don't overwrite boardItems so svelte-dnd-action can keep the temporary inserted item
 		try {
 			if ((window as any).__dndActive) return;
 		} catch (err) {}
 		if ($computedBoard) {
 			const flat = $computedBoard.flat();
-			const base = flat.map(c => ({
-				id: `cell-${c.y}-${c.x}`,
-				slotId: `${c.y}-${c.x}`,
-				x: c.x,
-				y: c.y,
-						char: c.char,
-				points: c.points,
-						className: c.className,
-						disabled: !!c.isPlacedLetter,
-						dragDisabled: true,
-						type: 'board-cell'
-			}));
+			const base = flat.map(c => {
+				const isSelected = selectedBoardCell && selectedBoardCell.x === c.x && selectedBoardCell.y === c.y;
+				return mapCellToItem(c, !!isSelected);
+			});
 			boardItems.set(base);
 		}
 	});
@@ -144,8 +185,18 @@
 		const moves = get(pendingMove);
 		const idx = moves.findIndex(m => m.x === x && m.y === y);
 		if (idx === -1) {
-			if (typeof onPlaceLetter === 'function') {
-				onPlaceLetter(x, y, '');
+			if (selectedTile) {
+				if (typeof onPlaceLetter === 'function') {
+					onPlaceLetter(x, y, '');
+				}
+			} else {
+				if (typeof onSelectBoardCell === 'function') {
+					if (selectedBoardCell && selectedBoardCell.x === x && selectedBoardCell.y === y) {
+						onSelectBoardCell(null);
+					} else {
+						onSelectBoardCell(x, y);
+					}
+				}
 			}
 			return;
 		}
@@ -208,16 +259,10 @@
 				if (String(it.id).startsWith('cell-')) {
 					const origIndex = originalIds.indexOf(it.id);
 					if (origIndex !== -1 && origIndex !== i) {
-						const baseRestore = flat.map(c => ({
-							id: `cell-${c.y}-${c.x}`,
-							slotId: `${c.y}-${c.x}`,
-							x: c.x,
-							y: c.y,
-							char: c.char,
-							points: c.points,
-							className: c.className,
-							disabled: !!c.isPlacedLetter
-						}));
+						const baseRestore = flat.map(c => {
+							const isSelected = selectedBoardCell && selectedBoardCell.x === c.x && selectedBoardCell.y === c.y;
+							return mapCellToItem(c, !!isSelected);
+						});
 						boardItems.set(baseRestore);
 						return;
 					}
@@ -232,34 +277,26 @@
 				const itAtExpected = items[expectedIndex];
 				if (!itAtExpected || String(itAtExpected.id) !== originalId) {
 					// More than a simple insertion occurred -> reject and restore
-					const baseRestore = flat.map(c => ({
-						id: `cell-${c.y}-${c.x}`,
-						slotId: `${c.y}-${c.x}`,
-						x: c.x,
-						y: c.y,
-						char: c.char,
-						points: c.points,
-						className: c.className,
-						disabled: !!c.isPlacedLetter
-					}));
+					const baseRestore = flat.map(c => {
+						const isSelected = selectedBoardCell && selectedBoardCell.x === c.x && selectedBoardCell.y === c.y;
+						return mapCellToItem(c, !!isSelected);
+					});
 					boardItems.set(baseRestore);
 					return;
 				}
 			}
 		}
-		const base = flat.map(c => ({
-			id: `cell-${c.y}-${c.x}`,
-			slotId: `${c.y}-${c.x}`,
-			x: c.x,
-			y: c.y,
-			char: c.char,
-			points: c.points,
-			className: c.className,
-			dragDisabled: true,
-			type: 'board-cell',
-			__isPreview: false,
-			__origChar: c.char
-		}));
+		const base = flat.map(c => {
+			const isSelected = selectedBoardCell && selectedBoardCell.x === c.x && selectedBoardCell.y === c.y;
+			const item = mapCellToItem(c, !!isSelected);
+			return {
+				...item,
+				dragDisabled: true,
+				type: 'board-cell',
+				__isPreview: false,
+				__origChar: c.char
+			};
+		});
 
 		// If there's an external item, create a silent preview entry so the DnD library can operate,
 		// but don't change the visible character in the UI (we'll render the original char while dragging).
@@ -362,18 +399,10 @@
 			try { (window as any).__dndActive = false; } catch (err) {}
 			if ($computedBoard) {
 				const flat = $computedBoard.flat();
-					const base = flat.map(c => ({
-						id: `cell-${c.y}-${c.x}`,
-						slotId: `${c.y}-${c.x}`,
-						x: c.x,
-						y: c.y,
-						char: c.char,
-						points: c.points,
-						className: c.className,
-						disabled: !!c.isPlacedLetter,
-						dragDisabled: true,
-						type: 'board-cell'
-					}));
+				const base = flat.map(c => {
+					const isSelected = selectedBoardCell && selectedBoardCell.x === c.x && selectedBoardCell.y === c.y;
+					return mapCellToItem(c, !!isSelected);
+				});
 				boardItems.set(base);
 			}
 			lastHovered = null;
@@ -383,7 +412,7 @@
 </script>
 
 <div
-	class="grid grid-cols-15 gap-[1px] border border-amber-500 w-full max-w-[95vw] mx-auto bg-amber-500"
+	class="grid grid-cols-15 gap-[1px] border border-amber-500 w-full max-w-full mx-auto bg-amber-500"
 	use:dndzone={{ items: $boardItems, dropFromOthersDisabled: false, dragDisabled: true }}
 	onconsider={({ detail }) => { handleConsider(detail); }}
 	onfinalize={({ detail }) => { handleFinalize(detail); }}
@@ -391,24 +420,26 @@
 	{#each $boardItems as item (item.id)}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					class={item.className + (item.disabled ? ' pointer-events-none' : '')}
-					draggable="false"
-					onclick={() => { if (!item.disabled) handleCellClick(item.x, item.y); }}
-					ondragover={(e) => { e.preventDefault(); }}
-					ondragenter={(e) => { e.preventDefault(); lastHovered = { x: item.x, y: item.y }; (e.currentTarget as HTMLElement).classList.add('drop-target'); }}
-					ondragleave={(e) => { e.preventDefault(); lastHovered = null; (e.currentTarget as HTMLElement).classList.remove('drop-target'); }}
-					ondrop={(e) => { (e.currentTarget as HTMLElement).classList.remove('drop-target'); }}
-				>
-			<span>{item.__isPreview ? item.__origChar : item.char}</span>
+		<div
+			class={item.className + (item.disabled ? ' pointer-events-none' : '')}
+			draggable="false"
+			onclick={() => { if (!item.disabled) handleCellClick(item.x, item.y); }}
+			ondragover={(e) => { e.preventDefault(); }}
+			ondragenter={(e) => { e.preventDefault(); lastHovered = { x: item.x, y: item.y }; (e.currentTarget as HTMLElement).classList.add('drop-target'); }}
+			ondragleave={(e) => { e.preventDefault(); lastHovered = null; (e.currentTarget as HTMLElement).classList.remove('drop-target'); }}
+			ondrop={(e) => { (e.currentTarget as HTMLElement).classList.remove('drop-target'); }}
+		>
+			<span class="text-[13px] sm:text-[18px] font-extrabold select-none transition-all duration-150">
+				{item.__isPreview ? item.__origChar : item.char}
+			</span>
 
 			{#if item.points !== null}
-				<span class="absolute bottom-[-1.5px] right-[0px] text-[8px] text-gray-600">
+				<span class="absolute bottom-[-1.5px] right-[1px] text-[7px] sm:text-[9px] font-bold tabular-nums {item.isPending ? 'text-indigo-200' : 'text-stone-600/90'}">
 					{item.points}
 				</span>
 			{/if}
 			{#if item.isBlank}
-				<span title="Joker" class="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-gray-500/70"></span>
+				<span title="Joker" class="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full {item.isPending ? 'bg-indigo-200' : 'bg-gray-500/70'}"></span>
 			{/if}
 		</div>
 	{/each}
@@ -424,5 +455,22 @@
 		outline: 3px solid rgba(255,255,255,0.6);
 		transform: scale(1.02);
 		transition: transform 0.08s ease;
+	}
+
+	@keyframes pulse-slow {
+		0%, 100% {
+			transform: scale(1.03);
+			box-shadow: 0 0 12px rgba(245, 158, 11, 0.5), inset 0 0 4px rgba(245, 158, 11, 0.2);
+			border-color: rgba(245, 158, 11, 0.8);
+		}
+		50% {
+			transform: scale(1.0);
+			box-shadow: 0 0 6px rgba(245, 158, 11, 0.2);
+			border-color: rgba(245, 158, 11, 0.4);
+		}
+	}
+
+	:global(.animate-pulse-slow) {
+		animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 	}
 </style>

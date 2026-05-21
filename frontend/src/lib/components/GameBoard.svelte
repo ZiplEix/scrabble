@@ -58,11 +58,20 @@
 	}: Props = $props();
 
 	let selectedTile = $state<{ id: string; char: string } | null>(null);
+	let selectedBoardCell = $state<{ x: number; y: number } | null>(null);
 
 	function onPlaceLetter(x: number, y: number, _cell: string) {
 		if (selectedTile) {
 			onDropFromRack(selectedTile.char, x, y, selectedTile.id);
 			selectedTile = null; // deselect after placing
+		}
+	}
+
+	function onSelectBoardCell(x: number | null, y?: number | null) {
+		if (x === null) {
+			selectedBoardCell = null;
+		} else {
+			selectedBoardCell = { x, y: y! };
 		}
 	}
 
@@ -75,17 +84,24 @@
 
 <div class="flex flex-col min-h-0 h-full flex-1 overflow-hidden">
 	<!-- Board -->
-	<div class="flex-1 grid place-items-center px-3 min-h-0">
-		<div class="mx-auto w-full max-w-[min(95vw,640px)]">
+	<div class="flex-1 grid place-items-center px-1 sm:px-3 min-h-0">
+		<div class="mx-auto w-full max-w-full sm:max-w-[640px]">
 			<div
-				class="mx-auto rounded-sm ring-1 ring-black/5 bg-white shadow p-2"
-				style="width: min(95vw, 100%); height: min(95vw, 100%);"
+				class="mx-auto rounded-xl ring-1 ring-black/5 bg-amber-500/10 shadow p-1 sm:p-2 border border-amber-500/20"
+				style="width: min(100vw - 8px, 100%); height: min(100vw - 8px, 100%);"
 			>
 				<Board
 					{game}
 					{onPlaceLetter}
+					{selectedBoardCell}
+					{selectedTile}
+					{onSelectBoardCell}
 					onTakeFromBoard={onTakeFromBoard}
-					onDropFromRack={(char, x, y, id) => onDropFromRack(char, x, y, id)}
+					onDropFromRack={(char, x, y, id) => {
+						onDropFromRack(char, x, y, id);
+						selectedBoardCell = null;
+						selectedTile = null;
+					}}
 				/>
 			</div>
 		</div>
@@ -115,10 +131,18 @@
 								draggable={!disabled}
 								onclick={() => {
 									if (!disabled) {
-										if (selectedTile?.id === item.id) {
-											selectedTile = null; // deselect
+										if (selectedBoardCell) {
+											// Board-First placement!
+											onDropFromRack(item.char, selectedBoardCell.x, selectedBoardCell.y, item.id);
+											selectedBoardCell = null;
+											selectedTile = null;
 										} else {
-											selectedTile = { id: item.id, char: item.char };
+											// Rack-First selection
+											if (selectedTile?.id === item.id) {
+												selectedTile = null; // deselect
+											} else {
+												selectedTile = { id: item.id, char: item.char };
+											}
 										}
 									}
 								}}
