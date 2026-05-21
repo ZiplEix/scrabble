@@ -9,14 +9,21 @@
     let games: GameSummary[] = $state<GameSummary[]>([]);
     let tab: 'myturn' | 'ongoing' | 'finished' = $state('myturn');
     let q = $state('');
+	let showDailyChallenge = $state(false);
 
     onMount(async () => {
         if ($user) {
             try {
-                const res = await api.get('/game');
-                games = res.data.games;
+				const [gamesRes, puzzleRes] = await Promise.all([
+					api.get('/game'),
+					api.get('/puzzles/today')
+				]);
+
+				games = gamesRes.data.games;
+				showDailyChallenge = puzzleRes.data?.has_player_attempted === false;
             } catch (err) {
                 console.error('Erreur en récupérant les parties', err);
+				showDailyChallenge = false;
             }
         }
     });
@@ -82,6 +89,25 @@
 					</button>
 				</div>
 			</div>
+
+			{#if showDailyChallenge}
+				<a
+					href="/puzzles"
+					class="mt-3 block rounded-2xl bg-gradient-to-r from-amber-50 to-lime-50 ring-1 ring-amber-200/70 p-4 hover:from-amber-100 hover:to-lime-100 transition"
+					aria-label="Accéder au défi quotidien"
+				>
+					<div class="flex items-center justify-between gap-3">
+						<div class="min-w-0">
+							<p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Défi du jour</p>
+							<p class="text-sm font-medium text-gray-900">Ton défi quotidien t'attend.</p>
+							<p class="text-xs text-gray-700 mt-0.5">Fais ta tentative et grimpe dans le classement.</p>
+						</div>
+						<div class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-white ring-1 ring-amber-200 text-amber-700">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						</div>
+					</div>
+				</a>
+			{/if}
 		</div>
 	</section>
 
@@ -172,6 +198,9 @@
 		<!-- Secondaires -->
 		<a href="/leaderboard" title="Classement" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Classement">
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 20h12M7 20V9m5 11V4m5 16v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+		</a>
+		<a href="/puzzles" title="Puzzle du jour" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Puzzle du jour">
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 		</a>
 		<a href="/report" title="Reports" class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white ring-1 ring-black/5 shadow hover:bg-gray-50" aria-label="Reports">
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>

@@ -536,50 +536,9 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 
 	// 7. Validation des mots
-	letterMap := make(map[Pos]string)
-	for _, l := range req.Letters {
-		letterMap[Pos{l.X, l.Y}] = l.Char
-	}
-	visited := make(map[Pos]bool)
-	words := []string{}
-	dirs := []struct{ dx, dy int }{{1, 0}, {0, 1}}
-	for _, l := range req.Letters {
-		for _, dir := range dirs {
-			startX, startY := l.X, l.Y
-			for {
-				nx, ny := startX-dir.dx, startY-dir.dy
-				if nx < 0 || nx >= 15 || ny < 0 || ny >= 15 || board[ny][nx] == "" {
-					break
-				}
-				startX, startY = nx, ny
-			}
-			word := ""
-			hasAtLeastTwo := false
-			x, y := startX, startY
-			for x >= 0 && x < 15 && y >= 0 && y < 15 {
-				letter := board[y][x]
-				if letter == "" {
-					break
-				}
-				word += letter
-				if _, ok := letterMap[Pos{x, y}]; ok {
-					hasAtLeastTwo = true
-				}
-				x += dir.dx
-				y += dir.dy
-			}
-			if len(word) > 1 && hasAtLeastTwo {
-				pos := Pos{startX, startY}
-				if !visited[pos] {
-					words = append(words, word)
-					visited[pos] = true
-				}
-			}
-		}
-	}
-	for _, w := range words {
-		if !word.WordExists(w) {
-			return fmt.Errorf("invalid word played: %s", w)
+	for _, fw := range extractFormedWords(board, req.Letters) {
+		if !word.WordExists(fw.Word) {
+			return fmt.Errorf("invalid word played: %s", fw.Word)
 		}
 	}
 

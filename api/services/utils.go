@@ -195,6 +195,109 @@ func applyLetters(board *[15][15]string, letters []request.PlacedLetter) error {
 	return nil
 }
 
+type formedWord struct {
+	Word           string
+	StartX, StartY int
+	DX, DY         int
+}
+
+// extractFormedWords retourne tous les mots (principal + croisés) créés par les lettres posées.
+func extractFormedWords(board [15][15]string, placed []request.PlacedLetter) []formedWord {
+	letterMap := make(map[Pos]struct{}, len(placed))
+	for _, l := range placed {
+		letterMap[Pos{l.X, l.Y}] = struct{}{}
+	}
+
+	visited := make(map[[4]int]bool)
+	words := []formedWord{}
+	dirs := []struct{ dx, dy int }{{1, 0}, {0, 1}}
+
+	for _, l := range placed {
+		for _, dir := range dirs {
+			startX, startY := l.X, l.Y
+			for {
+				nx, ny := startX-dir.dx, startY-dir.dy
+				if nx < 0 || nx >= 15 || ny < 0 || ny >= 15 || board[ny][nx] == "" {
+					break
+				}
+				startX, startY = nx, ny
+			}
+
+			wordText := ""
+			touchesNewTile := false
+			x, y := startX, startY
+			for x >= 0 && x < 15 && y >= 0 && y < 15 {
+				letter := board[y][x]
+				if letter == "" {
+					break
+				}
+				wordText += letter
+				if _, ok := letterMap[Pos{x, y}]; ok {
+					touchesNewTile = true
+				}
+				x += dir.dx
+				y += dir.dy
+			}
+
+			if len(wordText) <= 1 || !touchesNewTile {
+				continue
+			}
+
+			key := [4]int{startX, startY, dir.dx, dir.dy}
+			if visited[key] {
+				continue
+			}
+			visited[key] = true
+			words = append(words, formedWord{
+				Word:   wordText,
+				StartX: startX,
+				StartY: startY,
+				DX:     dir.dx,
+				DY:     dir.dy,
+			})
+		}
+	}
+
+	return words
+}
+
+func computeWordScore(board [15][15]string, fw formedWord, isNew map[Pos]bool, isBlank map[Pos]bool) int {
+	wordMultiplier := 1
+	wordScore := 0
+	x, y := fw.StartX, fw.StartY
+
+	for x >= 0 && x < 15 && y >= 0 && y < 15 {
+		letter := board[y][x]
+		if letter == "" {
+			break
+		}
+
+		letterScore := 0
+		if !isBlank[Pos{x, y}] {
+			letterScore = word.LetterValues[letter]
+		}
+
+		if isNew[Pos{x, y}] {
+			switch word.SpecialCells[[2]int{x, y}] {
+			case "DL":
+				letterScore *= 2
+			case "TL":
+				letterScore *= 3
+			case "DW", "★":
+				wordMultiplier *= 2
+			case "TW":
+				wordMultiplier *= 3
+			}
+		}
+
+		wordScore += letterScore
+		x += fw.DX
+		y += fw.DY
+	}
+
+	return wordScore * wordMultiplier
+}
+
 // computeMoveScore calcule le score du coup en tenant compte des jokers.
 // boardBlank indique quelles positions du plateau sont des jokers (0 point), y compris celles posées lors de coups précédents.
 func computeMoveScore(board [15][15]string, placed []request.PlacedLetter, boardBlank map[Pos]bool) int {
@@ -213,68 +316,11 @@ func computeMoveScore(board [15][15]string, placed []request.PlacedLetter, board
 			isBlank[p] = true
 		}
 	}
+
+	formed := extractFormedWords(board, placed)
 	total := 0
-
-	calcWord := func(startX, startY, dx, dy int) int {
-		wordMultiplier := 1
-		wordScore := 0
-		x, y := startX, startY
-		for x >= 0 && x < 15 && y >= 0 && y < 15 {
-			letter := board[y][x]
-			if letter == "" {
-				break
-			}
-			// score de la lettre (0 si joker à cette position)
-			letterScore := 0
-			if !isBlank[Pos{x, y}] {
-				letterScore = word.LetterValues[letter]
-			}
-			if isNew[Pos{x, y}] {
-				switch word.SpecialCells[[2]int{x, y}] {
-				case "DL":
-					// DL ne s'applique pas aux jokers (0 reste 0)
-					letterScore *= 2
-				case "TL":
-					// TL ne s'applique pas aux jokers
-					letterScore *= 3
-				case "DW", "★":
-					wordMultiplier *= 2
-				case "TW":
-					wordMultiplier *= 3
-				}
-			}
-			wordScore += letterScore
-			x += dx
-			y += dy
-		}
-		return wordScore * wordMultiplier
-	}
-
-	seen := make(map[Pos]bool)
-	for _, l := range placed {
-		for _, dir := range [][2]int{{1, 0}, {0, 1}} {
-			dx, dy := dir[0], dir[1]
-			startX, startY := l.X, l.Y
-			for {
-				nx, ny := startX-dx, startY-dy
-				if nx < 0 || ny < 0 || nx >= 15 || ny >= 15 || board[ny][nx] == "" {
-					break
-				}
-				startX, startY = nx, ny
-			}
-			word := ""
-			x, y := startX, startY
-			for x >= 0 && x < 15 && y >= 0 && y < 15 && board[y][x] != "" {
-				word += board[y][x]
-				x += dx
-				y += dy
-			}
-			wordPos := Pos{startX, startY}
-			if len(word) > 1 && !seen[wordPos] {
-				total += calcWord(startX, startY, dx, dy)
-				seen[wordPos] = true
-			}
-		}
+	for _, fw := range formed {
+		total += computeWordScore(board, fw, isNew, isBlank)
 	}
 	if len(placed) == 7 {
 		total += 50
