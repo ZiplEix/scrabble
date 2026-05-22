@@ -23,6 +23,19 @@
 	let puzzleGame = $state<GameInfo | null>(null);
 	let submittedWords = $derived((submitted?.words_played ?? []) as Array<{ word: string; position: string; direction: string; score: number }>);
 	let submittedPuzzleGame = $derived(puzzleGame ? buildGameWithSubmittedWords(puzzleGame, submittedWords) : null);
+	let attemptPlacedCoords = $derived((() => {
+		if (!puzzle || !submittedPuzzleGame) return [];
+		const coords: Array<{ x: number; y: number }> = [];
+		const originalBoard = normalizeBoard(puzzle.board);
+		for (let y = 0; y < 15; y++) {
+			for (let x = 0; x < 15; x++) {
+				if (originalBoard[y][x] === "" && submittedPuzzleGame.board[y][x] !== "") {
+					coords.push({ x, y });
+				}
+			}
+		}
+		return coords;
+	})());
 
 	const boardGame = useBoardGame({
 		get simulateScoreEndpoint() {
@@ -268,6 +281,7 @@
 								<div class="mx-auto rounded-sm ring-1 ring-black/5 bg-white shadow p-2" style="width: min(95vw, 100%); height: min(95vw, 100%);">
 									<Board
 										game={submittedPuzzleGame}
+										highlightRedCoords={attemptPlacedCoords}
 										onPlaceLetter={() => {}}
 										onTakeFromBoard={() => {}}
 									/>

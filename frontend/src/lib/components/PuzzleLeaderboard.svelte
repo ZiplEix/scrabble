@@ -17,6 +17,18 @@
 	let leaderboard = $state<PuzzleDailyLeaderboard[]>([]);
 	let selectedEntry = $state<PuzzleDailyLeaderboard | null>(null);
 	let previewGame = $derived(selectedEntry ? toPreviewGame(selectedEntry) : null);
+	let previewPlacedCoords = $derived((() => {
+		if (!puzzleBoard || !previewGame) return [];
+		const coords: Array<{ x: number; y: number }> = [];
+		for (let y = 0; y < 15; y++) {
+			for (let x = 0; x < 15; x++) {
+				if (puzzleBoard[y][x] === "" && previewGame.board[y][x] !== "") {
+					coords.push({ x, y });
+				}
+			}
+		}
+		return coords;
+	})());
 
 	onMount(async () => {
 		try {
@@ -145,6 +157,7 @@
 				<div class="mx-auto rounded-sm ring-1 ring-black/5 bg-white shadow p-2" style="width: min(95vw, 100%); height: min(95vw, 100%);">
 					<Board
 						game={previewGame}
+						highlightRedCoords={previewPlacedCoords}
 						onPlaceLetter={() => {}}
 						onTakeFromBoard={() => {}}
 					/>

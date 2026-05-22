@@ -14,7 +14,8 @@
 		onTakeFromBoard,
 		selectedBoardCell = null,
 		selectedTile = null,
-		onSelectBoardCell
+		onSelectBoardCell,
+		highlightRedCoords = []
 	}: {
 		game: GameInfo | null;
 		onPlaceLetter: (x: number, y: number, cell: string) => void;
@@ -23,6 +24,7 @@
 		selectedBoardCell?: { x: number; y: number } | null;
 		selectedTile?: { id: string; char: string } | null;
 		onSelectBoardCell?: (x: number | null, y?: number | null) => void;
+		highlightRedCoords?: Array<{ x: number; y: number }>;
 	} = $props();
 
 	type DisplayCell = {
@@ -53,7 +55,7 @@
 		})()
 	)
 
-	const computedBoard = derived(pendingMove, ($pendingMove) => {
+	let computedBoard = $derived((() => {
 		if (!game) return [];
 
 		return game.board.map((row: string[], y: number) =>
@@ -62,7 +64,7 @@
 				const special = specialCells.get(key);
 				const pending = $pendingMove.find((p) => p.x === x && p.y === y);
 				const displayed = cell || pending?.letter || special || '';
-					const isPlacedLetter = cell !== "" && !pending;
+				const isPlacedLetter = cell !== "" && !pending;
 				const inLastTurn = lastMoveCoords.some(p => p.x === x && p.y === y);
 				const isHistoricBlank = !!game?.blank_tiles?.some((b) => b.x === x && b.y === y);
 
@@ -107,7 +109,7 @@
 				};
 			})
 		);
-	});
+	})());
 
 	// boardItems is the dndzone items array representing each cell (15x15)
 	const boardItems = writable<any[]>([]);
@@ -117,7 +119,13 @@
 
 	function mapCellToItem(c: DisplayCell, isSelected: boolean) {
 		let finalClassName = c.className;
-		if (isSelected) {
+		const isRedHighlighted = highlightRedCoords.some(coord => coord.x === c.x && coord.y === c.y);
+
+		if (isRedHighlighted) {
+			// Red highlighted tiles for final puzzle attempt: premium high-contrast red/rose style!
+			// Deep rich crimson red background, solid white text, crisp borders & modern ring shadow
+			finalClassName = "relative aspect-square w-full text-center flex items-center justify-center cursor-pointer select-none overflow-hidden rounded-sm bg-red-600 text-white font-black border border-red-700 ring-2 ring-red-400/30 shadow-md z-10";
+		} else if (isSelected) {
 			// Warm golden pulsing selection highlight using built-in Tailwind animate-pulse!
 			finalClassName = "relative aspect-square w-full text-center flex items-center justify-center cursor-pointer select-none overflow-hidden rounded-sm bg-amber-100 text-stone-900 ring-2 ring-brand-gold/50 border border-brand-gold animate-pulse z-10";
 		} else if (c.isPlacedLetter) {
@@ -148,6 +156,7 @@
 			type: 'board-cell',
 			isSelected,
 			isPending: c.isPending,
+			isRedHighlighted,
 			isBlank: c.isBlank
 		};
 	}
@@ -157,8 +166,8 @@
 		try {
 			if ((window as any).__dndActive) return;
 		} catch (err) {}
-		if ($computedBoard) {
-			const flat = $computedBoard.flat();
+		if (computedBoard) {
+			const flat = computedBoard.flat();
 			const base = flat.map(c => {
 				const isSelected = selectedBoardCell && selectedBoardCell.x === c.x && selectedBoardCell.y === c.y;
 				return mapCellToItem(c, !!isSelected);
@@ -246,7 +255,7 @@
 		const items = detail.items as any[] | undefined;
 		if (!items) return;
 		// build base from computedBoard to keep array length/order stable
-		const flat = $computedBoard?.flat() || [];
+		const flat = computedBoard?.flat() || [];
 
  		// if the dnd is trying to reorder existing board cells, be lenient for a single insertion
  		const originalIds = flat.map((c: any) => `cell-${c.y}-${c.x}`);
@@ -358,8 +367,8 @@
 				}
 
 				// fallback 2: detect which cell changed by diffing items vs computedBoard chars
-				if (char === undefined && $computedBoard) {
-					const flatComputed = $computedBoard.flat();
+				if (char === undefined && computedBoard) {
+					const flatComputed = computedBoard.flat();
 					// items are the dndzone items; find first index where char differs from computedBoard
 					const diffIndex = items.findIndex((it, idx) => {
 						const computedChar = flatComputed[idx] ? (flatComputed[idx].char ?? '') : '';
@@ -397,8 +406,8 @@
 
 		} finally {
 			try { (window as any).__dndActive = false; } catch (err) {}
-			if ($computedBoard) {
-				const flat = $computedBoard.flat();
+			if (computedBoard) {
+				const flat = computedBoard.flat();
 				const base = flat.map(c => {
 					const isSelected = selectedBoardCell && selectedBoardCell.x === c.x && selectedBoardCell.y === c.y;
 					return mapCellToItem(c, !!isSelected);
@@ -434,12 +443,12 @@
 			</span>
 
 			{#if item.points !== null}
-				<span class="absolute bottom-[-1.5px] right-[1px] text-[7px] sm:text-[9px] font-bold tabular-nums {item.isPending ? 'text-indigo-200' : 'text-stone-600/90'}">
+				<span class="absolute bottom-[-1.5px] right-[1px] text-[7px] sm:text-[9px] font-bold tabular-nums {item.isPending ? 'text-indigo-200' : (item.isRedHighlighted ? 'text-red-200' : 'text-stone-600/90')}">
 					{item.points}
 				</span>
 			{/if}
 			{#if item.isBlank}
-				<span title="Joker" class="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full {item.isPending ? 'bg-indigo-200' : 'bg-gray-500/70'}"></span>
+				<span title="Joker" class="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full {item.isPending ? 'bg-indigo-200' : (item.isRedHighlighted ? 'bg-red-200' : 'bg-gray-500/70')}"></span>
 			{/if}
 		</div>
 	{/each}
