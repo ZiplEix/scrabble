@@ -80,3 +80,18 @@ export let defaultUserInfos = {
     turn_notifications_enabled: true,
     messages_notifications_enabled: true
 }
+
+export interface RatingHistoryGameInfo {
+    game_id: string;
+    opponent_username: string;
+    user_score: number;
+    opponent_score: number;
+    won: boolean;
+    ended_at: string;
+}
+
+export interface RatingHistoryResponse {
+    rating: number;
+    created_at: string;
+    game_info?: RatingHistoryGameInfo;
+}

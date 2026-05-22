@@ -7,12 +7,43 @@
     import MeAccount from '$lib/components/MeAccount.svelte';
     import MeOptions from '$lib/components/MeOptions.svelte';
     import AchievementsList from '$lib/components/AchievementsList.svelte';
-    import { defaultUserInfos, type UserInfos, type FriendInfo } from '$lib/types/user_infos';
+    import ProgressionChart from '$lib/components/ProgressionChart.svelte';
+    import { defaultUserInfos, type UserInfos, type FriendInfo, type RatingHistoryResponse } from '$lib/types/user_infos';
 
-    let active: 'stats' | 'achievements' | 'friends' | 'account' | 'options' = $state('stats');
+    let active: 'stats' | 'progression' | 'achievements' | 'friends' | 'account' | 'options' = $state('stats');
 
     let userInfos = $state<UserInfos>(defaultUserInfos);
     let friends = $state<FriendInfo[]>([]);
+
+    let limit = $state(25);
+    let ratingHistory = $state<RatingHistoryResponse[]>([]);
+    let isLoadingHistory = $state(false);
+
+    let historyRatings = $derived(ratingHistory.map(h => h.rating));
+    let peakRating = $derived(ratingHistory.length > 0 ? Math.max(...historyRatings, userInfos.rating) : userInfos.rating);
+    let ratingTrend = $derived(ratingHistory.length > 1 ? ratingHistory[ratingHistory.length - 1].rating - ratingHistory[0].rating : 0);
+    let gamesInPeriod = $derived(ratingHistory.filter(h => h.game_info));
+    let winsInPeriod = $derived(gamesInPeriod.filter(h => h.game_info?.won).length);
+    let winRatePeriod = $derived(gamesInPeriod.length > 0 ? Math.round((winsInPeriod / gamesInPeriod.length) * 100) : null);
+
+    $effect(() => {
+        if (active === 'progression') {
+            loadRatingHistory(limit);
+        }
+    });
+
+    async function loadRatingHistory(lim: number) {
+        if (!userInfos || userInfos.id === 0) return;
+        isLoadingHistory = true;
+        try {
+            const resp = await api.get(`/user/${userInfos.id}/rating-history?limit=${lim}`);
+            ratingHistory = resp.data as RatingHistoryResponse[];
+        } catch (e) {
+            console.error('Failed to load rating history:', e);
+        } finally {
+            isLoadingHistory = false;
+        }
+    }
 
     onMount(async () => {
         try {
@@ -127,6 +158,16 @@
                     </button>
                     <button
                         class="px-4 py-2.5 text-xs rounded-xl transition font-extrabold cursor-pointer
+                        {active === 'progression' 
+                            ? 'bg-brand-emerald text-white shadow-sm shadow-brand-emerald/20' 
+                            : 'text-stone-600 hover:bg-stone-50'}"
+                        aria-pressed={active === 'progression'}
+                        onclick={() => (active = 'progression')}
+                    >
+                        📈 Progression
+                    </button>
+                    <button
+                        class="px-4 py-2.5 text-xs rounded-xl transition font-extrabold cursor-pointer
                         {active === 'achievements' 
                             ? 'bg-brand-emerald text-white shadow-sm shadow-brand-emerald/20' 
                             : 'text-stone-600 hover:bg-stone-50'}"
@@ -238,6 +279,90 @@
                         {/if}
                     </div>
                 </div>
+            </div>
+        {:else if active === 'progression'}
+            <div class="flex flex-col gap-6">
+                <!-- Header with Period Filters -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-black text-stone-850">Historique d'IPS & Progression</h2>
+                        <p class="text-xs text-stone-500 font-medium">Suivez l'évolution de vos points IPS partie après partie.</p>
+                    </div>
+                    
+                    <!-- Period filters -->
+                    <div class="flex items-center gap-1 bg-stone-100/80 border border-stone-200/60 p-1 rounded-xl">
+                        {#each [10, 25, 50] as pLimit}
+                            <button
+                                type="button"
+                                onclick={() => { limit = pLimit; loadRatingHistory(pLimit); }}
+                                class="px-3 py-1.5 text-[10px] font-black rounded-lg transition cursor-pointer
+                                {limit === pLimit 
+                                    ? 'bg-white text-stone-800 shadow-sm' 
+                                    : 'text-stone-500 hover:text-stone-850'}"
+                            >
+                                {pLimit} parties
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+
+                <!-- KPI Cards Row -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- KPI 1: IPS Actuel -->
+                    <div class="rounded-2xl bg-white border border-stone-200/50 p-4 shadow-sm flex flex-col justify-between min-h-[90px]">
+                        <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">IPS Actuel</span>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span class="text-2xl font-black text-stone-850">{userInfos.rating}</span>
+                            <span class="text-[10px] font-bold text-stone-500">pts</span>
+                        </div>
+                        <p class="text-[10px] text-stone-500 mt-1 font-medium">Classement en direct</p>
+                    </div>
+
+                    <!-- KPI 2: Meilleur IPS -->
+                    <div class="rounded-2xl bg-white border border-stone-200/50 p-4 shadow-sm flex flex-col justify-between min-h-[90px]">
+                        <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Meilleur IPS</span>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span class="text-2xl font-black text-emerald-650">{peakRating}</span>
+                            <span class="text-[10px] font-bold text-emerald-500">pts</span>
+                        </div>
+                        <p class="text-[10px] text-stone-500 mt-1 font-medium">Pic sur la période</p>
+                    </div>
+
+                    <!-- KPI 3: Tendance -->
+                    <div class="rounded-2xl bg-white border border-stone-200/50 p-4 shadow-sm flex flex-col justify-between min-h-[90px]">
+                        <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tendance</span>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span class="text-2xl font-black {ratingTrend > 0 ? 'text-emerald-650' : ratingTrend < 0 ? 'text-rose-650' : 'text-stone-700'}">
+                                {ratingTrend > 0 ? '+' : ''}{ratingTrend}
+                            </span>
+                            <span class="text-[10px] font-bold {ratingTrend > 0 ? 'text-emerald-500' : ratingTrend < 0 ? 'text-rose-500' : 'text-stone-400'}">IPS</span>
+                        </div>
+                        <p class="text-[10px] text-stone-500 mt-1 font-medium">Variation (période)</p>
+                    </div>
+
+                    <!-- KPI 4: Taux de Victoire -->
+                    <div class="rounded-2xl bg-white border border-stone-200/50 p-4 shadow-sm flex flex-col justify-between min-h-[90px]">
+                        <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Taux de victoire</span>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span class="text-2xl font-black text-brand-emerald">
+                                {winRatePeriod !== null ? `${winRatePeriod}%` : '—'}
+                            </span>
+                        </div>
+                        <p class="text-[10px] text-stone-500 mt-1 font-medium">Sur les parties jouées</p>
+                    </div>
+                </div>
+
+                <!-- Chart Card -->
+                {#if isLoadingHistory}
+                    <div class="rounded-3xl bg-white border border-stone-200/50 p-6 shadow-sm min-h-[280px] flex items-center justify-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-8 h-8 rounded-full border-2 border-stone-200 border-t-brand-emerald animate-spin"></div>
+                            <span class="text-xs text-stone-400 font-extrabold">Chargement de votre courbe...</span>
+                        </div>
+                    </div>
+                {:else}
+                    <ProgressionChart history={ratingHistory} />
+                {/if}
             </div>
         {:else if active === 'achievements'}
             <AchievementsList achievements={userInfos.achievements} />

@@ -95,3 +95,20 @@ type AdminUserInfo struct {
 	LastActivityAt    *time.Time      `json:"last_activity_at,omitempty"`
 	Games             []AdminUserGame `json:"games"`
 }
+
+// RatingHistoryGameInfo summarizes a game associated with a rating update
+type RatingHistoryGameInfo struct {
+	GameID           string    `json:"game_id"`
+	OpponentUsername string    `json:"opponent_username"`
+	UserScore        int       `json:"user_score"`
+	OpponentScore    int       `json:"opponent_score"`
+	Won              bool      `json:"won"`
+	EndedAt          time.Time `json:"ended_at"`
+}
+
+// RatingHistoryResponse holds rating history point details
+type RatingHistoryResponse struct {
+	Rating    int                    `json:"rating"`
+	CreatedAt time.Time              `json:"created_at"`
+	GameInfo  *RatingHistoryGameInfo `json:"game_info,omitempty"`
+}

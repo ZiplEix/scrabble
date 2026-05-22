@@ -147,3 +147,52 @@ func GetUserStats(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, stats)
 }
+
+// GetUserRatingHistory retourne l'historique de l'IPS d'un utilisateur
+func GetUserRatingHistory(c echo.Context) error {
+	idParam := c.Param("id")
+	if idParam == "" {
+		logctx.Add(c, "reason", "missing_id")
+		return echo.NewHTTPError(http.StatusBadRequest, "missing id")
+	}
+
+	var uid int64
+	_, err := fmt.Sscanf(idParam, "%d", &uid)
+	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason": "failed_to_parse_id",
+			"error":  err.Error(),
+		})
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+
+	limit := 25
+	if l := c.QueryParam("limit"); l != "" {
+		_, err := fmt.Sscanf(l, "%d", &limit)
+		if err != nil {
+			logctx.Merge(c, map[string]any{
+				"reason": "invalid_limit",
+				"error":  err.Error(),
+			})
+			return echo.NewHTTPError(http.StatusBadRequest, "invalid limit")
+		}
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if limit < 1 {
+		limit = 1
+	}
+
+	history, err := services.GetRatingHistoryByUserID(uid, limit)
+	if err != nil {
+		logctx.Merge(c, map[string]any{
+			"reason":  "failed_to_fetch_history",
+			"error":   err.Error(),
+			"user_id": uid,
+		})
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch rating history")
+	}
+
+	return c.JSON(http.StatusOK, history)
+}

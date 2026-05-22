@@ -48,10 +48,16 @@ func main() {
 
 	fmt.Printf("📊 Processing %d users...\n", len(users))
 
-	// 2. Recalculate IPS for each user
+	// 2. Recalculate IPS and history for each user
 	for _, u := range users {
+		tx, err := database.DB.Begin()
+		if err != nil {
+			fmt.Printf("❌ Failed to start transaction for user %s: %v\n", u.username, err)
+			continue
+		}
+
 		// Fetch last 10 finished games for this user
-		mRows, err := database.Query(`
+		mRows, err := tx.Query(`
 			SELECT 
 				gp.score, 
 				(g.winner_username = u.username) as is_winner
@@ -64,6 +70,7 @@ func main() {
 		`, u.id)
 		if err != nil {
 			fmt.Printf("⚠️  Error fetching matches for user %s: %v\n", u.username, err)
+			tx.Rollback()
 			continue
 		}
 
@@ -80,12 +87,27 @@ func main() {
 
 		ips := services.CalculateIPS(matches)
 
-		// 3. Update DB
-		_, err = database.Exec("UPDATE users SET rating = $1 WHERE id = $2", ips, u.id)
+		// Update DB
+		_, err = tx.Exec("UPDATE users SET rating = $1 WHERE id = $2", ips, u.id)
 		if err != nil {
 			fmt.Printf("❌ Failed to update IPS for user %s: %v\n", u.username, err)
+			tx.Rollback()
+			continue
+		}
+
+		// Regenerate chronologically correct rating history
+		err = services.RegenerateUserRatingHistory(tx, u.id)
+		if err != nil {
+			fmt.Printf("❌ Failed to regenerate rating history for user %s: %v\n", u.username, err)
+			tx.Rollback()
+			continue
+		}
+
+		if err := tx.Commit(); err != nil {
+			fmt.Printf("❌ Failed to commit transaction for user %s: %v\n", u.username, err)
+			tx.Rollback()
 		} else {
-			fmt.Printf("✅ %s: %d IPS (%d matches processed)\n", u.username, ips, len(matches))
+			fmt.Printf("✅ %s: %d IPS (%d matches processed, history regenerated)\n", u.username, ips, len(matches))
 		}
 	}
 

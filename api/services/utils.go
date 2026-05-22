@@ -482,7 +482,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 	}
 	// Mise à jour de l'IPS pour tous les participants
 	for _, l := range lefts {
-		if err := UpdateUserIPS(tx, l.pid); err != nil {
+		if err := UpdateUserIPS(tx, l.pid, gameID); err != nil {
 			zap.L().Error("failed to update user IPS", zap.Error(err), zap.Int64("user_id", l.pid))
 			// On continue malgré l'erreur pour ne pas bloquer la fin de partie
 		}

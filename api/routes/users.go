@@ -21,4 +21,5 @@ func setupUsersRoutes(e *echo.Echo) {
 
 	// protected user info: /user/:id
 	e.GET("/user/:id", controller.GetUserPublic, middleware.RequireAuth)
+	e.GET("/user/:id/rating-history", controller.GetUserRatingHistory, middleware.RequireAuth)
 }
