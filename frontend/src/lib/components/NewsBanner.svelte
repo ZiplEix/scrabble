@@ -15,6 +15,21 @@
 
     const announcements: Announcement[] = [
         {
+            id: '2026-05-23-scrabby-bot',
+            title: '🤖 Nouveau : Défiez notre IA Scrabby !',
+            message:
+                "Un nouvel adversaire de taille rejoint la communauté ! Scrabby est une intelligence artificielle redoutable conçue pour chercher les meilleurs coups en temps réel.\n\n" +
+                "Pour l'affronter :\n" +
+                "1. Rendez-vous sur la page de création de partie.\n" +
+                "2. Cliquez sur le bouton d'invitation rapide \"Défier Scrabby\" en un clic, ou ajoutez manuellement \"Scrabby\" dans les joueurs invités.\n\n" +
+                "Êtes-vous prêts à relever le défi et battre l'ordinateur ?\n" +
+                "(Même ChatGPT n'a pas réussi à la battre, je ne sais plus quoi faire pour gagner...)",
+            date: '23 mai 2026',
+            level: 'feature',
+            actionLabel: 'Défier Scrabby',
+            actionHref: '/games/new'
+        },
+        {
             id: '2026-05-22-systeme-amis',
             title: "👥 Nouveau : Système d'Amis",
             message:
