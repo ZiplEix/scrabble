@@ -229,6 +229,44 @@
 		</button>
 	</form>
 
+	<!-- DÉFIER SCRABBY (BOT IA) -->
+	<section class="rounded-3xl bg-gradient-to-br from-indigo-900 to-purple-950 p-5 text-white shadow-lg relative overflow-hidden border border-purple-500/20">
+		<div class="absolute -right-10 -bottom-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
+		<div class="absolute -left-10 -top-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
+
+		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+			<div class="flex items-center gap-3">
+				<div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl shadow-inner border border-white/10 relative shrink-0">
+					🤖
+					<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-purple-500 rounded-full border-2 border-indigo-950 flex items-center justify-center text-[8px] font-black text-white">
+						AI
+					</span>
+				</div>
+				<div>
+					<h3 class="text-sm font-black tracking-wide flex items-center gap-1.5 flex-wrap">
+						Défier Scrabby <span class="px-2 py-0.5 rounded-full bg-purple-500/25 border border-purple-400/30 text-[9px] font-bold uppercase tracking-wider text-purple-200">Bot Imbattable</span>
+					</h3>
+					<p class="text-[10px] text-purple-200/80 mt-0.5 leading-normal max-w-xs">
+						Mesurez-vous à notre intelligence artificielle. Une partie hors-classement (sans mise à jour d'IPS) pour tester vos limites.
+					</p>
+				</div>
+			</div>
+			<button
+				type="button"
+				onclick={() => {
+					togglePlayer('Scrabby');
+					if (!name.trim()) {
+						name = 'Défi contre Scrabby 🤖';
+					}
+				}}
+				class="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs shadow-md transition active:scale-95 cursor-pointer whitespace-nowrap shrink-0 text-center
+				{players.includes('Scrabby') ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'bg-white hover:bg-stone-50 text-indigo-950'}"
+			>
+				{players.includes('Scrabby') ? 'Retirer Scrabby' : 'Défier Scrabby'}
+			</button>
+		</div>
+	</section>
+
 	<!-- ESPACE SOCIAL (AMIS & ADVERSAIRES RECENTS) -->
 	<section class="mt-4 flex flex-col gap-4">
 		<h2 class="text-xs font-black text-stone-500 uppercase tracking-wider">Inviter en un clic</h2>

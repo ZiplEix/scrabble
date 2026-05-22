@@ -3,6 +3,7 @@ export type PlayerInfo = {
     username: string;
     score: number;
     position: number;
+    is_bot?: boolean;
 };
 
 export type MoveData = {

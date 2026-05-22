@@ -34,8 +34,14 @@ func CalculateIPS(recentMatches []MatchInfo) int {
 	return int(math.Round(averageScore + bonus))
 }
 
-// UpdateUserIPS récupère les 10 dernières parties et met à jour l'IPS de l'utilisateur, et ajoute une entrée d'historique
+// UpdateUserIPS récupère les 10 dernières parties et met à jour l'IPS de l'utilisateur, et ajoute une entrée d'historique.
+// Si la partie implique le bot (partie non classée), l'IPS n'est pas mis à jour.
 func UpdateUserIPS(tx *sql.Tx, userID int64, gameID string) error {
+	// Les parties contre le bot sont hors classement
+	if gameID != "" && IsBotGame(gameID) {
+		return nil
+	}
+
 	rows, err := tx.Query(`
 		SELECT 
 			gp.score, 
@@ -82,6 +88,7 @@ func UpdateUserIPS(tx *sql.Tx, userID int64, gameID string) error {
 	}
 	return err
 }
+
 
 // RegenerateUserRatingHistory reconstruit l'historique complet de l'IPS pour un joueur chronologiquement
 func RegenerateUserRatingHistory(tx *sql.Tx, userID int64) error {

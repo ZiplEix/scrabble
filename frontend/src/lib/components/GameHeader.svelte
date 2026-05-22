@@ -2,6 +2,7 @@
     import type { Writable } from "svelte/store";
     import { user } from "$lib/stores/user";
     import GameMenu from "./GameMenu.svelte";
+    import BotBadge from "./BotBadge.svelte";
     import type { GameInfo } from "$lib/types/game_infos";
 
     let {
@@ -18,6 +19,7 @@
     let isMyTurn = $derived(game.current_turn_username === $user?.username);
     let players = $derived([...game.players].sort((a, b) => b.score - a.score));
     let topScore = $derived(players.length ? players[0].score : 0);
+    let currentTurnPlayer = $derived(game.players.find(p => p.id === game.current_turn));
 
     function initials(name: string) {
         if (!name) return "?";
@@ -66,6 +68,9 @@
             {:else}
                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-[11px] text-amber-800 ring-1 ring-amber-300/60 whitespace-nowrap">
                     Tour:<strong class="ml-0.5">{game.current_turn_username}</strong>
+                    {#if currentTurnPlayer?.is_bot}
+                        <BotBadge />
+                    {/if}
                 </span>
             {/if}
 
@@ -94,6 +99,9 @@
                         {/if}
                     </span>
                     <span class="tabular-nums font-semibold">{p.score}</span>
+                    {#if p.is_bot}
+                        <BotBadge />
+                    {/if}
                 </a>
             {/each}
         </div>

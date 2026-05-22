@@ -114,6 +114,11 @@ func AllWordsCount() int {
 	return len(allWords)
 }
 
+// AllWords retourne la liste de tous les mots du dictionnaire.
+func AllWords() []string {
+	return allWords
+}
+
 func initDict() {
 	once.Do(func() {
 		start := time.Now()

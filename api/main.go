@@ -13,6 +13,7 @@ import (
 	requestid "github.com/ZiplEix/scrabble/api/middleware/request_id"
 	"github.com/ZiplEix/scrabble/api/pgzap"
 	"github.com/ZiplEix/scrabble/api/routes"
+	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
@@ -56,6 +57,10 @@ func main() {
 
 	// Start log retention: purge logs older than 7 days every 24h
 	stopRetention := StartLogRetention(database.DB, 7*24*time.Hour, 24*time.Hour)
+
+	// Initialiser le bot Scrabby et démarrer le worker de rattrapage
+	services.InitBot()
+	services.StartBotWorker(5) // poll toutes les 5 secondes
 
 	defer func() {
 		_ = zlog.Sync()

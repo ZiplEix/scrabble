@@ -8,6 +8,7 @@
 	import { gameStore } from '$lib/stores/game';
 	import { useBoardGame } from '$lib/hooks/useBoardGame.svelte';
 	import GameHeader from '$lib/components/GameHeader.svelte';
+	import BotBadge from '$lib/components/BotBadge.svelte';
 	import GameSkeleton from '$lib/components/GameSkeleton.svelte';
 	import GameBoard from '$lib/components/GameBoard.svelte';
 	import type { GameInfo } from '$lib/types/game_infos';
@@ -288,6 +289,9 @@
 									<span class="text-[10px] text-stone-400 font-black">#{i + 1}</span>
 								{/if}
 								{player.username}
+								{#if player.is_bot}
+									<BotBadge />
+								{/if}
 							</span>
 							<span class="font-black text-brand-emerald tabular-nums">{player.score} pts</span>
 						</a>

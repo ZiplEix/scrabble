@@ -43,7 +43,7 @@
 	}
 </script>
 
-<div class="relative rounded-3xl bg-white border border-stone-200/60 shadow-sm p-4 hover:shadow-md transition-all relative overflow-hidden group">
+<div class="relative rounded-3xl bg-white border border-stone-200/60 shadow-sm p-4 hover:shadow-md transition-all group">
 	<!-- Link to game page -->
 	<a href={`/games/${game.id}`} class="flex flex-col gap-2.5">
 		

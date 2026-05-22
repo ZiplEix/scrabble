@@ -90,7 +90,7 @@ func CreateGame(userID int64, name string, usernames []string, revangeFrom *stri
 
 	// Récupérer les IDs des autres joueurs
 	if len(usernames) > 0 {
-		query := `SELECT id, username FROM users WHERE username = ANY($1)`
+		query := `SELECT id, username FROM users WHERE LOWER(username) = ANY($1)`
 		rows, err := tx.Query(query, pq.Array(usernames))
 		if err != nil {
 			return nil, err
@@ -230,7 +230,7 @@ func GetAdminGameDetail(gameID string) (*response.GameInfo, error) {
 
 	// 2. Récupère les joueurs (avec racks)
 	playerRows, err := database.Query(`
-		SELECT gp.player_id, u.username, gp.score, gp.position, gp.rack
+		SELECT gp.player_id, u.username, gp.score, gp.position, gp.rack, u.is_bot
 		FROM game_players gp
 		JOIN users u ON gp.player_id = u.id
 		WHERE gp.game_id = $1
@@ -243,7 +243,7 @@ func GetAdminGameDetail(gameID string) (*response.GameInfo, error) {
 
 	for playerRows.Next() {
 		var p response.PlayerInfo
-		err := playerRows.Scan(&p.ID, &p.Username, &p.Score, &p.Position, &p.Rack)
+		err := playerRows.Scan(&p.ID, &p.Username, &p.Score, &p.Position, &p.Rack, &p.IsBot)
 		if err != nil {
 			return nil, err
 		}
@@ -374,7 +374,7 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 
 	// 4. Récupère les joueurs
 	playerRows, err := database.Query(`
-		SELECT gp.player_id, u.username, gp.score, gp.position
+		SELECT gp.player_id, u.username, gp.score, gp.position, u.is_bot
 		FROM game_players gp
 		JOIN users u ON gp.player_id = u.id
 		WHERE gp.game_id = $1
@@ -387,7 +387,7 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 
 	for playerRows.Next() {
 		var p response.PlayerInfo
-		err := playerRows.Scan(&p.ID, &p.Username, &p.Score, &p.Position)
+		err := playerRows.Scan(&p.ID, &p.Username, &p.Score, &p.Position, &p.IsBot)
 		if err != nil {
 			return nil, err
 		}
@@ -650,6 +650,9 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 	_ = utils.SendNotificationToUserByID(nextPlayerID, notificationPayload)
 
+	// Déclencher le bot en goroutine si c'est son tour
+	TriggerBotIfNeeded(gameID, nextPlayerID)
+
 	return nil
 }
 
@@ -740,6 +743,9 @@ func GetNewRack(userID int64, gameID string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+
+	// Déclencher le bot en goroutine si c'est son tour
+	TriggerBotIfNeeded(gameID, nextPlayerID)
 
 	return newRack, nil
 }
@@ -1001,5 +1007,12 @@ func PassTurn(userID int64, gameID string) error {
 		return tx.Commit()
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	// Déclencher le bot en goroutine si c'est son tour
+	TriggerBotIfNeeded(gameID, nextPlayer)
+
+	return nil
 }

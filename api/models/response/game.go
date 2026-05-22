@@ -29,6 +29,7 @@ type PlayerInfo struct {
 	Score    int    `json:"score"`
 	Position int    `json:"position"`
 	Rack     string `json:"rack,omitempty"`
+	IsBot    bool   `json:"is_bot"`
 }
 
 type MoveInfo struct {

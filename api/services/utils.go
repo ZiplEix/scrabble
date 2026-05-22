@@ -15,9 +15,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// buildBoardBlanks parcourt l'historique des coups pour connaître les positions
+// BuildBoardBlanks parcourt l'historique des coups pour connaître les positions
 // où des jokers ont été posés. Utile pour le calcul de score des mots croisés.
-func buildBoardBlanks(gameID string) map[Pos]bool {
+func BuildBoardBlanks(gameID string) map[Pos]bool {
 	res := map[Pos]bool{}
 	rows, err := database.Query(`SELECT move FROM game_moves WHERE game_id = $1 ORDER BY created_at ASC`, gameID)
 	if err != nil {
@@ -44,6 +44,11 @@ func buildBoardBlanks(gameID string) map[Pos]bool {
 	return res
 }
 
+func buildBoardBlanks(gameID string) map[Pos]bool {
+	return BuildBoardBlanks(gameID)
+}
+
+
 func drawLetters(available *[]rune, count int) []rune {
 	if len(*available) < count {
 		count = len(*available)
@@ -59,7 +64,8 @@ func drawLetters(available *[]rune, count int) []rune {
 	return drawn
 }
 
-func rackContains(rack string, letters []request.PlacedLetter) bool {
+// RackContains vérifie que le rack contient les lettres nécessaires (gère les jokers '?')
+func RackContains(rack string, letters []request.PlacedLetter) bool {
 	rackCount := map[rune]int{}
 	for _, r := range rack {
 		rackCount[r]++
@@ -80,6 +86,11 @@ func rackContains(rack string, letters []request.PlacedLetter) bool {
 		rackCount[c]--
 	}
 	return true
+}
+
+// rackContains kept as alias for internal use
+func rackContains(rack string, letters []request.PlacedLetter) bool {
+	return RackContains(rack, letters)
 }
 
 func updatePlayerRack(gameID string, userID int64, rack string, played []request.PlacedLetter) (string, error) {
@@ -172,7 +183,8 @@ func validatePlayerInGame(gameID string, userID int64) error {
 	return nil
 }
 
-func loadBoard(gameID string) ([15][15]string, error) {
+// LoadBoard charge le plateau de jeu depuis la base de données.
+func LoadBoard(gameID string) ([15][15]string, error) {
 	var boardRaw []byte
 	err := database.QueryRow(`SELECT board FROM games WHERE id = $1`, gameID).Scan(&boardRaw)
 	if err != nil {
@@ -185,7 +197,12 @@ func loadBoard(gameID string) ([15][15]string, error) {
 	return board, nil
 }
 
-func applyLetters(board *[15][15]string, letters []request.PlacedLetter) error {
+func loadBoard(gameID string) ([15][15]string, error) {
+	return LoadBoard(gameID)
+}
+
+// ApplyLetters pose les lettres sur le plateau (retourne une erreur si une case est déjà occupée).
+func ApplyLetters(board *[15][15]string, letters []request.PlacedLetter) error {
 	for _, l := range letters {
 		if board[l.Y][l.X] != "" {
 			return fmt.Errorf("cell at %d,%d already occupied", l.X, l.Y)
@@ -195,10 +212,19 @@ func applyLetters(board *[15][15]string, letters []request.PlacedLetter) error {
 	return nil
 }
 
+func applyLetters(board *[15][15]string, letters []request.PlacedLetter) error {
+	return ApplyLetters(board, letters)
+}
+
 type formedWord struct {
 	Word           string
 	StartX, StartY int
 	DX, DY         int
+}
+
+// ExtractFormedWords retourne tous les mots (principal + croisés) créés par les lettres posées.
+func ExtractFormedWords(board [15][15]string, placed []request.PlacedLetter) []formedWord {
+	return extractFormedWords(board, placed)
 }
 
 // extractFormedWords retourne tous les mots (principal + croisés) créés par les lettres posées.
@@ -296,6 +322,11 @@ func computeWordScore(board [15][15]string, fw formedWord, isNew map[Pos]bool, i
 	}
 
 	return wordScore * wordMultiplier
+}
+
+// ComputeMoveScore calcule le score du coup en tenant compte des jokers (exporté).
+func ComputeMoveScore(board [15][15]string, placed []request.PlacedLetter, boardBlank map[Pos]bool) int {
+	return computeMoveScore(board, placed, boardBlank)
 }
 
 // computeMoveScore calcule le score du coup en tenant compte des jokers.
