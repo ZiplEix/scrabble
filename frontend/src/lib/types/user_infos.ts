@@ -23,6 +23,14 @@ export type UserInfos = {
     messages_notifications_enabled?: boolean;
     head_to_head?: HeadToHeadInfo;
     achievements?: AchievementResponse[];
+    is_friend?: boolean;
+}
+
+export interface FriendInfo {
+    id: number;
+    username: string;
+    rating: number;
+    role: string;
 }
 
 export type AchievementResponse = {

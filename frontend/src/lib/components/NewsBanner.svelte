@@ -15,6 +15,30 @@
 
     const announcements: Announcement[] = [
         {
+            id: '2026-05-22-systeme-amis',
+            title: "👥 Nouveau : Système d'Amis",
+            message:
+                "Ajoutez vos partenaires de jeu favoris en un clic ! Visitez le profil public d'un joueur ou consultez le classement général pour l'ajouter en ami.\n\n" +
+                "Votre liste d'amis est directement accessible sur votre profil pour suivre leur IPS et gérer vos relations.",
+            date: '22 mai 2026',
+            level: 'feature',
+            actionLabel: 'Voir mes amis',
+            actionHref: '/me'
+        },
+        {
+            id: '2026-05-22-creation-partie-amelioree',
+            title: '🎮 Création de partie en 1 clic !',
+            message:
+                "Inviter des adversaires n'a jamais été aussi rapide. La création de partie intègre désormais deux onglets sociaux :\n" +
+                "1. 👤 Mes Amis : retrouvez instantanément vos amis.\n" +
+                "2. ⚔️ Adversaires Récents : invitez à nouveau vos derniers rivaux.\n\n" +
+                "Cliquez simplement sur leurs fiches pour les ajouter à votre partie !",
+            date: '22 mai 2026',
+            level: 'feature',
+            actionLabel: 'Créer une partie',
+            actionHref: '/games/new'
+        },
+        {
             id: '2026-05-22-succes-badges',
             title: '🏆 Succès & Badges : Relevez le défi !',
             message:

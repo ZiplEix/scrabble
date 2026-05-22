@@ -14,6 +14,31 @@
     let error = $state<string | null>(null);
     let userInfos = $state<UserInfos>(defaultUserInfos as any);
     let activeTab = $state<'stats' | 'h2h' | 'achievements'>('stats');
+    let togglingFriend = $state(false);
+
+    // Vérifier si on doit afficher le bouton d'ami
+    let showFriendBtn = $derived(
+        $user && userInfos && userInfos.id !== 0 && $user.id !== userInfos.id
+    );
+
+    async function toggleFriend() {
+        if (togglingFriend) return;
+        togglingFriend = true;
+        try {
+            if (userInfos.is_friend) {
+                await api.delete(`/users/friends/${userInfos.id}`);
+                userInfos.is_friend = false;
+            } else {
+                await api.post(`/users/friends/${userInfos.id}`);
+                userInfos.is_friend = true;
+            }
+        } catch (e) {
+            console.error('failed to toggle friend status:', e);
+            alert("Erreur lors de la modification du statut d'ami");
+        } finally {
+            togglingFriend = false;
+        }
+    }
 
     // Vérifier si on doit afficher le face-à-face
     let showH2H = $derived(
@@ -98,9 +123,28 @@
                     <div class="flex-1 text-center sm:text-left flex flex-col justify-center h-full">
                         <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2 justify-center sm:justify-start">
                             <h2 class="text-2xl font-black text-stone-800 leading-none">{userInfos.username}</h2>
-                            <div class="inline-flex items-center gap-1.5 bg-stone-100/80 px-2.5 py-1 rounded-full border border-stone-200/30 self-center sm:self-auto">
-                                <RankBadge rating={userInfos.rating} size="sm" />
-                                <span class="text-xs font-black text-stone-600">{userInfos.rating} Elo</span>
+                            <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                                <div class="inline-flex items-center gap-1.5 bg-stone-100/80 px-2.5 py-1 rounded-full border border-stone-200/30">
+                                    <RankBadge rating={userInfos.rating} size="sm" />
+                                    <span class="text-xs font-black text-stone-600">{userInfos.rating} IPS</span>
+                                </div>
+
+                                {#if showFriendBtn}
+                                    <button
+                                        onclick={toggleFriend}
+                                        disabled={togglingFriend}
+                                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-50
+                                        {userInfos.is_friend
+                                            ? 'bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200'
+                                            : 'bg-brand-emerald/10 text-brand-emerald border border-brand-emerald/20 hover:bg-brand-emerald hover:text-white'}"
+                                    >
+                                        {#if userInfos.is_friend}
+                                            <span class="text-xs">👤✓</span> Ami(e)
+                                        {:else}
+                                            <span class="text-xs">👤+</span> Ajouter en ami
+                                        {/if}
+                                    </button>
+                                {/if}
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-stone-500 font-bold">

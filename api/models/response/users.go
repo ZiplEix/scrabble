@@ -62,6 +62,15 @@ type UserPublicResponse struct {
 	// Face-à-Face et Succès
 	HeadToHead                 *HeadToHeadInfo       `json:"head_to_head,omitempty"`
 	Achievements               []AchievementResponse `json:"achievements,omitempty"`
+	IsFriend                   bool                  `json:"is_friend"`
+}
+
+// FriendResponse represents a friend's simplified profile
+type FriendResponse struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Rating   int    `json:"rating"`
+	Role     string `json:"role"`
 }
 
 // AdminUserGame summarizes a game for admin users listing

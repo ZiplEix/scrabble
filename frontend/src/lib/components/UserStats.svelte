@@ -13,7 +13,7 @@
             </div>
             <div class="flex items-baseline justify-center gap-1">
                 <div class="text-xl font-bold text-gray-900">{userInfos.rating}</div>
-                <div class="text-[11px] text-gray-500">Elo</div>
+                <div class="text-[11px] text-gray-500">IPS</div>
             </div>
         </div>
 

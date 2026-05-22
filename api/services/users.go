@@ -72,6 +72,13 @@ func GetUserPublicByID(userID int64, viewerID int64) (*response.UserPublicRespon
 		return nil, err
 	}
 	u.CreatedAt = createdAt
+
+	// Check if viewer is friend with this user
+	var isFriend bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM user_friends WHERE user_id = $1 AND friend_id = $2)", viewerID, userID).Scan(&isFriend)
+	if err == nil {
+		u.IsFriend = isFriend
+	}
 	// Populate stats using helpers
 	if v, p, err := stats.GetGamesCountAndTop(userID); err == nil {
 		u.GamesCount = v
