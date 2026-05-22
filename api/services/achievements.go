@@ -192,13 +192,13 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 			`, pid)
 		}
 
-		// 9. Stratège (atteindre un classement de 1800 points ELO ou plus)
+		// 9. Stratège (atteindre un classement de 500 IPS ou plus)
 		var rating int
 		err = tx.QueryRow(`SELECT rating FROM users WHERE id = $1`, pid).Scan(&rating)
-		if err == nil && rating >= 1800 {
+		if err == nil && rating >= 500 {
 			_, _ = tx.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
-				VALUES ($1, 'elo_master', now())
+				VALUES ($1, 'ips_master', now())
 				ON CONFLICT DO NOTHING
 			`, pid)
 		}

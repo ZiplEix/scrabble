@@ -154,9 +154,9 @@ func main() {
 			}
 		}
 
-		// 6. elo_master
-		if u.Rating >= 1800 {
-			unlock("elo_master")
+		// 6. ips_master
+		if u.Rating >= 500 {
+			unlock("ips_master")
 		}
 
 		// 7. chatty

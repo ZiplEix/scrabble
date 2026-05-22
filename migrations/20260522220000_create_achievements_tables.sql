@@ -36,7 +36,7 @@ INSERT INTO achievements (id, title, description, badge_icon, category) VALUES
 ('elite_player', 'Légende du Club', 'Marquer plus de 500 points dans une seule partie', '🌌', 'milestone'),
 ('serial_winner', 'Série Victorieuse', 'Remporter 3 victoires consécutives', '🔥', 'special'),
 ('night_owl', 'Oiseau de Nuit', 'Terminer une partie entre 23h et 5h du matin', '🦉', 'special'),
-('elo_master', 'Stratège', 'Atteindre un classement de 500 IPS ou plus', '📈', 'milestone'),
+('ips_master', 'Stratège', 'Atteindre un classement de 500 IPS ou plus', '📈', 'milestone'),
 ('sharp_mind', 'Esprit Vif', 'Résoudre 5 puzzles quotidiens', '💡', 'special'),
 ('puzzle_expert', 'Maître des Énigmes', 'Résoudre 15 puzzles quotidiens', '🔮', 'special'),
 ('chatty', 'Bavard', 'Envoyer un message dans le chat d''une partie', '💬', 'special')

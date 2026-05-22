@@ -76,7 +76,7 @@
         {:else}
             <div class="flex flex-col gap-2.5">
                 {#each headToHead.recent_games as game}
-                    {@const didUserWin = game.status === 'ended' && game.winner === game.name} // wait winner will be username
+                    {@const didUserWin = game.status === 'ended' && game.winner === game.name}
                     <div class="flex items-center justify-between p-3 bg-stone-50/40 border border-stone-200/30 rounded-2xl">
                         <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-stone-800 truncate max-w-[150px]">{game.name || 'Partie Amicale'}</span>
