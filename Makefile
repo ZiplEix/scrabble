@@ -45,6 +45,11 @@ migrate-down:
 recalculate-ips:
 	@cd api && go run cmd/recalculate-ips/main.go
 
+## recalculate-achievements:	Recalculate and unlock all achievements retroactively for all players
+.PHONY: recalculate-achievements
+recalculate-achievements:
+	@cd api && go run cmd/recalculate-achievements/main.go
+
 ## tests:	Run all tests (API and frontend)
 .PHONY: tests
 tests: tests-api tests-frontend

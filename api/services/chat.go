@@ -52,6 +52,8 @@ func CreateMessage(userID int64, gameID, content string, meta map[string]any) (m
 		return nil, err
 	}
 
+	_ = UnlockAchievement(userID, "chatty")
+
 	go func(gameID string) {
 		// get sender username
 		var senderUsername string

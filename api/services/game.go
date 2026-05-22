@@ -612,6 +612,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
+		CheckAndUnlockPlayMoveAchievements(userID, req.Letters, moveScore, req.Word)
 		return nil
 	}
 
@@ -624,6 +625,8 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+
+	CheckAndUnlockPlayMoveAchievements(userID, req.Letters, moveScore, req.Word)
 
 	var username, gameName string
 	err = database.QueryRow(`SELECT username FROM users WHERE id = $1`, userID).Scan(&username)

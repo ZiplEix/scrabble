@@ -117,6 +117,12 @@ func GetMeInfo(userID int64) (response.MeResponse, error) {
 		}
 	}
 
+	// Load achievements
+	achievements, err := GetUserAchievements(userID)
+	if err == nil {
+		res.Achievements = achievements
+	}
+
 	return res, nil
 }
 

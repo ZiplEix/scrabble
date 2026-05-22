@@ -22,7 +22,7 @@
 
         <h1 class="text-3xl font-extrabold mb-3 text-stone-800 tracking-tight">Scrabble en ligne</h1>
         <p class="text-stone-600 text-sm leading-relaxed mb-8 max-w-sm mx-auto">
-            Jouez en famille ou entre amis, gratuitement et sans publicité. Une expérience premium entièrement optimisée pour smartphone.
+            Jouez en ligne avec vos amis ou d'autres passionnés, gratuitement et sans publicité. Une expérience premium entièrement optimisée pour smartphone.
         </p>
 
         <div class="flex flex-col gap-3">

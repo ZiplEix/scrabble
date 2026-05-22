@@ -488,5 +488,11 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 		}
 	}
 
+	playerIDs := make([]int64, len(lefts))
+	for i, l := range lefts {
+		playerIDs[i] = l.pid
+	}
+	CheckAndUnlockGameFinishedAchievements(tx, gameID, winnerID, playerIDs)
+
 	return nil
 }

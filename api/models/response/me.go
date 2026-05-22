@@ -22,7 +22,8 @@ type MeResponse struct {
 	AvgPointsPerMoveTopPercent   *float64  `json:"avg_points_per_move_top_percent,omitempty"`
 	BestMoveScore                int       `json:"best_move_score"`
 	BestMoveScoreTopPercent      *float64  `json:"best_move_score_top_percent,omitempty"`
-	NotificationsEnabled         bool      `json:"notifications_enabled"`
-	TurnNotificationsEnabled     bool      `json:"turn_notifications_enabled"`
-	MessagesNotificationsEnabled bool      `json:"messages_notifications_enabled"`
+	NotificationsEnabled         bool                  `json:"notifications_enabled"`
+	TurnNotificationsEnabled     bool                  `json:"turn_notifications_enabled"`
+	MessagesNotificationsEnabled bool                  `json:"messages_notifications_enabled"`
+	Achievements                 []AchievementResponse `json:"achievements,omitempty"`
 }

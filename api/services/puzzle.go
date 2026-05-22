@@ -491,6 +491,8 @@ func SubmitPuzzleAttempt(ctx context.Context, playerID int64, req *request.Submi
 	}
 	result.WordsPlayed = wordsPlayed
 
+	CheckAndUnlockPuzzleAchievement(playerID)
+
 	return result, nil
 }
 

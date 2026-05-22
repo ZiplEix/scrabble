@@ -13,8 +13,36 @@
         actionHref?: string;
     };
 
-    // Ajouter une nouvelle annonce en tête de liste.
     const announcements: Announcement[] = [
+        {
+            id: '2026-05-22-succes-badges',
+            title: '🏆 Succès & Badges : Relevez le défi !',
+            message:
+                "Gagnez des badges uniques et débloquez 21 succès inédits en temps réel au cours de vos parties (Bingo, Coup de Génie, Oiseau de Nuit, etc.). " +
+                "Vos badges sont affichés avec fierté sur votre profil (/me) et visibles par toute la communauté !",
+            date: '22 mai 2026',
+            level: 'feature',
+            actionLabel: 'Voir mes succès',
+            actionHref: '/me'
+        },
+        {
+            id: '2026-05-22-face-a-face',
+            title: '⚔️ Nouveau : Statistiques Face-à-Face',
+            message:
+                "Analysez vos duels face aux autres joueurs directement sur leur profil public ! " +
+                "Découvrez votre historique commun, le ratio de victoires respectives et vos scores moyens.",
+            date: '22 mai 2026',
+            level: 'feature'
+        },
+        {
+            id: '2026-05-22-partage-canvas',
+            title: '📸 Partagez vos grilles en image HD',
+            message:
+                "Un bouton de partage est désormais disponible sur l'écran de fin de partie. " +
+                "Il génère instantanément une superbe carte PNG de votre grille finale au style Scrabble Club, idéale pour WhatsApp ou Signal.",
+            date: '22 mai 2026',
+            level: 'feature'
+        },
         {
             id: '2026-05-21-pose-tactile',
             title: 'Pose rapide : Dites adieu au Drag & Drop !',

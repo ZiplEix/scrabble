@@ -33,8 +33,38 @@ func SuggestUsers(userID int64, query string) ([]response.SuggestUsersResponse, 
 	return suggestions, nil
 }
 
+// GetUserAchievements charge la liste des succès et leur statut pour un utilisateur
+func GetUserAchievements(userID int64) ([]response.AchievementResponse, error) {
+	rows, err := database.Query(`
+		SELECT a.id, a.title, a.description, a.badge_icon, a.category,
+			   (ua.user_id IS NOT NULL) as unlocked, ua.unlocked_at
+		FROM achievements a
+		LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = $1
+		ORDER BY a.title ASC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	achievements := make([]response.AchievementResponse, 0)
+	for rows.Next() {
+		var ach response.AchievementResponse
+		var unlockedAt sql.NullTime
+		err := rows.Scan(&ach.ID, &ach.Title, &ach.Description, &ach.BadgeIcon, &ach.Category, &ach.Unlocked, &unlockedAt)
+		if err != nil {
+			return nil, err
+		}
+		if unlockedAt.Valid {
+			ach.UnlockedAt = &unlockedAt.Time
+		}
+		achievements = append(achievements, ach)
+	}
+	return achievements, rows.Err()
+}
+
 // GetUserPublicByID retourne les informations publiques d'un utilisateur
-func GetUserPublicByID(userID int64) (*response.UserPublicResponse, error) {
+func GetUserPublicByID(userID int64, viewerID int64) (*response.UserPublicResponse, error) {
 	var u response.UserPublicResponse
 	var createdAt time.Time
 	err := database.QueryRow("SELECT id, username, rating, role, created_at FROM users WHERE id = $1", userID).Scan(&u.ID, &u.Username, &u.Rating, &u.Role, &createdAt)
@@ -102,6 +132,79 @@ func GetUserPublicByID(userID int64) (*response.UserPublicResponse, error) {
 	} else {
 		return nil, err
 	}
+
+	// 1. Face-à-Face si viewerID != userID
+	if viewerID != userID && viewerID > 0 {
+		var hresponse response.HeadToHeadInfo
+		hresponse.RecentGames = make([]response.CommonGameSummary, 0)
+		rows, err := database.Query(`
+			SELECT g.id, g.name, g.status, COALESCE(g.winner_username, '') as winner, g.created_at,
+				   gp_viewer.score as viewer_score, gp_profile.score as profile_score,
+				   u_viewer.username as viewer_name, u_profile.username as profile_name
+			FROM games g
+			JOIN game_players gp_viewer ON g.id = gp_viewer.game_id AND gp_viewer.player_id = $1
+			JOIN game_players gp_profile ON g.id = gp_profile.game_id AND gp_profile.player_id = $2
+			JOIN users u_viewer ON gp_viewer.player_id = u_viewer.id
+			JOIN users u_profile ON gp_profile.player_id = u_profile.id
+			ORDER BY g.created_at DESC
+		`, viewerID, userID)
+		if err == nil {
+			defer rows.Close()
+			var totalViewerScore, totalProfileScore int
+			var finishedGamesCount int
+			for rows.Next() {
+				var (
+					gid          string
+					gname        string
+					gstatus      string
+					winner       string
+					createdAt    time.Time
+					viewerScore  int
+					profileScore int
+					viewerName   string
+					profileName  string
+				)
+				err := rows.Scan(&gid, &gname, &gstatus, &winner, &createdAt, &viewerScore, &profileScore, &viewerName, &profileName)
+				if err == nil {
+					hresponse.GamesPlayed++
+					if gstatus == "ended" {
+						finishedGamesCount++
+						totalViewerScore += viewerScore
+						totalProfileScore += profileScore
+						if winner == viewerName {
+							hresponse.UserWins++
+						} else if winner == profileName {
+							hresponse.OpponentWins++
+						}
+					}
+					// Garder les 5 plus récents
+					if len(hresponse.RecentGames) < 5 {
+						hresponse.RecentGames = append(hresponse.RecentGames, response.CommonGameSummary{
+							ID:        gid,
+							Name:      gname,
+							Status:    gstatus,
+							Winner:    winner,
+							UserScore: viewerScore,
+							OppScore:  profileScore,
+							CreatedAt: createdAt,
+						})
+					}
+				}
+			}
+			if finishedGamesCount > 0 {
+				hresponse.UserAvgScore = float64(totalViewerScore) / float64(finishedGamesCount)
+				hresponse.OppAvgScore = float64(totalProfileScore) / float64(finishedGamesCount)
+			}
+			u.HeadToHead = &hresponse
+		}
+	}
+
+	// 2. Succès du joueur
+	achievements, err := GetUserAchievements(userID)
+	if err == nil {
+		u.Achievements = achievements
+	}
+
 	return &u, nil
 }
 

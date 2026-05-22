@@ -54,7 +54,12 @@ func GetUserPublic(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
 
-	user, err := services.GetUserPublicByID(uid)
+	viewerID, ok := utils.GetUserID(c)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	user, err := services.GetUserPublicByID(uid, viewerID)
 	if err != nil {
 		logctx.Merge(c, map[string]any{
 			"reason": "failed_to_fetch_user",

@@ -21,6 +21,37 @@ export type UserInfos = {
     notifications_enabled: boolean;
     turn_notifications_enabled?: boolean;
     messages_notifications_enabled?: boolean;
+    head_to_head?: HeadToHeadInfo;
+    achievements?: AchievementResponse[];
+}
+
+export type AchievementResponse = {
+    id: string;
+    title: string;
+    description: string;
+    badge_icon: string;
+    category: string;
+    unlocked: boolean;
+    unlocked_at?: string;
+}
+
+export type CommonGameSummary = {
+    id: string;
+    name: string;
+    status: string;
+    winner: string;
+    user_score: number;
+    opp_score: number;
+    created_at: string;
+}
+
+export type HeadToHeadInfo = {
+    games_played: number;
+    user_wins: number;
+    opponent_wins: number;
+    user_avg_score: number;
+    opp_avg_score: number;
+    recent_games: CommonGameSummary[];
 }
 
 export let defaultUserInfos = {

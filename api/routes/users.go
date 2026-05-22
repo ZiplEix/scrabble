@@ -15,6 +15,6 @@ func setupUsersRoutes(e *echo.Echo) {
 	e.GET("/leaderboard", controller.GetLeaderboard)
 	e.GET("/stats/user/:id", controller.GetUserStats)
 
-	// public user info: /user/:id
-	e.GET("/user/:id", controller.GetUserPublic)
+	// protected user info: /user/:id
+	e.GET("/user/:id", controller.GetUserPublic, middleware.RequireAuth)
 }

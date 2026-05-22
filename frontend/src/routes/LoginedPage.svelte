@@ -72,7 +72,7 @@
 		<h1 class="text-3xl font-black tracking-tight bg-gradient-to-r from-brand-emerald to-brand-gold bg-clip-text text-transparent select-none">
 			SCRABBLE
 		</h1>
-		<p class="text-[11px] font-semibold text-stone-500 uppercase tracking-widest mt-1">Jeu en famille</p>
+		<p class="text-[11px] font-semibold text-stone-500 uppercase tracking-widest mt-1">Scrabble Club</p>
 	</header>
 
 	<!-- HERO + CTA CARD -->

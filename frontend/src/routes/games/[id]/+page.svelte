@@ -11,6 +11,7 @@
 	import GameSkeleton from '$lib/components/GameSkeleton.svelte';
 	import GameBoard from '$lib/components/GameBoard.svelte';
 	import type { GameInfo } from '$lib/types/game_infos';
+	import { downloadGameResultImage } from '$lib/utils/canvas_share';
 
 	// Import modular subviews
 	import GameChat from '$lib/components/GameChat.svelte';
@@ -293,15 +294,25 @@
 					{/each}
 				</div>
 
-				<div class="mt-6 flex gap-2">
-					{#if game?.status === 'ended' && game?.is_your_game}
-						<button class="flex-1 bg-brand-emerald text-white py-3 rounded-2xl font-bold hover:bg-brand-emerald-hover shadow-md active:scale-95 transition-all cursor-pointer text-xs" onclick={handleRematch}>
-							Rejouer
+				<div class="mt-6 flex flex-col gap-2">
+					{#if game?.status === 'ended'}
+						<button
+							class="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-2xl font-bold shadow-md active:scale-95 transition-all cursor-pointer text-xs flex items-center justify-center gap-2"
+							onclick={() => game && downloadGameResultImage(game)}
+						>
+							<span>📸</span> Partager le plateau (PNG)
 						</button>
 					{/if}
-					<button class="flex-1 bg-stone-100 text-stone-600 py-3 rounded-2xl font-bold hover:bg-stone-200 active:scale-95 transition-all cursor-pointer text-xs" onclick={() => showScores.set(false)}>
-						Fermer
-					</button>
+					<div class="flex gap-2 w-full">
+						{#if game?.status === 'ended' && game?.is_your_game}
+							<button class="flex-1 bg-brand-emerald text-white py-3 rounded-2xl font-bold hover:bg-brand-emerald-hover shadow-md active:scale-95 transition-all cursor-pointer text-xs" onclick={handleRematch}>
+								Rejouer
+							</button>
+						{/if}
+						<button class="flex-1 bg-stone-100 text-stone-600 py-3 rounded-2xl font-bold hover:bg-stone-200 active:scale-95 transition-all cursor-pointer text-xs" onclick={() => showScores.set(false)}>
+							Fermer
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
