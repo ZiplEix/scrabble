@@ -3,14 +3,16 @@
     import { page } from '$app/stores';
     import { user } from '$lib/stores/user';
     import { goto } from '$app/navigation';
+    import { hideTabBar } from '$lib/stores/ui';
 
     const { children } = $props();
 
-    // Cacher la Tab Bar si l'utilisateur n'est pas connecté OU s'il est dans une partie (/games/[id])
+    // Cacher la Tab Bar si l'utilisateur n'est pas connecté OU s'il est dans une partie (/games/[id]) OU si cache demandé par l'UI
     let showTabBar = $derived(
         $user &&
         !($page.url.pathname.startsWith('/games/') && $page.url.pathname !== '/games/new') &&
-        !$page.url.pathname.startsWith('/admin')
+        !$page.url.pathname.startsWith('/admin') &&
+        !$hideTabBar
     );
 
     // Fonction pour vérifier si l'onglet est actif

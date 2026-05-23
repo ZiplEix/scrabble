@@ -10,6 +10,7 @@
 	import { pendingMove } from '$lib/stores/pendingMove';
 	import type { PuzzleInfo, PuzzleAttempt } from '$lib/types/puzzle';
 	import type { GameInfo } from '$lib/types/game_infos';
+	import { hideTabBar } from '$lib/stores/ui';
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -23,6 +24,14 @@
 	let puzzleGame = $state<GameInfo | null>(null);
 	let submittedWords = $derived((submitted?.words_played ?? []) as Array<{ word: string; position: string; direction: string; score: number }>);
 	let submittedPuzzleGame = $derived(puzzleGame ? buildGameWithSubmittedWords(puzzleGame, submittedWords) : null);
+
+	$effect(() => {
+		const isActive = puzzle !== null && submitted === null && !timedOut;
+		hideTabBar.set(isActive);
+		return () => {
+			hideTabBar.set(false);
+		};
+	});
 	let attemptPlacedCoords = $derived((() => {
 		if (!puzzle || !submittedPuzzleGame) return [];
 		const coords: Array<{ x: number; y: number }> = [];
