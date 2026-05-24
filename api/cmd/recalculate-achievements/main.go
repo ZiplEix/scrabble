@@ -44,6 +44,9 @@ func main() {
 
 	fmt.Println("🏆 Starting retroactive achievements recalculation for all users...")
 
+	var BotUserID int64 = -1
+	_ = database.QueryRow(`SELECT id FROM users WHERE role = 'ordinateur' AND is_bot = TRUE LIMIT 1`).Scan(&BotUserID)
+
 	// 1. Fetch all users
 	rows, err := database.Query("SELECT id, username, rating FROM users")
 	if err != nil {
@@ -334,6 +337,24 @@ func main() {
 		`, u.ID).Scan(&nightGames)
 		if err == nil && nightGames >= 1 {
 			unlock("night_owl")
+		}
+
+		// 13. bot_slayer (battre Scrabby en 1vs1)
+		if BotUserID != -1 {
+			var botWins int
+			err = database.QueryRow(`
+				SELECT COUNT(*) FROM games g
+				JOIN game_players gp1 ON g.id = gp1.game_id
+				JOIN game_players gp2 ON g.id = gp2.game_id
+				WHERE g.status = 'ended' 
+				  AND g.winner_username = $1 
+				  AND gp1.player_id = $2
+				  AND gp2.player_id = $3
+				  AND (SELECT COUNT(*) FROM game_players WHERE game_id = g.id) = 2
+			`, u.Username, u.ID, BotUserID).Scan(&botWins)
+			if err == nil && botWins >= 1 {
+				unlock("bot_slayer")
+			}
 		}
 
 		fmt.Printf("   ✨ Finished. Unlocked %d new achievements for %s.\n", unlockedCount, u.Username)

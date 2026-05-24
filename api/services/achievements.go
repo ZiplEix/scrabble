@@ -97,6 +97,24 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 		}
 	}
 
+	// 11. Tueur de Géants (battre le bot Scrabby en 1vs1)
+	if BotUserID != -1 && len(playerIDs) == 2 && winnerID != 0 && winnerID != BotUserID {
+		hasBot := false
+		for _, pid := range playerIDs {
+			if pid == BotUserID {
+				hasBot = true
+				break
+			}
+		}
+		if hasBot {
+			_, _ = tx.Exec(`
+				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
+				VALUES ($1, 'bot_slayer', now())
+				ON CONFLICT DO NOTHING
+			`, winnerID)
+		}
+	}
+
 	for _, pid := range playerIDs {
 		// 2. Grand Maître (> 400 points dans la partie)
 		var score int
