@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -280,7 +281,9 @@ func findBestMove(board [15][15]string, rack string, gameID string) *request.Pla
 		}
 	}
 
-	var best *candidate
+	if len(candidates) == 0 {
+		return nil
+	}
 
 	// Directions à tester
 	type dir struct {
@@ -288,166 +291,208 @@ func findBestMove(board [15][15]string, rack string, gameID string) *request.Pla
 		name   string
 	}
 	directions := []dir{{1, 0, "H"}, {0, 1, "V"}}
-
 	anchors := getAnchorCells(board)
-	seen := map[string]bool{}
 
-	// 2. Tester le placement de chaque mot candidat sur ses ancrages possibles
-	for _, w := range candidates {
-		wRunes := []rune(w)
-		wLen := len(wRunes)
+	// 2. Paralléliser l'évaluation des candidats sur les CPU disponibles
+	numWorkers := runtime.NumCPU()
+	if numWorkers <= 0 {
+		numWorkers = 1
+	}
+	if numWorkers > len(candidates) {
+		numWorkers = len(candidates)
+	}
 
-		for _, ac := range anchors {
-			if ac.letter != '?' {
-				// Cas 1 : L'ancrage est occupé. Le mot doit contenir cette lettre.
-				for posInWord := 0; posInWord < wLen; posInWord++ {
-					if wRunes[posInWord] != ac.letter {
-						continue
-					}
+	localBests := make([]*candidate, numWorkers)
+	chunkSize := (len(candidates) + numWorkers - 1) / numWorkers
 
-					for _, d := range directions {
-						startX := ac.x - posInWord*d.dx
-						startY := ac.y - posInWord*d.dy
+	var wg sync.WaitGroup
+	wg.Add(numWorkers)
 
-						// Vérifier les limites du plateau
-						endX := startX + (wLen-1)*d.dx
-						endY := startY + (wLen-1)*d.dy
-						if startX < 0 || startY < 0 || endX >= 15 || endY >= 15 {
-							continue
-						}
+	for i := 0; i < numWorkers; i++ {
+		startIdx := i * chunkSize
+		endIdx := startIdx + chunkSize
+		if startIdx >= len(candidates) {
+			wg.Done()
+			continue
+		}
+		if endIdx > len(candidates) {
+			endIdx = len(candidates)
+		}
 
-						key := fmt.Sprintf("%d,%d,%d,%d,%s", startX, startY, d.dx, d.dy, w)
-						if seen[key] {
-							continue
-						}
-						seen[key] = true
+		go func(workerID int, workerCandidates []string) {
+			defer wg.Done()
+			var localBest *candidate
 
-						placed, valid := buildPlacement(board, wRunes, startX, startY, d.dx, d.dy, rack, ac.letter, posInWord)
-						if !valid || len(placed) == 0 {
-							continue
-						}
+			for _, w := range workerCandidates {
+				wRunes := []rune(w)
+				wLen := len(wRunes)
+				seen := make(map[string]bool)
 
-						if !isConnected(board, placed) {
-							continue
-						}
-
-						// Valider les mots formés
-						boardCopy := board
-						if err := ApplyLetters(&boardCopy, placed); err != nil {
-							continue
-						}
-						formedWords := extractFormedWords(boardCopy, placed)
-						if len(formedWords) == 0 {
-							continue
-						}
-						allValid := true
-						for _, fw := range formedWords {
-							if !word.WordExists(fw.Word) {
-								allValid = false
-								break
+				for _, ac := range anchors {
+					if ac.letter != '?' {
+						// Cas 1 : L'ancrage est occupé. Le mot doit contenir cette lettre.
+						for posInWord := 0; posInWord < wLen; posInWord++ {
+							if wRunes[posInWord] != ac.letter {
+								continue
 							}
-						}
-						if !allValid {
-							continue
-						}
 
-						score := ComputeMoveScore(boardCopy, placed, boardBlanks)
-						if best == nil || score > best.score {
-							move := request.PlayMoveRequest{
-								Word:      w,
-								StartX:    startX,
-								StartY:    startY,
-								Direction: d.name,
-								Letters:   placed,
-								Score:     score,
-							}
-							best = &candidate{move: move, score: score}
-						}
-					}
-				}
-			} else {
-				// Cas 2 : L'ancrage est vide (case adjacente ou centre).
-				// On peut caler n'importe quelle lettre du mot sur cette case.
-				for posInWord := 0; posInWord < wLen; posInWord++ {
-					for _, d := range directions {
-						startX := ac.x - posInWord*d.dx
-						startY := ac.y - posInWord*d.dy
+							for _, d := range directions {
+								startX := ac.x - posInWord*d.dx
+								startY := ac.y - posInWord*d.dy
 
-						endX := startX + (wLen-1)*d.dx
-						endY := startY + (wLen-1)*d.dy
-						if startX < 0 || startY < 0 || endX >= 15 || endY >= 15 {
-							continue
-						}
+								// Vérifier les limites du plateau
+								endX := startX + (wLen-1)*d.dx
+								endY := startY + (wLen-1)*d.dy
+								if startX < 0 || startY < 0 || endX >= 15 || endY >= 15 {
+									continue
+								}
 
-						key := fmt.Sprintf("%d,%d,%d,%d,%s", startX, startY, d.dx, d.dy, w)
-						if seen[key] {
-							continue
-						}
-						seen[key] = true
+								key := fmt.Sprintf("%d,%d,%d,%d", startX, startY, d.dx, d.dy)
+								if seen[key] {
+									continue
+								}
+								seen[key] = true
 
-						placed, valid := buildPlacement(board, wRunes, startX, startY, d.dx, d.dy, rack, '?', posInWord)
-						if !valid || len(placed) == 0 {
-							continue
-						}
+								placed, valid := buildPlacement(board, wRunes, startX, startY, d.dx, d.dy, rack, ac.letter, posInWord)
+								if !valid || len(placed) == 0 {
+									continue
+								}
 
-						if boardIsEmpty {
-							touchesCenter := false
-							for _, pl := range placed {
-								if pl.X == 7 && pl.Y == 7 {
-									touchesCenter = true
-									break
+								if !isConnected(board, placed) {
+									continue
+								}
+
+								// Valider les mots formés
+								boardCopy := board
+								if err := ApplyLetters(&boardCopy, placed); err != nil {
+									continue
+								}
+								formedWords := extractFormedWords(boardCopy, placed)
+								if len(formedWords) == 0 {
+									continue
+								}
+								allValid := true
+								for _, fw := range formedWords {
+									if !word.WordExists(fw.Word) {
+										allValid = false
+										break
+									}
+								}
+								if !allValid {
+									continue
+								}
+
+								score := ComputeMoveScore(boardCopy, placed, boardBlanks)
+								if localBest == nil || score > localBest.score {
+									move := request.PlayMoveRequest{
+										Word:      w,
+										StartX:    startX,
+										StartY:    startY,
+										Direction: d.name,
+										Letters:   placed,
+										Score:     score,
+									}
+									localBest = &candidate{move: move, score: score}
 								}
 							}
-							if !touchesCenter {
-								continue
-							}
-						} else {
-							if !isConnected(board, placed) {
-								continue
-							}
 						}
+					} else {
+						// Cas 2 : L'ancrage est vide (case adjacente ou centre).
+						// On peut caler n'importe quelle lettre du mot sur cette case.
+						for posInWord := 0; posInWord < wLen; posInWord++ {
+							for _, d := range directions {
+								startX := ac.x - posInWord*d.dx
+								startY := ac.y - posInWord*d.dy
 
-						boardCopy := board
-						if err := ApplyLetters(&boardCopy, placed); err != nil {
-							continue
-						}
-						formedWords := extractFormedWords(boardCopy, placed)
-						if len(formedWords) == 0 {
-							continue
-						}
-						allValid := true
-						for _, fw := range formedWords {
-							if !word.WordExists(fw.Word) {
-								allValid = false
-								break
-							}
-						}
-						if !allValid {
-							continue
-						}
+								endX := startX + (wLen-1)*d.dx
+								endY := startY + (wLen-1)*d.dy
+								if startX < 0 || startY < 0 || endX >= 15 || endY >= 15 {
+									continue
+								}
 
-						score := ComputeMoveScore(boardCopy, placed, boardBlanks)
-						if best == nil || score > best.score {
-							move := request.PlayMoveRequest{
-								Word:      w,
-								StartX:    startX,
-								StartY:    startY,
-								Direction: d.name,
-								Letters:   placed,
-								Score:     score,
+								key := fmt.Sprintf("%d,%d,%d,%d", startX, startY, d.dx, d.dy)
+								if seen[key] {
+									continue
+								}
+								seen[key] = true
+
+								placed, valid := buildPlacement(board, wRunes, startX, startY, d.dx, d.dy, rack, '?', posInWord)
+								if !valid || len(placed) == 0 {
+									continue
+								}
+
+								if boardIsEmpty {
+									touchesCenter := false
+									for _, pl := range placed {
+										if pl.X == 7 && pl.Y == 7 {
+											touchesCenter = true
+											break
+										}
+									}
+									if !touchesCenter {
+										continue
+									}
+								} else {
+									if !isConnected(board, placed) {
+										continue
+									}
+								}
+
+								boardCopy := board
+								if err := ApplyLetters(&boardCopy, placed); err != nil {
+									continue
+								}
+								formedWords := extractFormedWords(boardCopy, placed)
+								if len(formedWords) == 0 {
+									continue
+								}
+								allValid := true
+								for _, fw := range formedWords {
+									if !word.WordExists(fw.Word) {
+										allValid = false
+										break
+									}
+								}
+								if !allValid {
+									continue
+								}
+
+								score := ComputeMoveScore(boardCopy, placed, boardBlanks)
+								if localBest == nil || score > localBest.score {
+									move := request.PlayMoveRequest{
+										Word:      w,
+										StartX:    startX,
+										StartY:    startY,
+										Direction: d.name,
+										Letters:   placed,
+										Score:     score,
+									}
+									localBest = &candidate{move: move, score: score}
+								}
 							}
-							best = &candidate{move: move, score: score}
 						}
 					}
 				}
 			}
+			localBests[workerID] = localBest
+		}(i, candidates[startIdx:endIdx])
+	}
+
+	wg.Wait()
+
+	var absoluteBest *candidate
+	for _, lb := range localBests {
+		if lb != nil {
+			if absoluteBest == nil || lb.score > absoluteBest.score {
+				absoluteBest = lb
+			}
 		}
 	}
 
-	if best == nil {
+	if absoluteBest == nil {
 		return nil
 	}
-	return &best.move
+	return &absoluteBest.move
 }
 
 
