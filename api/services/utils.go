@@ -523,7 +523,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 	for i, l := range lefts {
 		playerIDs[i] = l.pid
 	}
-	CheckAndUnlockGameFinishedAchievements(tx, gameID, winnerID, playerIDs)
+	CheckAndUnlockGameFinishedAchievements(gameID, winnerID, playerIDs)
 
 	return nil
 }

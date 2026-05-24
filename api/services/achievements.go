@@ -1,7 +1,6 @@
 package services
 
 import (
-	"database/sql"
 	"strings"
 	"time"
 
@@ -80,16 +79,16 @@ func CheckAndUnlockPlayMoveAchievements(userID int64, letters []request.PlacedLe
 }
 
 // CheckAndUnlockGameFinishedAchievements vérifie et débloque les succès liés à la fin de partie
-func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID int64, playerIDs []int64) {
+func CheckAndUnlockGameFinishedAchievements(gameID string, winnerID int64, playerIDs []int64) {
 	// 1. Premier Sang (première victoire)
 	if winnerID != 0 {
 		var winCount int
-		err := tx.QueryRow(`
+		err := database.QueryRow(`
 			SELECT COUNT(*) FROM games 
 			WHERE status = 'ended' AND winner_username = (SELECT username FROM users WHERE id = $1)
 		`, winnerID).Scan(&winCount)
 		if err == nil && winCount == 1 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'first_blood', now())
 				ON CONFLICT DO NOTHING
@@ -107,7 +106,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 			}
 		}
 		if hasBot {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'bot_slayer', now())
 				ON CONFLICT DO NOTHING
@@ -118,9 +117,9 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 	for _, pid := range playerIDs {
 		// 2. Grand Maître (> 400 points dans la partie)
 		var score int
-		err := tx.QueryRow(`SELECT score FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, pid).Scan(&score)
+		err := database.QueryRow(`SELECT score FROM game_players WHERE game_id = $1 AND player_id = $2`, gameID, pid).Scan(&score)
 		if err == nil && score > 400 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'scrabble_master', now())
 				ON CONFLICT DO NOTHING
@@ -129,13 +128,13 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 
 		// 3. Marathonien (jouer 10 parties complètes)
 		var completeGames int
-		err = tx.QueryRow(`
+		err = database.QueryRow(`
 			SELECT COUNT(*) FROM game_players gp
 			JOIN games g ON gp.game_id = g.id
 			WHERE gp.player_id = $1 AND g.status = 'ended'
 		`, pid).Scan(&completeGames)
 		if err == nil && completeGames >= 10 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'marathoner', now())
 				ON CONFLICT DO NOTHING
@@ -144,7 +143,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 
 		// 4. Vétéran (jouer 50 parties complètes)
 		if err == nil && completeGames >= 50 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'veteran', now())
 				ON CONFLICT DO NOTHING
@@ -153,7 +152,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 
 		// 5. Rivalité Amicale (jouer contre au moins 3 adversaires différents)
 		var opponentsCount int
-		err = tx.QueryRow(`
+		err = database.QueryRow(`
 			SELECT COUNT(DISTINCT gp2.player_id)
 			FROM game_players gp1
 			JOIN game_players gp2 ON gp1.game_id = gp2.game_id
@@ -161,7 +160,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 			WHERE gp1.player_id = $1 AND gp2.player_id != $1 AND g.status = 'ended'
 		`, pid).Scan(&opponentsCount)
 		if err == nil && opponentsCount >= 3 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'friendly_rivalry', now())
 				ON CONFLICT DO NOTHING
@@ -170,7 +169,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 
 		// 6. Légende du Club (marquer plus de 500 points dans une seule partie)
 		if err == nil && score > 500 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'elite_player', now())
 				ON CONFLICT DO NOTHING
@@ -179,7 +178,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 
 		// 7. Série Victorieuse (remporter 3 victoires consécutives)
 		var winsInARow int
-		err = tx.QueryRow(`
+		err = database.QueryRow(`
 			WITH last_games AS (
 				SELECT g.id, g.winner_username, gp.player_id, u.username
 				FROM games g
@@ -193,7 +192,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 			WHERE winner_username = username
 		`, pid).Scan(&winsInARow)
 		if err == nil && winsInARow == 3 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'serial_winner', now())
 				ON CONFLICT DO NOTHING
@@ -203,7 +202,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 		// 8. Oiseau de Nuit (terminer une partie entre 23h et 5h du matin)
 		hour := time.Now().Hour()
 		if hour >= 23 || hour < 5 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'night_owl', now())
 				ON CONFLICT DO NOTHING
@@ -212,9 +211,9 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 
 		// 9. Stratège (atteindre un classement de 500 IPS ou plus)
 		var rating int
-		err = tx.QueryRow(`SELECT rating FROM users WHERE id = $1`, pid).Scan(&rating)
+		err = database.QueryRow(`SELECT rating FROM users WHERE id = $1`, pid).Scan(&rating)
 		if err == nil && rating >= 500 {
-			_, _ = tx.Exec(`
+			_, _ = database.Exec(`
 				INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 				VALUES ($1, 'ips_master', now())
 				ON CONFLICT DO NOTHING
@@ -224,7 +223,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 
 	// 10. Le Survivant (gagner avec moins de 10 points d'avance)
 	if winnerID != 0 {
-		rows, err := tx.Query(`
+		rows, err := database.Query(`
 			SELECT score FROM game_players 
 			WHERE game_id = $1 
 			ORDER BY score DESC 
@@ -241,7 +240,7 @@ func CheckAndUnlockGameFinishedAchievements(tx *sql.Tx, gameID string, winnerID 
 			rows.Close()
 
 			if len(scores) == 2 && (scores[0]-scores[1]) < 10 {
-				_, _ = tx.Exec(`
+				_, _ = database.Exec(`
 					INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 					VALUES ($1, 'comeback_kid', now())
 					ON CONFLICT DO NOTHING

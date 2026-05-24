@@ -38,7 +38,7 @@ func CreateMessage(userID int64, gameID, content string, meta map[string]any) (m
 	var metaJSON any = nil
 	if meta != nil {
 		if b, err := json.Marshal(meta); err == nil {
-			metaJSON = b
+			metaJSON = string(b)
 		} else {
 			// ignore meta on marshal failure
 			// zap.L().Warn("failed to marshal message meta", zap.Error(err))
