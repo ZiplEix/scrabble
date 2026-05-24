@@ -35,7 +35,7 @@ func CreateMessage(userID int64, gameID, content string, meta map[string]any) (m
 		return nil, fmt.Errorf("user not in game")
 	}
 
-	metaJSON := []byte(nil)
+	var metaJSON any = nil
 	if meta != nil {
 		if b, err := json.Marshal(meta); err == nil {
 			metaJSON = b

@@ -724,7 +724,7 @@ func maybeSendBotTaunt(gameID string, score int, isPassOrExchange bool) {
 	msg := taunts[rng.Intn(len(taunts))]
 
 	// Envoyer le message de chat de la part de Scrabby
-	_, err := CreateMessage(BotUserID, gameID, msg, nil)
+	_, err := CreateMessage(BotUserID, gameID, msg, map[string]any{})
 	if err != nil {
 		zap.L().Warn("bot: failed to send chat taunt", zap.Error(err), zap.String("game_id", gameID))
 	}
