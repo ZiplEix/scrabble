@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { api } from '$lib/api';
 	import { page } from '$app/stores';
 	import { get, writable } from 'svelte/store';
@@ -27,7 +27,22 @@
 
 	// Tab states
 	let activeTab = $state<'board' | 'chat' | 'history' | 'dictionary'>('board');
-	let hasNewMessages = $state(false);
+	let unreadCount = $state(0);
+	let unreadInterval: any;
+
+	async function refreshUnreadCount() {
+		if (!gameId) return;
+		if (activeTab === 'chat') {
+			unreadCount = 0;
+			return;
+		}
+		try {
+			const res = await api.get(`/game/${gameId}/unread_messages_count`);
+			unreadCount = Number(res.data?.unread_count || 0);
+		} catch (e) {
+			console.error('Failed to fetch unread count', e);
+		}
+	}
 
 	let sortedPlayers = $derived(game ? [...game.players].sort((a, b) => b.score - a.score) : []);
 
@@ -64,6 +79,16 @@
 			loading = false;
 			if (game?.status === 'ended') showScores.set(true);
 		}
+
+		await refreshUnreadCount();
+
+		unreadInterval = setInterval(async () => {
+			await refreshUnreadCount();
+		}, 8000);
+	});
+
+	onDestroy(() => {
+		if (unreadInterval) clearInterval(unreadInterval);
 	});
 
 	async function retryLoad() {
@@ -178,12 +203,14 @@
 						Plateau
 					</button>
 					<button 
-						onclick={() => { activeTab = 'chat'; hasNewMessages = false; }} 
+						onclick={() => { activeTab = 'chat'; unreadCount = 0; }} 
 						class="py-1.5 text-[10px] font-bold rounded-xl text-center transition-all active:scale-[0.98] relative {activeTab === 'chat' ? 'bg-white text-brand-emerald shadow-sm' : 'text-stone-500 hover:text-stone-700'}"
 					>
 						Chat
-						{#if hasNewMessages}
-							<span class="absolute top-1.5 right-3 w-1.5 h-1.5 bg-brand-gold rounded-full gold-glow animate-pulse"></span>
+						{#if unreadCount > 0 && activeTab !== 'chat'}
+							<span class="absolute -top-1.5 right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[8px] font-extrabold text-white border border-white shadow-xs animate-pulse">
+								{unreadCount > 99 ? '99+' : unreadCount}
+							</span>
 						{/if}
 					</button>
 					<button 
@@ -249,7 +276,7 @@
 				<GameChat 
 					gameId={gameId!} 
 					{game} 
-					onNewMessage={() => { if (activeTab !== 'chat') hasNewMessages = true; }} 
+					onNewMessage={refreshUnreadCount} 
 				/>
 			{:else if activeTab === 'history'}
 				<!-- Render Log timeline -->
