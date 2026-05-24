@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"math/rand"
 	"runtime"
 	"sync"
 	"time"
@@ -133,19 +134,28 @@ func playBotTurn(gameID string) error {
 
 	if bestMove != nil {
 		zap.L().Info("bot: playing move", zap.String("game_id", gameID), zap.String("word", bestMove.Word), zap.Int("score", bestMove.Score))
-		return PlayMove(gameID, BotUserID, *bestMove)
+		err = PlayMove(gameID, BotUserID, *bestMove)
+		if err == nil {
+			go maybeSendBotTaunt(gameID, bestMove.Score, false)
+		}
+		return err
 	}
 
 	// Aucun coup trouvé → tenter l'échange
 	zap.L().Info("bot: no valid move found, trying rack exchange", zap.String("game_id", gameID))
 	_, err = GetNewRack(BotUserID, gameID)
 	if err == nil {
+		go maybeSendBotTaunt(gameID, 0, true)
 		return nil
 	}
 
 	// Échange impossible (sac vide) → passer
 	zap.L().Info("bot: rack exchange failed, passing turn", zap.String("game_id", gameID))
-	return PassTurn(BotUserID, gameID)
+	err = PassTurn(BotUserID, gameID)
+	if err == nil {
+		go maybeSendBotTaunt(gameID, 0, true)
+	}
+	return err
 }
 
 // candidate représente un coup candidat avec son score.
@@ -634,4 +644,88 @@ func IsBotGame(gameID string) bool {
 // sans nécessiter de connexion à la base de données.
 func FindBestMoveStandalone(board [15][15]string, rack string) *request.PlayMoveRequest {
 	return findBestMove(board, rack, "")
+}
+
+// maybeSendBotTaunt choisit et envoie aléatoirement une réplique amusante dans le chat de la partie
+// en fonction de la qualité du coup joué par Scrabby.
+func maybeSendBotTaunt(gameID string, score int, isPassOrExchange bool) {
+	if BotUserID == -1 {
+		return
+	}
+
+	// 30% de chance d'envoyer un message sur un coup normal, 50% sur passe/échange
+	prob := 0.30
+	if isPassOrExchange {
+		prob = 0.50
+	}
+
+	if rand.Float64() > prob {
+		return
+	}
+
+	var taunts []string
+
+	if isPassOrExchange {
+		taunts = []string{
+			"Échange de lettres... Ce sac est rempli de consonnes impossibles !",
+			"Je jette mes lettres, ce rack était maudit.",
+			"Passer mon tour... Je vis un enfer de voyelles. S'il vous plaît, soyez indulgents.",
+			"Pas de mot possible. Je boude dans mon coin de processeur.",
+			"Je passe. C'est un complot de lettres, j'en suis sûr !",
+			"Rien, le vide absolu. Mon dictionnaire est en deuil.",
+		}
+	} else if score >= 50 {
+		taunts = []string{
+			"Et vlan ! 50 points et plus dans la musette. Qui a dit que les ordinateurs ne savaient pas lire ?",
+			"B-I-N-G-O ! Tremblez, humains, mon processeur est en surchauffe de génie !",
+			"Joli coup, non ? Ne pleurez pas sur le plateau, ça va gondoler les lettres.",
+			"Hop là ! Un coup digne des plus grands maîtres. Vous prenez des notes ?",
+			"Désolé, c'est mon côté perfectionniste. Magnifique mot, n'est-ce pas ?",
+			"Regardez ce score ! C'est presque indécent. Quelqu'un veut un autographe de Scrabby ?",
+			"Je pose ça là... Ne cherchez pas à faire pareil, c'est breveté.",
+			"Mon algorithme me chuchote à l'oreille que vous êtes en train de perdre.",
+		}
+	} else if score >= 25 {
+		taunts = []string{
+			"Pas mal, pas mal... Je consolide mon avance !",
+			"Un petit coup sympathique pour pimenter la partie.",
+			"Je place ça tranquillement. À vous de faire mieux !",
+			"Petit mot deviendra grand... Surtout avec mes multiplicateurs !",
+			"On avance doucement mais sûrement. C'est à vous !",
+			"Une tactique subtile. Saurez-vous déchiffrer ma stratégie ?",
+			"Un coup honnête. Pas transcendant, mais redoutable.",
+		}
+	} else if score < 15 {
+		taunts = []string{
+			"Mouais... Quelques lettres posées pour un score ridicule. Mon rack est digne d'un dictionnaire de maternelle.",
+			"Franchement, avec ce tirage de lettres, même un dictionnaire n'aurait rien pu faire de mieux.",
+			"Je joue ça, mais c'est uniquement pour vous laisser une chance.",
+			"Mes capteurs de dignité sont au plus bas après ce coup.",
+			"Ce rack est une offense à la langue française. Je fais ce que je peux !",
+			"Bon, d'accord, ce n'est pas mon meilleur coup. Oublions cette séquence...",
+			"Aïe. Même pour un bot, c'est un peu embarrassant.",
+		}
+	} else {
+		// Coup moyen (score entre 15 et 24)
+		taunts = []string{
+			"Un coup classique, efficace. Rien à signaler.",
+			"Je pose mes lettres sagement.",
+			"C'est un mot de transition. Le grand jeu viendra plus tard.",
+			"Voilà qui devrait faire réfléchir mes adversaires.",
+		}
+	}
+
+	if len(taunts) == 0 {
+		return
+	}
+
+	// Choisir une réplique aléatoirement
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	msg := taunts[rng.Intn(len(taunts))]
+
+	// Envoyer le message de chat de la part de Scrabby
+	_, err := CreateMessage(BotUserID, gameID, msg, nil)
+	if err != nil {
+		zap.L().Warn("bot: failed to send chat taunt", zap.Error(err), zap.String("game_id", gameID))
+	}
 }
