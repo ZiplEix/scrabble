@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrabble Solver Autonome</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M7 8h10M7 12h10M7 16h6" stroke-linecap="round" />
+            </svg>
+            <h1>Scrabble<span>Solver</span></h1>
+        </div>
+        <div class="subtitle">Outil de résolution de coup autonome</div>
+    </header>
+
+    <main class="app-container">
+        <!-- Section Plateau Scrabble -->
+        <section class="board-section">
+            <div class="card-header">
+                <h2>Plateau de Jeu</h2>
+                <div class="badge">15 × 15</div>
+            </div>
+            <div class="board-wrapper">
+                <div id="board" class="scrabble-board"></div>
+            </div>
+            <div class="board-helper">
+                Astuce : Cliquez sur une case vide et tapez une lettre au clavier. Utilisez <kbd>BackSpace</kbd> ou <kbd>Suppr</kbd> pour vider une case.
+            </div>
+        </section>
+
+        <!-- Section Panneau de Contrôle & Résultats -->
+        <section class="control-section">
+            <!-- Formulaire d'Entrée -->
+            <div class="card settings-card">
+                <div class="card-header">
+                    <h2>Configuration</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label for="rack-input">Vos lettres (Rack)</label>
+                    <div class="rack-input-wrapper">
+                        <input type="text" id="rack-input" placeholder="ex: AEIMNPT" maxlength="15" autocomplete="off">
+                        <span class="joker-help">Utilisez ? pour les Jokers</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="json-input">Importer une grille au format JSON</label>
+                    <textarea id="json-input" placeholder='Collez votre grille JSON ici...'></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btn-example" class="btn btn-secondary">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        Charger l'exemple
+                    </button>
+                    <button id="btn-clear" class="btn btn-danger">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Vider la grille
+                    </button>
+                </div>
+
+                <button id="btn-solve" class="btn btn-primary">
+                    <span class="btn-text">Trouver le meilleur coup</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </div>
+
+            <!-- Résultats de la recherche -->
+            <div id="result-card" class="card result-card hidden">
+                <div class="card-header border-bottom">
+                    <h2>Meilleure Option Trouvée</h2>
+                    <div class="score-badge"><span id="res-score">-</span> pts</div>
+                </div>
+                
+                <div class="result-details">
+                    <div class="detail-item">
+                        <span class="label">Mot trouvé</span>
+                        <span id="res-word" class="value highlight">-</span>
+                    </div>
+                    <div class="detail-grid-row">
+                        <div class="detail-item">
+                            <span class="label">Position</span>
+                            <span id="res-pos" class="value">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Direction</span>
+                            <span id="res-dir" class="value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="formed-words-section">
+                    <h3>Lettres à poser :</h3>
+                    <div id="res-placed-letters" class="placed-letters-list"></div>
+                </div>
+
+                <button id="btn-apply-move" class="btn btn-secondary w-full mt-4">
+                    Appliquer le coup sur le plateau
+                </button>
+            </div>
+            
+            <div id="no-result-card" class="card result-card empty-state hidden">
+                <div class="empty-icon">🔍</div>
+                <h3>Aucun coup valide trouvé</h3>
+                <p>Essayez avec d'autres lettres sur votre rack ou connectez plus de lettres sur le plateau.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p>Scrabble Solver Autonome • Alimenté par le moteur Go du projet principal</p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

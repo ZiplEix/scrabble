@@ -584,3 +584,9 @@ func IsBotGame(gameID string) bool {
 	).Scan(&count)
 	return count > 0
 }
+
+// FindBestMoveStandalone explore tous les placements légaux sur un plateau donné avec un rack donné,
+// sans nécessiter de connexion à la base de données.
+func FindBestMoveStandalone(board [15][15]string, rack string) *request.PlayMoveRequest {
+	return findBestMove(board, rack, "")
+}
