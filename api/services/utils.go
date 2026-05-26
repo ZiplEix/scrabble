@@ -12,7 +12,8 @@ import (
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/ZiplEix/scrabble/api/word"
-	"go.uber.org/zap"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
+	"context"
 )
 
 // BuildBoardBlanks parcourt l'historique des coups pour connaître les positions
@@ -471,10 +472,10 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 			if err := utils.SendNotificationToUserByID(userID, pl); err != nil {
 				// si pas d'abonnement push → info, sinon warn
 				if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "no rows in result set") {
-					zap.L().Info("no push subscription for user", zap.Int64("user_id", userID))
+					logger.Info(context.Background(), "no push subscription for user", "user_id", userID)
 					return
 				}
-				zap.L().Warn("failed to send push notification", zap.Error(err), zap.Int64("user_id", userID))
+				logger.Warn(context.Background(), "failed to send push notification", "error", err, "user_id", userID)
 			}
 		}(uid, payload)
 	}
@@ -514,7 +515,7 @@ func finishGame(tx *sql.Tx, gameID string, lastPlayerID int64) error {
 	// Mise à jour de l'IPS pour tous les participants
 	for _, l := range lefts {
 		if err := UpdateUserIPS(tx, l.pid, gameID); err != nil {
-			zap.L().Error("failed to update user IPS", zap.Error(err), zap.Int64("user_id", l.pid))
+			logger.Error(context.Background(), "failed to update user IPS", "error", err, "user_id", l.pid)
 			// On continue malgré l'erreur pour ne pas bloquer la fin de partie
 		}
 	}

@@ -11,13 +11,11 @@ import (
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/middleware/accesslog"
 	requestid "github.com/ZiplEix/scrabble/api/middleware/request_id"
-	"github.com/ZiplEix/scrabble/api/pgzap"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
 	"github.com/ZiplEix/scrabble/api/routes"
 	"github.com/ZiplEix/scrabble/api/services"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 func init() {
@@ -28,32 +26,22 @@ func init() {
 	}
 }
 
-func initLogger() (*zap.Logger, func(context.Context) error) {
-	encCfg := zap.NewProductionEncoderConfig()
-	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
-	consoleCore := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encCfg),
-		zapcore.AddSync(os.Stdout),
-		zap.InfoLevel,
-	)
+func initLogger() func(context.Context) error {
+	mode := os.Getenv("LOG_MODE")
+	if mode == "" {
+		mode = "human" // beautiful terminal colors by default
+	}
 
-	pgCore, pgClose := pgzap.New(
-		database.DB,
-		zapcore.InfoLevel,
-		pgzap.WithBatchSize(1000),
-		pgzap.WithMaxWait(5*time.Second),
-		pgzap.WithBuffer(10_000),
-	)
+	pgClose := logger.Init(mode, database.DB)
+	
+	// Enable DB logging by default for the API
+	logger.SaveToDB(true)
 
-	core := zapcore.NewTee(consoleCore, pgCore)
-	zlog := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
-	zap.ReplaceGlobals(zlog)
-
-	return zlog, pgClose
+	return pgClose
 }
 
 func main() {
-	zlog, pgClose := initLogger()
+	pgClose := initLogger()
 
 	// Start log retention: purge logs older than 7 days every 24h
 	stopRetention := StartLogRetention(database.DB, 7*24*time.Hour, 24*time.Hour)
@@ -63,7 +51,6 @@ func main() {
 	services.StartBotWorker(5) // poll toutes les 5 secondes
 
 	defer func() {
-		_ = zlog.Sync()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = pgClose(ctx)

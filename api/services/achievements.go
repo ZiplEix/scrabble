@@ -6,7 +6,8 @@ import (
 
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/models/request"
-	"go.uber.org/zap"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
+	"context"
 )
 
 // UnlockAchievement débloque un succès pour un utilisateur
@@ -17,7 +18,7 @@ func UnlockAchievement(userID int64, achievementID string) error {
 		ON CONFLICT (user_id, achievement_id) DO NOTHING
 	`, userID, achievementID)
 	if err != nil {
-		zap.L().Error("Failed to unlock achievement", zap.Int64("user_id", userID), zap.String("achievement_id", achievementID), zap.Error(err))
+		logger.Error(context.Background(), "Failed to unlock achievement", "user_id", userID, "achievement_id", achievementID, "error", err)
 		return err
 	}
 	return nil

@@ -8,7 +8,8 @@ import (
 	"github.com/ZiplEix/scrabble/api/database"
 	dbModels "github.com/ZiplEix/scrabble/api/models/database"
 	"github.com/jackc/pgx/v5"
-	"go.uber.org/zap"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
+	"context"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -106,7 +107,7 @@ func GetUserByUsername(username string) (*dbModels.User, error) {
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("user not found: %w", err)
 	} else if err != nil {
-		zap.L().Error("failed to query user", zap.Error(err), zap.String("username", username))
+		logger.Error(context.Background(), "failed to query user", "error", err, "username", username)
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 

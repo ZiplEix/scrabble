@@ -10,7 +10,8 @@ import (
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/models/request"
 	"github.com/ZiplEix/scrabble/api/word"
-	"go.uber.org/zap"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
+	"context"
 )
 
 var (
@@ -29,11 +30,11 @@ func InitBot() {
 		`SELECT id FROM users WHERE role = 'ordinateur' AND is_bot = TRUE LIMIT 1`,
 	).Scan(&BotUserID)
 	if err != nil {
-		zap.L().Error("bot: failed to load Scrabby user ID — bot will be disabled", zap.Error(err))
+		logger.Error(context.Background(), "bot: failed to load Scrabby user ID — bot will be disabled", "error", err)
 		BotUserID = -1
 		return
 	}
-	zap.L().Info("bot: Scrabby initialized", zap.Int64("bot_user_id", BotUserID))
+	logger.Info(context.Background(), "bot: Scrabby initialized", "bot_user_id", BotUserID)
 }
 
 // TriggerBotIfNeeded vérifie si le prochain joueur est le bot et le déclenche en goroutine.
@@ -46,7 +47,7 @@ func TriggerBotIfNeeded(gameID string, currentTurnUserID int64) {
 		// Petit délai artificiel pour que la réponse HTTP soit retournée au client avant que le bot joue
 		time.Sleep(800 * time.Millisecond)
 		if err := playBotTurn(gameID); err != nil {
-			zap.L().Error("bot: failed to play turn", zap.Error(err), zap.String("game_id", gameID))
+			logger.Error(context.Background(), "bot: failed to play turn", "error", err, "game_id", gameID)
 		}
 	}()
 }
@@ -56,7 +57,7 @@ func TriggerBotIfNeeded(gameID string, currentTurnUserID int64) {
 // été déclenchées (ex: redémarrage serveur).
 func StartBotWorker(intervalSeconds int) {
 	if BotUserID == -1 {
-		zap.L().Warn("bot: BotUserID not set, bot worker not started")
+		logger.Warn(context.Background(), "bot: BotUserID not set, bot worker not started")
 		return
 	}
 	go func() {
@@ -68,7 +69,7 @@ func StartBotWorker(intervalSeconds int) {
 				BotUserID,
 			)
 			if err != nil {
-				zap.L().Error("bot: poll query failed", zap.Error(err))
+				logger.Error(context.Background(), "bot: poll query failed", "error", err)
 				continue
 			}
 			var gameIDs []string
@@ -84,13 +85,13 @@ func StartBotWorker(intervalSeconds int) {
 				gidCopy := gid
 				go func() {
 					if err := playBotTurn(gidCopy); err != nil {
-						zap.L().Error("bot: worker failed to play turn", zap.Error(err), zap.String("game_id", gidCopy))
+						logger.Error(context.Background(), "bot: worker failed to play turn", "error", err, "game_id", gidCopy)
 					}
 				}()
 			}
 		}
 	}()
-	zap.L().Info("bot: worker started", zap.Int("interval_seconds", intervalSeconds))
+	logger.Info(context.Background(), "bot: worker started", "interval_seconds", intervalSeconds)
 }
 
 // playBotTurn orchestre un tour du bot : cherche le meilleur coup, puis l'échange, puis passe.
@@ -133,7 +134,7 @@ func playBotTurn(gameID string) error {
 	bestMove := findBestMove(board, rackStr, gameID)
 
 	if bestMove != nil {
-		zap.L().Info("bot: playing move", zap.String("game_id", gameID), zap.String("word", bestMove.Word), zap.Int("score", bestMove.Score))
+		logger.Info(context.Background(), "bot: playing move", "game_id", gameID, "word", bestMove.Word, "score", bestMove.Score)
 		err = PlayMove(gameID, BotUserID, *bestMove)
 		if err == nil {
 			go maybeSendBotTaunt(gameID, bestMove.Score, false)
@@ -142,7 +143,7 @@ func playBotTurn(gameID string) error {
 	}
 
 	// Aucun coup trouvé → tenter l'échange
-	zap.L().Info("bot: no valid move found, trying rack exchange", zap.String("game_id", gameID))
+	logger.Info(context.Background(), "bot: no valid move found, trying rack exchange", "game_id", gameID)
 	_, err = GetNewRack(BotUserID, gameID)
 	if err == nil {
 		go maybeSendBotTaunt(gameID, 0, true)
@@ -150,7 +151,7 @@ func playBotTurn(gameID string) error {
 	}
 
 	// Échange impossible (sac vide) → passer
-	zap.L().Info("bot: rack exchange failed, passing turn", zap.String("game_id", gameID))
+	logger.Info(context.Background(), "bot: rack exchange failed, passing turn", "game_id", gameID)
 	err = PassTurn(BotUserID, gameID)
 	if err == nil {
 		go maybeSendBotTaunt(gameID, 0, true)
@@ -726,6 +727,6 @@ func maybeSendBotTaunt(gameID string, score int, isPassOrExchange bool) {
 	// Envoyer le message de chat de la part de Scrabby
 	_, err := CreateMessage(BotUserID, gameID, msg, map[string]any{})
 	if err != nil {
-		zap.L().Warn("bot: failed to send chat taunt", zap.Error(err), zap.String("game_id", gameID))
+		logger.Warn(context.Background(), "bot: failed to send chat taunt", "error", err, "game_id", gameID)
 	}
 }

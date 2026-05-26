@@ -5,8 +5,19 @@ import (
 	"encoding/hex"
 	"strings"
 
+	"context"
+
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
 	"github.com/labstack/echo/v4"
 )
+
+type requestIDCtxKey struct{}
+
+var ctxKey = requestIDCtxKey{}
+
+func init() {
+	logger.RegisterContextKey(ctxKey, "request_id")
+}
 
 const (
 	// Header sous lequel on renvoie l'ID au client
@@ -27,8 +38,13 @@ func Middleware() echo.MiddlewareFunc {
 			if id == "" {
 				id = newID()
 			}
-			// Expose dans le contexte pour les handlers & logs
+			// Expose dans le contexte Echo
 			c.Set(ContextKey, id)
+
+			// Expose dans le context.Context standard de la requête HTTP pour logger.*
+			req := c.Request()
+			ctx := context.WithValue(req.Context(), ctxKey, id)
+			c.SetRequest(req.WithContext(ctx))
 
 			// S'assure que le header est bien présent sur *toutes* les réponses,
 			// y compris en cas d'erreur, juste avant l'écriture des headers.

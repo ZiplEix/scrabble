@@ -8,7 +8,8 @@ import (
 
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/utils"
-	"go.uber.org/zap"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
+	"context"
 )
 
 // IsUserInGame returns true if the user is part of the game
@@ -59,7 +60,7 @@ func CreateMessage(userID int64, gameID, content string, meta map[string]any) (m
 		var senderUsername string
 		err := database.QueryRow(`SELECT username FROM users WHERE id = $1`, userID).Scan(&senderUsername)
 		if err != nil {
-			zap.L().Warn("failed to fetch sender username", zap.Error(err), zap.Int64("user_id", userID))
+			logger.Warn(context.Background(), "failed to fetch sender username", "error", err, "user_id", userID)
 			return
 		}
 
@@ -67,27 +68,27 @@ func CreateMessage(userID int64, gameID, content string, meta map[string]any) (m
 		var gameName string
 		err = database.QueryRow(`SELECT name FROM games WHERE id = $1`, gameID).Scan(&gameName)
 		if err != nil {
-			zap.L().Warn("failed to fetch game name", zap.Error(err), zap.String("game_id", gameID))
+			logger.Warn(context.Background(), "failed to fetch game name", "error", err, "game_id", gameID)
 			return
 		}
 
 		var users []int
 		rows, err := database.Query(`SELECT player_id FROM game_players WHERE game_id = $1`, gameID)
 		if err != nil {
-			zap.L().Warn("failed to fetch game players", zap.Error(err), zap.String("game_id", gameID))
+			logger.Warn(context.Background(), "failed to fetch game players", "error", err, "game_id", gameID)
 			return
 		}
 		for rows.Next() {
 			var uid int
 			if err := rows.Scan(&uid); err != nil {
-				zap.L().Warn("failed to scan game player", zap.Error(err), zap.String("game_id", gameID))
+				logger.Warn(context.Background(), "failed to scan game player", "error", err, "game_id", gameID)
 				continue // skip this user if there's an error
 			}
 			users = append(users, uid)
 		}
 		rows.Close()
 		if err := rows.Err(); err != nil {
-			zap.L().Warn("error reading game players", zap.Error(err), zap.String("game_id", gameID))
+			logger.Warn(context.Background(), "error reading game players", "error", err, "game_id", gameID)
 		}
 
 		// helper: check if a user allows message notifications

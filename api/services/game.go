@@ -16,7 +16,7 @@ import (
 	"github.com/ZiplEix/scrabble/api/word"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"go.uber.org/zap"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
 )
 
 // Plateau vide 15x15
@@ -65,7 +65,7 @@ func CreateGame(userID int64, name string, usernames []string, revangeFrom *stri
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			zap.L().Error("Failed to rollback transaction", zap.Error(err), zap.String("game_id", gameID.String()))
+			logger.Error(context.Background(), "Failed to rollback transaction", "error", err, "game_id", gameID.String())
 		}
 	}()
 
@@ -164,7 +164,7 @@ func DeleteGame(userID int64, gameID string) error {
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			zap.L().Error("Failed to rollback transaction", zap.Error(err), zap.String("game_id", gameID))
+			logger.Error(context.Background(), "Failed to rollback transaction", "error", err, "game_id", gameID)
 		}
 	}()
 
@@ -573,7 +573,7 @@ func PlayMove(gameID string, userID int64, req request.PlayMoveRequest) error {
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			zap.L().Error("failed to rollback transaction", zap.Error(err), zap.String("game_id", gameID))
+			logger.Error(context.Background(), "failed to rollback transaction", "error", err, "game_id", gameID)
 		}
 	}()
 
@@ -663,7 +663,7 @@ func GetNewRack(userID int64, gameID string) ([]string, error) {
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			zap.L().Error("Failed to rollback transaction", zap.Error(err), zap.String("game_id", gameID))
+			logger.Error(context.Background(), "Failed to rollback transaction", "error", err, "game_id", gameID)
 		}
 	}()
 
@@ -929,7 +929,7 @@ func PassTurn(userID int64, gameID string) error {
 	}
 	defer func() {
 		if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
-			zap.L().Error("rollback failed", zap.Error(rbErr), zap.String("game_id", gameID))
+			logger.Error(context.Background(), "rollback failed", "error", rbErr, "game_id", gameID)
 		}
 	}()
 

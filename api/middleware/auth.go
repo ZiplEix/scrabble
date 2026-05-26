@@ -1,16 +1,31 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/ZiplEix/scrabble/api/database"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
 	"github.com/ZiplEix/scrabble/api/utils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
+
+type userIDCtxKey struct{}
+type usernameCtxKey struct{}
+
+var (
+	userIDKey   = userIDCtxKey{}
+	usernameKey = usernameCtxKey{}
+)
+
+func init() {
+	logger.RegisterContextKey(userIDKey, "user_id")
+	logger.RegisterContextKey(usernameKey, "username")
+}
 
 const UserIDKey = "user_id"
 
@@ -47,8 +62,22 @@ func RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		userID := int64(userIDFloat)
 
+		username, _ := claims["username"].(string)
+
 		// Injecte l'ID utilisateur dans le contexte Echo
 		c.Set(UserIDKey, userID)
+		if username != "" {
+			c.Set("username", username)
+		}
+
+		// Injecte dans le context.Context standard de la requête HTTP
+		req := c.Request()
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, userIDKey, userID)
+		if username != "" {
+			ctx = context.WithValue(ctx, usernameKey, username)
+		}
+		c.SetRequest(req.WithContext(ctx))
 
 		return next(c)
 	}

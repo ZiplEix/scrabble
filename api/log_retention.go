@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
 )
 
 // StartLogRetention launches a background job that periodically deletes
@@ -62,11 +62,11 @@ func purge(db *sql.DB, maxAge time.Duration) {
 
 	res, err := db.ExecContext(ctx, `DELETE FROM logs WHERE received_at < $1`, cutoff)
 	if err != nil {
-		zap.L().Warn("logs_retention_error", zap.Error(err))
+		logger.Warn(ctx, "logs_retention_error", "error", err)
 		return
 	}
 	n, _ := res.RowsAffected()
 	if n > 0 {
-		zap.L().Info("logs_retention_purge", zap.Int64("deleted", n))
+		logger.Info(ctx, "logs_retention_purge", "deleted", n)
 	}
 }

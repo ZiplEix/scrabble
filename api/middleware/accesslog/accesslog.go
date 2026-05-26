@@ -10,10 +10,9 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 
 	"github.com/ZiplEix/scrabble/api/middleware/logctx"
-	reqid "github.com/ZiplEix/scrabble/api/middleware/request_id"
+	"github.com/ZiplEix/scrabble/api/pkg/logger"
 )
 
 func isPreflight(c echo.Context) bool {
@@ -52,31 +51,31 @@ func Middleware() echo.MiddlewareFunc {
 				status = he.Code
 			}
 
-			fields := []zap.Field{
-				zap.String("request_id", reqid.Get(c)),
-				zap.String("method", req.Method),
-				zap.String("path", req.URL.Path),
-				zap.Int("status", status),
-				zap.Int64("latency_ms", lat.Milliseconds()),
-				zap.String("remote_ip", c.RealIP()),
-				zap.String("user_agent", req.UserAgent()),
-				zap.String("body", bodyStr),
+			fields := []any{
+				"method", req.Method,
+				"path", req.URL.Path,
+				"status", status,
+				"latency_ms", lat.Milliseconds(),
+				"remote_ip", c.RealIP(),
+				"user_agent", req.UserAgent(),
+				"body", bodyStr,
 			}
 
 			for k, v := range logctx.All(c) {
-				fields = append(fields, zap.Any(k, v))
+				fields = append(fields, k, v)
 			}
 			if err != nil {
-				fields = append(fields, zap.String("error", fmt.Sprint(err)))
+				fields = append(fields, "error", fmt.Sprint(err))
 			}
 
+			ctx := req.Context()
 			switch {
 			case status >= 500:
-				zap.L().Error("http_request", fields...)
+				logger.Error(ctx, "http_request", fields...)
 			case status >= 400:
-				zap.L().Warn("http_request", fields...)
+				logger.Warn(ctx, "http_request", fields...)
 			default:
-				zap.L().Info("http_request", fields...)
+				logger.Info(ctx, "http_request", fields...)
 			}
 			return err
 		}
