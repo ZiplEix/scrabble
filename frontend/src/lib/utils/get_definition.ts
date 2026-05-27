@@ -108,7 +108,41 @@ export async function getDefinition(
         console.error(`Larousse proxy fallback failed for ${cleanWord}`, larousseErr);
     }
 
-    // Étape C : Aucun dictionnaire ne connaît le mot (Mot invalide).
+    // Étape C : Fallback 1mot.net (via proxy car pas de CORS)
+    try {
+        const res = await fetch(`/api/1mot?word=${encodeURIComponent(cleanWord)}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.html) {
+                const defGroups = extractDefinitions(data.html);
+                if (defGroups && defGroups.length > 0) {
+                    const url = data.url || `https://1mot.net/${encodeURIComponent(cleanWord.toLowerCase())}`;
+                    
+                    // Sauvegarde asynchrone dans le cache DB
+                    try {
+                        await api.post('/dictionary', {
+                            word: cleanWord,
+                            definitions: { url, def: defGroups }
+                        });
+                    } catch (saveErr) {
+                        console.error(`Failed to save definition cache for ${cleanWord} from 1mot.net`, saveErr);
+                    }
+
+                    return {
+                        title: cleanWord,
+                        extract: "",
+                        url,
+                        is_parsed: true,
+                        def: defGroups
+                    };
+                }
+            }
+        }
+    } catch (oneMotErr) {
+        console.error(`1mot.net proxy fallback failed for ${cleanWord}`, oneMotErr);
+    }
+
+    // Étape D : Aucun dictionnaire ne connaît le mot (Mot invalide).
     // On met en cache un tableau vide pour éviter de répéter ces requêtes lentes à l'avenir !
     try {
         await api.post('/dictionary', {
@@ -141,7 +175,11 @@ export function extractDefinitions(html: string, langId: string = "fr"): Definit
     if (fromLarousse.length) return fromLarousse;
 
     // 2) Fallback : Wiktionnaire (ancienne API)
-    return extractFromWiktionary(doc, langId);
+    const fromWikt = extractFromWiktionary(doc, langId);
+    if (fromWikt.length) return fromWikt;
+
+    // 3) Fallback : 1mot.net
+    return extractFrom1Mot(doc);
 }
 
 /* ===================== LAROUSSE ===================== */
@@ -227,6 +265,44 @@ function extractFromWiktionary(doc: Document, langId: string): DefinitionGroup[]
         if (defs.length) groups.push({ type: gender ? `${pos} ${gender}` : pos, definitions: defs });
     }
     return groups;
+}
+
+/* ===================== 1MOT.NET (fallback) ===================== */
+
+function extractFrom1Mot(doc: Document): DefinitionGroup[] {
+    const excludes = [
+        "mots valides", "mots invalides", "sous-mots", "cousins", 
+        "lipogrammes", "épenthèse", "anagrammes", "milieu", 
+        "préfixe", "pointage", "langues", "catégories", "sites web"
+    ];
+    const out: DefinitionGroup[] = [];
+    const headings = Array.from(doc.querySelectorAll('h4'));
+    for (const h4 of headings) {
+        const text = cleanText(h4.textContent || "");
+        const lower = text.toLowerCase();
+        if (excludes.some(ex => lower.includes(ex))) {
+            continue;
+        }
+        
+        // C'est une section de définition
+        const defs: string[] = [];
+        let cur = h4.nextElementSibling;
+        while (cur && cur.tagName !== "H4") {
+            if (cur.tagName === "UL") {
+                cur.querySelectorAll(':scope > li').forEach(li => {
+                    const liText = cleanText(li.textContent || "");
+                    if (liText) {
+                        defs.push(liText);
+                    }
+                });
+            }
+            cur = cur.nextElementSibling;
+        }
+        if (defs.length) {
+            out.push({ type: text, definitions: defs });
+        }
+    }
+    return out;
 }
 
 /* ===================== Helpers ===================== */
