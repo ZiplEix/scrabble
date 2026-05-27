@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"net/http"
 	"os"
@@ -18,6 +19,9 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
+
 func init() {
 	config.InitEnv()
 
@@ -25,7 +29,7 @@ func init() {
 		panic(err)
 	}
 
-	if err := database.RunMigrations(); err != nil {
+	if err := database.RunMigrations(embedMigrations); err != nil {
 		panic(err)
 	}
 }

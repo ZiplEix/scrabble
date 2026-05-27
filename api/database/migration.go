@@ -1,46 +1,23 @@
 package database
 
 import (
+	"embed"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 )
 
-// RunMigrations exécute toutes les migrations Goose de façon automatique au démarrage de l'API.
-func RunMigrations() error {
+// RunMigrations exécute toutes les migrations Goose intégrées de façon automatique au démarrage de l'API.
+func RunMigrations(embedFS embed.FS) error {
 	_ = goose.SetDialect("postgres")
 
-	// Recherche du dossier migrations en remontant l'arborescence
-	wd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working dir: %w", err)
-	}
+	// Configurer goose pour utiliser le système de fichiers embarqué
+	goose.SetBaseFS(embedFS)
 
-	dir := wd
-	migrationsDir := ""
-	for i := 0; i <= 4; i++ {
-		candidate := filepath.Join(dir, "migrations")
-		if _, err := os.Stat(candidate); err == nil {
-			migrationsDir = candidate
-			break
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-
-	if migrationsDir == "" {
-		return fmt.Errorf("could not find migrations directory upwards from %s", wd)
-	}
-
-	log.Printf("api: running database migrations from %s ...", migrationsDir)
-	if err := goose.Up(DB, migrationsDir); err != nil {
+	log.Println("api: running embedded database migrations...")
+	if err := goose.Up(DB, "migrations"); err != nil {
 		return fmt.Errorf("failed to run goose migrations: %w", err)
 	}
 

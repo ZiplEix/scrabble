@@ -2,16 +2,12 @@ FROM golang:1.24
 
 WORKDIR /app
 
-COPY api/go.mod api/go.sum ./api/
+COPY go.mod go.sum ./
 
-WORKDIR /app/api
 RUN go mod download -x
 
-WORKDIR /app
-COPY api ./api
-COPY migrations ./migrations
+COPY . .
 
-WORKDIR /app/api
 RUN go build -o main .
 
 EXPOSE 8888

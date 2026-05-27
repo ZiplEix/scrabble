@@ -33,12 +33,12 @@ db:
 ## migrate-up:	Run database migrations up
 .PHONY: migrate-up
 migrate-up:
-	@cd migrations && go run ./up/up.go --dsn $(POSTGRES_URL) --dir .
+	@cd api/migrations && go run ./up/up.go --dsn $(POSTGRES_URL) --dir .
 
 ## migrate-down:	Run database migrations down
 .PHONY: migrate-down
 migrate-down:
-	@cd migrations && go run ./down/down.go --dsn $(POSTGRES_URL) --dir .
+	@cd api/migrations && go run ./down/down.go --dsn $(POSTGRES_URL) --dir .
 
 ## recalculate-ips:	Recalculate all user IPS from last 10 games
 .PHONY: recalculate-ips
