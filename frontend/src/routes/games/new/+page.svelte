@@ -18,6 +18,7 @@
 	let recentOpponents = $state<FriendInfo[]>([]);
 	let activeTab = $state<'friends' | 'recent'>('friends');
 	let loadingSocial = $state(true);
+	let difficulty = $state('hard');
 
 	let debounceTimeout: ReturnType<typeof setTimeout>;
 
@@ -97,6 +98,7 @@
 			const res = await api.post('/game', {
 				name,
 				players,
+				difficulty: players.includes('Scrabby') ? difficulty : undefined
 			});
 			const gameId = res.data.game_id;
 			goto(`/games/${gameId}`);
@@ -265,6 +267,38 @@
 				{players.includes('Scrabby') ? 'Retirer Scrabby' : 'Défier Scrabby'}
 			</button>
 		</div>
+
+		{#if players.includes('Scrabby')}
+			<div class="mt-4 pt-4 border-t border-white/10 relative z-10 animate-fade-in">
+				<p class="text-xs font-bold uppercase tracking-wider text-purple-200/85 mb-2.5">Difficulté du robot</p>
+				<div class="grid grid-cols-3 gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+					<button
+						type="button"
+						onclick={() => difficulty = 'easy'}
+						class="py-2 px-3 text-xs font-black rounded-xl text-center cursor-pointer transition active:scale-95
+						{difficulty === 'easy' ? 'bg-purple-500 text-white shadow-md' : 'text-purple-200/80 hover:text-white'}"
+					>
+						👶 Facile
+					</button>
+					<button
+						type="button"
+						onclick={() => difficulty = 'medium'}
+						class="py-2 px-3 text-xs font-black rounded-xl text-center cursor-pointer transition active:scale-95
+						{difficulty === 'medium' ? 'bg-purple-500 text-white shadow-md' : 'text-purple-200/80 hover:text-white'}"
+					>
+						⚔️ Moyen
+					</button>
+					<button
+						type="button"
+						onclick={() => difficulty = 'hard'}
+						class="py-2 px-3 text-xs font-black rounded-xl text-center cursor-pointer transition active:scale-95
+						{difficulty === 'hard' ? 'bg-purple-500 text-white shadow-md' : 'text-purple-200/80 hover:text-white'}"
+					>
+						🔥 Difficile
+					</button>
+				</div>
+			</div>
+		{/if}
 	</section>
 
 	<!-- ESPACE SOCIAL (AMIS & ADVERSAIRES RECENTS) -->

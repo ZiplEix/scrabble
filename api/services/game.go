@@ -27,7 +27,11 @@ func initEmptyBoard() [15][15]string {
 // Lettres classiques du scrabble français + 2 jokers ('?')
 const initialLetters = "AAAAAAAAAEEEEEEEEEEEEIIIIIIIIONNNNNNRRRRRRTTTTTTLLLLSSSSUDDDGGGMMMBBCCPPFFHHVVJQKWXYZ??"
 
-func CreateGame(userID int64, name string, usernames []string, revangeFrom *string) (*uuid.UUID, error) {
+func CreateGame(userID int64, name string, usernames []string, revangeFrom *string, difficultyOpt ...string) (*uuid.UUID, error) {
+	difficulty := "hard"
+	if len(difficultyOpt) > 0 && difficultyOpt[0] != "" {
+		difficulty = difficultyOpt[0]
+	}
 	board := initEmptyBoard()
 
 	available := []rune(initialLetters)
@@ -71,9 +75,9 @@ func CreateGame(userID int64, name string, usernames []string, revangeFrom *stri
 
 	// Création du jeu
 	_, err = tx.Exec(`
-		INSERT INTO games (id, name, created_by, current_turn, board, available_letters, created_at)
-		VALUES ($1, $2, $3, $3, $4, $5, $6)
-	`, gameID, name, userID, boardJSON, availableStr, time.Now())
+		INSERT INTO games (id, name, created_by, current_turn, board, available_letters, created_at, difficulty)
+		VALUES ($1, $2, $3, $3, $4, $5, $6, $7)
+	`, gameID, name, userID, boardJSON, availableStr, time.Now(), difficulty)
 	if err != nil {
 		return nil, err
 	}

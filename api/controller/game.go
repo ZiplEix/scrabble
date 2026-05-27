@@ -56,7 +56,15 @@ func CreateGame(c echo.Context) error {
 		})
 	}
 
-	gameID, err := services.CreateGame(userID, req.Name, usernames, req.RevangeFrom)
+	difficulty := strings.ToLower(strings.TrimSpace(req.Difficulty))
+	if difficulty == "" {
+		difficulty = "hard"
+	}
+	if difficulty != "easy" && difficulty != "medium" && difficulty != "hard" {
+		difficulty = "hard"
+	}
+
+	gameID, err := services.CreateGame(userID, req.Name, usernames, req.RevangeFrom, difficulty)
 	if err != nil {
 		logctx.Merge(c, map[string]any{
 			"reason": "failed_to_create_game",

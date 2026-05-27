@@ -1,17 +1,18 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"runtime"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/ZiplEix/scrabble/api/database"
 	"github.com/ZiplEix/scrabble/api/models/request"
-	"github.com/ZiplEix/scrabble/api/word"
 	"github.com/ZiplEix/scrabble/api/pkg/logger"
-	"context"
+	"github.com/ZiplEix/scrabble/api/word"
 )
 
 var (
@@ -106,9 +107,10 @@ func playBotTurn(gameID string) error {
 	var currentTurn int64
 	var status string
 	var rackStr string
+	var difficulty string
 	err := database.QueryRow(
-		`SELECT current_turn, status FROM games WHERE id = $1`, gameID,
-	).Scan(&currentTurn, &status)
+		`SELECT current_turn, status, difficulty FROM games WHERE id = $1`, gameID,
+	).Scan(&currentTurn, &status, &difficulty)
 	if err != nil {
 		return fmt.Errorf("bot: failed to load game state: %w", err)
 	}
@@ -131,7 +133,7 @@ func playBotTurn(gameID string) error {
 	}
 
 	// Chercher le meilleur coup
-	bestMove := findBestMove(board, rackStr, gameID)
+	bestMove := findBestMove(board, rackStr, gameID, difficulty)
 
 	if bestMove != nil {
 		logger.Info(context.Background(), "bot: playing move", "game_id", gameID, "word", bestMove.Word, "score", bestMove.Score)
@@ -255,7 +257,7 @@ func canFormWord(w string, rackCounts map[rune]int, wildcards int, boardLetters 
 // findBestMove explore exhaustivement tous les placements légaux et retourne celui avec le score maximum.
 // Utilise un algorithme ultra-rapide basé sur le pré-filtrage du dictionnaire.
 // Retourne nil si aucun coup valide n'est trouvé.
-func findBestMove(board [15][15]string, rack string, gameID string) *request.PlayMoveRequest {
+func findBestMove(board [15][15]string, rack string, gameID string, difficulty string) *request.PlayMoveRequest {
 	boardBlanks := BuildBoardBlanks(gameID)
 	boardIsEmpty := isBoardEmpty(board)
 
@@ -313,11 +315,13 @@ func findBestMove(board [15][15]string, rack string, gameID string) *request.Pla
 		numWorkers = len(candidates)
 	}
 
-	localBests := make([]*candidate, numWorkers)
 	chunkSize := (len(candidates) + numWorkers - 1) / numWorkers
 
 	var wg sync.WaitGroup
 	wg.Add(numWorkers)
+
+	var allCandidatesMutex sync.Mutex
+	var allValidCandidates []candidate
 
 	for i := 0; i < numWorkers; i++ {
 		startIdx := i * chunkSize
@@ -332,7 +336,6 @@ func findBestMove(board [15][15]string, rack string, gameID string) *request.Pla
 
 		go func(workerID int, workerCandidates []string) {
 			defer wg.Done()
-			var localBest *candidate
 
 			for _, w := range workerCandidates {
 				wRunes := []rune(w)
@@ -394,17 +397,17 @@ func findBestMove(board [15][15]string, rack string, gameID string) *request.Pla
 								}
 
 								score := ComputeMoveScore(boardCopy, placed, boardBlanks)
-								if localBest == nil || score > localBest.score {
-									move := request.PlayMoveRequest{
-										Word:      w,
-										StartX:    startX,
-										StartY:    startY,
-										Direction: d.name,
-										Letters:   placed,
-										Score:     score,
-									}
-									localBest = &candidate{move: move, score: score}
+								move := request.PlayMoveRequest{
+									Word:      w,
+									StartX:    startX,
+									StartY:    startY,
+									Direction: d.name,
+									Letters:   placed,
+									Score:     score,
 								}
+								allCandidatesMutex.Lock()
+								allValidCandidates = append(allValidCandidates, candidate{move: move, score: score})
+								allCandidatesMutex.Unlock()
 							}
 						}
 					} else {
@@ -469,41 +472,56 @@ func findBestMove(board [15][15]string, rack string, gameID string) *request.Pla
 								}
 
 								score := ComputeMoveScore(boardCopy, placed, boardBlanks)
-								if localBest == nil || score > localBest.score {
-									move := request.PlayMoveRequest{
-										Word:      w,
-										StartX:    startX,
-										StartY:    startY,
-										Direction: d.name,
-										Letters:   placed,
-										Score:     score,
-									}
-									localBest = &candidate{move: move, score: score}
+								move := request.PlayMoveRequest{
+									Word:      w,
+									StartX:    startX,
+									StartY:    startY,
+									Direction: d.name,
+									Letters:   placed,
+									Score:     score,
 								}
+								allCandidatesMutex.Lock()
+								allValidCandidates = append(allValidCandidates, candidate{move: move, score: score})
+								allCandidatesMutex.Unlock()
 							}
 						}
 					}
 				}
 			}
-			localBests[workerID] = localBest
 		}(i, candidates[startIdx:endIdx])
 	}
 
 	wg.Wait()
 
-	var absoluteBest *candidate
-	for _, lb := range localBests {
-		if lb != nil {
-			if absoluteBest == nil || lb.score > absoluteBest.score {
-				absoluteBest = lb
-			}
-		}
-	}
-
-	if absoluteBest == nil {
+	if len(allValidCandidates) == 0 {
 		return nil
 	}
-	return &absoluteBest.move
+
+	if difficulty == "easy" {
+		// Facile -> Sélectionner un coup de façon totalement aléatoire
+		randIndex := rand.Intn(len(allValidCandidates))
+		return &allValidCandidates[randIndex].move
+	} else if difficulty == "medium" {
+		// Moyen -> Trier les coups par score décroissant, retenir les 7 meilleurs et en choisir un aléatoirement
+		sort.Slice(allValidCandidates, func(i, j int) bool {
+			return allValidCandidates[i].score > allValidCandidates[j].score
+		})
+		limit := 7
+		if len(allValidCandidates) < limit {
+			limit = len(allValidCandidates)
+		}
+		randIndex := rand.Intn(limit)
+		return &allValidCandidates[randIndex].move
+	} else {
+		// Difficile (hard) -> Prendre le meilleur coup (comportement historique)
+		var absoluteBest *candidate
+		for i := range allValidCandidates {
+			if absoluteBest == nil || allValidCandidates[i].score > absoluteBest.score {
+				absoluteBest = &allValidCandidates[i]
+			}
+		}
+		return &absoluteBest.move
+	}
 }
 
 
@@ -644,7 +662,7 @@ func IsBotGame(gameID string) bool {
 // FindBestMoveStandalone explore tous les placements légaux sur un plateau donné avec un rack donné,
 // sans nécessiter de connexion à la base de données.
 func FindBestMoveStandalone(board [15][15]string, rack string) *request.PlayMoveRequest {
-	return findBestMove(board, rack, "")
+	return findBestMove(board, rack, "", "hard")
 }
 
 // maybeSendBotTaunt choisit et envoie aléatoirement une réplique amusante dans le chat de la partie
