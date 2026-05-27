@@ -1,0 +1,17 @@
+curl 'https://www.ffscrabble.fr/wp-admin/admin-ajax.php' \
+  --compressed \
+  -X POST \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:151.0) Gecko/20100101 Firefox/151.0' \
+  -H 'Accept: */*' \
+  -H 'Accept-Language: fr,fr-FR;q=0.9,en-US;q=0.8,en;q=0.7' \
+  -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
+  -H 'X-Requested-With: XMLHttpRequest' \
+  -H 'Origin: https://www.ffscrabble.fr' \
+  -H 'Connection: keep-alive' \
+  -H 'Referer: https://www.ffscrabble.fr/verificateur-de-mots/' \
+  -H 'Sec-Fetch-Dest: empty' \
+  -H 'Sec-Fetch-Mode: cors' \
+  -H 'Sec-Fetch-Site: same-origin' \
+  -H 'Priority: u=0' \
+  -H 'TE: trailers' \
+  --data-raw 'action=verifier_mot&mot=truc'
