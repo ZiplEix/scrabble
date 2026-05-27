@@ -2,221 +2,48 @@ package database
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+
+	_ "github.com/lib/pq"
+	"github.com/pressly/goose/v3"
 )
 
-// Deprecated: This file is for database migrations and should not be used directly in production.
-func Migrate() error {
-	if err := createUserTable(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
+// RunMigrations exécute toutes les migrations Goose de façon automatique au démarrage de l'API.
+func RunMigrations() error {
+	_ = goose.SetDialect("postgres")
 
-	if err := migrateAddUserRole(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	if err := createGameTable(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	if err := migrateAddPassCount(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	if err := migrateAddGameEndInfo(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	if err := createGamePlayersTable(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	if err := createGameMovesTable(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	if err := createReportTable(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	if err := createPushSubscriptionTable(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
-	}
-
-	// if err := migrateFixWinners(); err != nil {
-	// 	return fmt.Errorf("migration failed: %w", err)
-	// }
-
-	fmt.Println("Database migration completed successfully")
-	return nil
-}
-
-func createUserTable() error {
-	query := `
-		CREATE TABLE IF NOT EXISTS users (
-			id SERIAL PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			password TEXT NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT now()
-		);
-	`
-
-	_, err := Query(query)
+	// Recherche du dossier migrations en remontant l'arborescence
+	wd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to create users table: %w", err)
+		return fmt.Errorf("failed to get working dir: %w", err)
 	}
-	return nil
-}
 
-func migrateAddUserRole() error {
-	query := `
-		ALTER TABLE users
-		ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
-	`
-
-	_, err := Query(query)
-	if err != nil {
-		return fmt.Errorf("failed to alter users table to add role column: %w", err)
+	dir := wd
+	migrationsDir := ""
+	for i := 0; i <= 4; i++ {
+		candidate := filepath.Join(dir, "migrations")
+		if _, err := os.Stat(candidate); err == nil {
+			migrationsDir = candidate
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
 	}
-	return nil
-}
 
-func createGameTable() error {
-	query := `
-		CREATE TABLE IF NOT EXISTS games (
-			id UUID PRIMARY KEY,
-			name TEXT NOT NULL,
-			created_by INT REFERENCES users(id),
-			status TEXT NOT NULL DEFAULT 'ongoing',
-			current_turn INT REFERENCES users(id),
-			board JSONB NOT NULL,
-			available_letters TEXT NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT now()
-		);
-	`
-
-	_, err := Query(query)
-	if err != nil {
-		return fmt.Errorf("failed to create users table: %w", err)
+	if migrationsDir == "" {
+		return fmt.Errorf("could not find migrations directory upwards from %s", wd)
 	}
-	return nil
-}
 
-func migrateAddPassCount() error {
-	query := `
-		ALTER TABLE games
-		ADD COLUMN IF NOT EXISTS pass_count INT NOT NULL DEFAULT 0;
-	`
-	_, err := Query(query)
-	if err != nil {
-		return fmt.Errorf("failed to add pass_count to games: %w", err)
+	log.Printf("api: running database migrations from %s ...", migrationsDir)
+	if err := goose.Up(DB, migrationsDir); err != nil {
+		return fmt.Errorf("failed to run goose migrations: %w", err)
 	}
-	return nil
-}
 
-func migrateAddGameEndInfo() error {
-	query := `
-        ALTER TABLE games
-        ADD COLUMN IF NOT EXISTS winner_username TEXT,
-        ADD COLUMN IF NOT EXISTS ended_at TIMESTAMP;
-    `
-	_, err := Query(query)
-	if err != nil {
-		return fmt.Errorf("failed to add end-of-game info to games table: %w", err)
-	}
-	return nil
-}
-
-func createGamePlayersTable() error {
-	query := `
-		CREATE TABLE IF NOT EXISTS game_players (
-			game_id UUID REFERENCES games(id),
-			player_id INT REFERENCES users(id),
-			rack TEXT NOT NULL,
-			position INT NOT NULL,
-			score INT NOT NULL DEFAULT 0,
-			PRIMARY KEY (game_id, player_id)
-		);
-	`
-
-	_, err := Query(query)
-	if err != nil {
-		return fmt.Errorf("failed to create game_players table: %w", err)
-	}
-	return nil
-}
-
-func createGameMovesTable() error {
-	query := `
-		CREATE TABLE IF NOT EXISTS game_moves (
-			id SERIAL PRIMARY KEY,
-			game_id UUID REFERENCES games(id),
-			player_id INT REFERENCES users(id),
-			move JSONB NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT now()
-		);
-	`
-
-	_, err := Query(query)
-	if err != nil {
-		return fmt.Errorf("failed to create game_moves table: %w", err)
-	}
-	return nil
-}
-
-func createReportTable() error {
-	query := `
-		CREATE TABLE IF NOT EXISTS reports (
-			id SERIAL PRIMARY KEY,
-			user_id INT REFERENCES users(id) ON DELETE SET NULL,
-			title TEXT NOT NULL,
-			content TEXT NOT NULL,
-			status TEXT NOT NULL DEFAULT 'open', -- open, in_progress, resolved, rejected
-			priority TEXT DEFAULT 'normal',     -- optional: low, normal, high, urgent
-			type TEXT DEFAULT 'bug',            -- optional: bug, suggestion, feedback, etc.
-			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-		);
-
-		CREATE OR REPLACE FUNCTION update_updated_at_column()
-		RETURNS TRIGGER AS $$
-		BEGIN
-			NEW.updated_at = NOW();
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;
-
-		DO $$
-		BEGIN
-			IF NOT EXISTS (
-				SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_update_report_updated_at'
-			) THEN
-				CREATE TRIGGER trigger_update_report_updated_at
-				BEFORE UPDATE ON reports
-				FOR EACH ROW
-				EXECUTE FUNCTION update_updated_at_column();
-			END IF;
-		END;
-		$$;
-	`
-
-	_, err := Query(query)
-	if err != nil {
-		return fmt.Errorf("failed to create reports table: %w", err)
-	}
-	return nil
-}
-
-func createPushSubscriptionTable() error {
-	query := `
-		CREATE TABLE IF NOT EXISTS push_subscriptions (
-			user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-			subscription JSONB NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT NOW()
-		);
-	`
-	_, err := Query(query)
-	if err != nil {
-		return fmt.Errorf("failed to create push_subscriptions table: %w", err)
-	}
+	log.Println("api: database migrations completed successfully")
 	return nil
 }

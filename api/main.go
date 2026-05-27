@@ -24,6 +24,10 @@ func init() {
 	if err := database.Init(os.Getenv("POSTGRES_URL")); err != nil {
 		panic(err)
 	}
+
+	if err := database.RunMigrations(); err != nil {
+		panic(err)
+	}
 }
 
 func initLogger() func(context.Context) error {
