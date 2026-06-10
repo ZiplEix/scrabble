@@ -158,7 +158,11 @@
 		const opponents = game!.players.map((p) => p.username).filter((u) => u && u !== currentUsername);
 
 		try {
-			const res = await api.post('/game', { name: newName, players: opponents });
+			const res = await api.post('/game', { 
+				name: newName, 
+				players: opponents,
+				revange_from: game.id
+			});
 			window.location.href = `/games/${res.data.game_id}`;
 		} catch (err: any) {
 			alert(err?.response?.data?.message || 'Impossible de créer la revanche.');

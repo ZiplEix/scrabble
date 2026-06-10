@@ -95,17 +95,23 @@ func TestCreateGame_RematchChecks(t *testing.T) {
 	u1 := mustCreateUser(t, "alice")
 	_ = mustCreateUser(t, "bob")
 
-	// original game
-	gid, err := CreateGame(u1, "g1", []string{"bob"}, nil)
+	// original game with non-default difficulty (easy)
+	gid, err := CreateGame(u1, "g1", []string{"bob"}, nil, "easy")
 	require.NoError(t, err)
 	require.NotNil(t, gid)
 
 	orig := gid.String()
 
-	// same creator can rematch
+	// same creator can rematch, should inherit the difficulty
 	gid2, err := CreateGame(u1, "rev", []string{"bob"}, &orig)
 	require.NoError(t, err)
 	require.NotNil(t, gid2)
+
+	// verify difficulty is copied
+	var diff string
+	err = database.QueryRow("SELECT difficulty FROM games WHERE id = $1", *gid2).Scan(&diff)
+	require.NoError(t, err)
+	assert.Equal(t, "easy", diff)
 
 	// other user cannot rematch from this original
 	userBob, err := GetUserByUsername("bob")

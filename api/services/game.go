@@ -51,7 +51,8 @@ func CreateGame(userID int64, name string, usernames []string, revangeFrom *stri
 	// l'utilisateur courant est bien le créateur de cette partie.
 	if revangeFrom != nil {
 		var srcCreatedBy int64
-		err := database.QueryRow(`SELECT created_by FROM games WHERE id = $1`, *revangeFrom).Scan(&srcCreatedBy)
+		var srcDifficulty string
+		err := database.QueryRow(`SELECT created_by, difficulty FROM games WHERE id = $1`, *revangeFrom).Scan(&srcCreatedBy, &srcDifficulty)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, fmt.Errorf("source game not found")
@@ -61,6 +62,7 @@ func CreateGame(userID int64, name string, usernames []string, revangeFrom *stri
 		if srcCreatedBy != userID {
 			return nil, fmt.Errorf("only the creator of the original game can create a rematch")
 		}
+		difficulty = srcDifficulty
 	}
 
 	tx, err := database.DB.BeginTx(context.Background(), nil)
