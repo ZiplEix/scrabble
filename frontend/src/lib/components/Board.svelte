@@ -93,7 +93,7 @@
 							color = "bg-sky-300 text-stone-850 text-[9px] sm:text-[11px] font-black tracking-tight";
 							break;
 						default:
-							color = "bg-emerald-700";
+							color = "bg-board-green";
 							break;
 					}
 				}
