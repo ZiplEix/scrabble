@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { api } from '$lib/api';
+	import { getReport, updateReportStatus } from '$lib/api';
 	import { goto } from '$app/navigation';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
 
@@ -22,8 +22,7 @@
 		}
 
 		try {
-			const res = await api.get(`/report/${reportId}`);
-			report = res.data;
+			report = await getReport(Number(reportId));
 		} catch (err: any) {
 			error = err?.response?.data?.error || 'Impossible de charger le report.';
 		} finally {
@@ -33,7 +32,7 @@
 
 	async function updateReport() {
 		try {
-			await api.patch(`/report/${report.id}`, {
+			await updateReportStatus(report.id, {
 				title: report.title,
 				content: report.content,
 				status: report.status,

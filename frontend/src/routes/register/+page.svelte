@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { supabase } from '$lib/supabase';
 	import { user } from '$lib/stores/user';
 	import { goto } from '$app/navigation';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
@@ -12,12 +12,60 @@
 	async function handleRegister() {
 		error = '';
 		try {
-			const userNameToStore = username.trim().toLowerCase();
-			const res = await api.post('/auth/register', { username: userNameToStore, password });
-			user.set({ username: userNameToStore, token: res.data.token });
-			goto('/');
+			const cleanUsername = username.trim();
+			if (!cleanUsername || !password) {
+				error = "Nom d'utilisateur et mot de passe requis";
+				return;
+			}
+
+			// Check if username is already taken in the public profiles table
+			const { data: existingUser, error: checkError } = await supabase
+				.from('users')
+				.select('id')
+				.eq('username', cleanUsername)
+				.maybeSingle();
+
+			if (checkError) {
+				error = `Erreur lors de la vérification : ${checkError.message}`;
+				return;
+			}
+
+			if (existingUser) {
+				error = "Ce nom d'utilisateur est déjà pris.";
+				return;
+			}
+
+			const { data, error: funcError } = await supabase.functions.invoke('migrate-user', {
+				body: { action: 'register', username: cleanUsername, password }
+			});
+
+			if (funcError) {
+				error = funcError.message || 'Échec de l’inscription';
+				return;
+			}
+
+			if (data?.error) {
+				error = data.error;
+				return;
+			}
+
+			if (data?.session) {
+				const { error: sessionError } = await supabase.auth.setSession({
+					access_token: data.session.access_token,
+					refresh_token: data.session.refresh_token
+				});
+
+				if (sessionError) {
+					error = sessionError.message;
+					return;
+				}
+
+				goto('/');
+			} else {
+				error = 'Inscription réussie, veuillez vous connecter.';
+			}
 		} catch (err: any) {
-			error = err?.response?.data?.message || 'Échec de l’inscription';
+			error = err?.message || 'Échec de l’inscription';
 		}
 	}
 

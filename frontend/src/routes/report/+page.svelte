@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api';
+	import { getMyReports } from '$lib/api';
 	import { goto } from '$app/navigation';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
 	import Card from '$lib/ui/Card.svelte';
@@ -20,8 +20,7 @@
 
 	onMount(async () => {
 		try {
-			const res = await api.get('/report/me');
-			reports = res.data;
+			reports = await getMyReports();
 		} catch (err: any) {
 			error = 'Impossible de charger les tickets.';
 			console.error(err);

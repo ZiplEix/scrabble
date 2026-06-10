@@ -2,7 +2,13 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
-	import { api } from '$lib/api';
+	import {
+		getTodayPuzzle,
+		startPuzzleAttempt,
+		submitPuzzleAttempt,
+		getPuzzles,
+		simulateScore
+	} from '$lib/api';
 	import PuzzleTimer from '$lib/components/PuzzleTimer.svelte';
 	import GameBoard from '$lib/components/GameBoard.svelte';
 	import Board from '$lib/components/Board.svelte';
@@ -47,21 +53,14 @@
 	})());
 
 	const boardGame = useBoardGame({
-		get simulateScoreEndpoint() {
-			return puzzle ? `/puzzles/${puzzle.id}/simulate_score` : '';
+		simulateScore: async (letters) => {
+			if (!puzzle) return 0;
+			const res = await simulateScore(puzzle.id, letters);
+			return Number(res?.score || 0);
 		},
 		onSubmit: async (payload) => {
 			if (!puzzle || timedOut) return null;
-
-			const wordsPlayed = payload.word
-				? [{
-					word: payload.word,
-					position: `${payload.x},${payload.y}`,
-					direction: payload.dir === 'H' ? 'horizontal' : 'vertical'
-				}]
-				: [];
-
-			await submitAttempt(wordsPlayed, payload.letters);
+			await submitAttempt(payload.letters);
 			return null;
 		}
 	});
@@ -74,18 +73,17 @@
 		try {
 			loading = true;
 			error = null;
-			const res = await api.get('/puzzles/today');
-			const loadedPuzzle = res.data as PuzzleInfo;
+			const loadedPuzzle = await getTodayPuzzle();
 			puzzle = loadedPuzzle;
 			puzzleGame = toGameInfo(loadedPuzzle);
 			boardGame.setRackFromString(loadedPuzzle.available_letters);
 			pendingMove.set([]);
 
 			if (puzzle && !puzzle.has_player_attempted) {
-				const startRes = await api.post(`/puzzles/${puzzle.id}/start`, {});
-				attemptId = startRes.data.attempt_id;
-				startedAt = new Date(startRes.data.started_at);
-				timeoutSeconds = startRes.data.timeout_seconds;
+				const startRes = await startPuzzleAttempt(puzzle.id);
+				attemptId = startRes.attempt_id;
+				startedAt = new Date(startRes.started_at);
+				timeoutSeconds = puzzle.timeout_seconds;
 			} else if (puzzle?.has_player_attempted) {
 				await loadSubmittedAttempt(puzzle.id);
 			}
@@ -98,13 +96,7 @@
 
 	async function loadSubmittedAttempt(puzzleId: string) {
 		try {
-			const historyRes = await api.get('/puzzles?limit=50&offset=0');
-			const history = (historyRes.data || []) as Array<{
-				id: string;
-				has_attempted: boolean;
-				player_attempt?: PuzzleAttempt;
-			}>;
-
+			const history = await getPuzzles(50);
 			const item = history.find((h) => h.id === puzzleId && h.has_attempted && h.player_attempt);
 			if (item?.player_attempt) {
 				submitted = item.player_attempt;
@@ -115,20 +107,14 @@
 	}
 
 	async function submitAttempt(
-		wordsPlayed: Array<{ word: string; position: string; direction: string }>,
 		letters: Array<{ x: number; y: number; char: string; blank?: boolean }> = []
 	) {
 		if (!puzzle || timedOut) return;
 
 		try {
 			isSubmitting = true;
-			const res = await api.post(`/puzzles/${puzzle.id}/attempts`, {
-				puzzle_id: puzzle.id,
-				words_played: wordsPlayed,
-				letters
-			});
-
-			submitted = res.data;
+			const res = await submitPuzzleAttempt(puzzle.id, letters);
+			submitted = res;
 		} catch (e: any) {
 			const message =
 				e?.response?.data?.error ||
@@ -197,6 +183,7 @@
 		});
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	function getLevelLabel(level: number): string {
 		const labels: Record<number, string> = {
 			0: 'Infini',
@@ -211,6 +198,7 @@
 		const board = base.board.map((row) => [...row]);
 
 		for (const w of words) {
+			if (!w.position) continue;
 			const [sx, sy] = w.position.split(',').map((n) => Number.parseInt(n, 10));
 			if (!Number.isFinite(sx) || !Number.isFinite(sy)) continue;
 

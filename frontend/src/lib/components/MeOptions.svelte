@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { api } from "$lib/api";
+    import { updateNotificationPrefs, unsubscribeFromPush } from "$lib/api";
   import { subscribeToPush } from "$lib/push";
     import type { UserInfos } from "$lib/types/user_infos";
   import { onMount } from "svelte";
@@ -33,7 +33,7 @@
 
     async function savePrefs() {
         try {
-            await api.put("/me/prefs", {
+            await updateNotificationPrefs({
                 turn,
                 messages
             });
@@ -66,7 +66,7 @@
             await askNotificationPermission();
         } else {
             userInfos = { ...userInfos, notifications_enabled: false };
-            await api.delete('/notifications/push-subscribe');
+            await unsubscribeFromPush();
         }
     }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { api } from '$lib/api';
+	import { getFriends, getRecentOpponents, suggestUsers, createGame } from '$lib/api';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
 	import RankBadge from '$lib/components/RankBadge.svelte';
 	import { goto } from '$app/navigation';
@@ -24,12 +24,12 @@
 
 	onMount(async () => {
 		try {
-			const [friendsRes, recentRes] = await Promise.all([
-				api.get('/users/friends'),
-				api.get('/users/recent-opponents')
+			const [friendsData, recentData] = await Promise.all([
+				getFriends(),
+				getRecentOpponents()
 			]);
-			friends = friendsRes.data;
-			recentOpponents = recentRes.data;
+			friends = friendsData;
+			recentOpponents = recentData;
 			// Basculer sur l'onglet adversaires s'il n'y a pas d'amis mais qu'on a déjà joué
 			if (friends.length === 0 && recentOpponents.length > 0) {
 				activeTab = 'recent';
@@ -46,8 +46,8 @@
 			clearTimeout(debounceTimeout);
 			debounceTimeout = setTimeout(async () => {
 				try {
-					const res = await api.get('/users/suggest?q=' + encodeURIComponent(newPlayer));
-					suggestions = res.data.map((u: any) => u.username);
+					const res = await suggestUsers(newPlayer);
+					suggestions = res.map((u: any) => u.username);
 				} catch (e) {
 					suggestions = [];
 				}
@@ -85,7 +85,7 @@
 		players = players.filter(p => p !== player);
 	}
 
-	async function createGame(event: Event) {
+	async function handleCreateGame(event: Event) {
 		event.preventDefault();
 		error = '';
 		if (name.trim().length === 0) {
@@ -95,12 +95,11 @@
 
 		loading = true;
 		try {
-			const res = await api.post('/game', {
+			const gameId = await createGame(
 				name,
 				players,
-				difficulty: players.includes('Scrabby') ? difficulty : undefined
-			});
-			const gameId = res.data.game_id;
+				players.includes('Scrabby') ? difficulty : 'hard'
+			);
 			goto(`/games/${gameId}`);
 		} catch (e: any) {
 			error = e?.response?.data?.error || 'Erreur lors de la création de la partie';
@@ -137,7 +136,7 @@
 		<p class="text-xs text-stone-500 mt-1">Créez une grille de Scrabble Club et invitez vos adversaires.</p>
 	</header>
 
-	<form onsubmit={createGame} class="flex flex-col gap-5">
+	<form onsubmit={handleCreateGame} class="flex flex-col gap-5">
 		<!-- CONFIGURATION DE BASE -->
 		<div class="rounded-3xl bg-white border border-stone-200/50 p-5 shadow-sm flex flex-col gap-4">
 			<div>

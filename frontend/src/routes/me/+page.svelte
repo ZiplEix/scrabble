@@ -1,7 +1,12 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { user } from '$lib/stores/user';
-    import { api } from '$lib/api';
+    import {
+        getCurrentUserProfile,
+        getFriends,
+        getUserRatingHistory,
+        removeFriend as apiRemoveFriend
+    } from '$lib/api';
     import RankBadge from '$lib/components/RankBadge.svelte';
     import UserStats from '$lib/components/UserStats.svelte';
     import MeAccount from '$lib/components/MeAccount.svelte';
@@ -36,8 +41,7 @@
         if (!userInfos || userInfos.id === 0) return;
         isLoadingHistory = true;
         try {
-            const resp = await api.get(`/user/${userInfos.id}/rating-history?limit=${lim}`);
-            ratingHistory = resp.data as RatingHistoryResponse[];
+            ratingHistory = await getUserRatingHistory(userInfos.id, lim);
         } catch (e) {
             console.error('Failed to load rating history:', e);
         } finally {
@@ -47,12 +51,12 @@
 
     onMount(async () => {
         try {
-            const [resp, friendsRes] = await Promise.all([
-                api.get('/me'),
-                api.get('/users/friends')
+            const [profileData, friendsData] = await Promise.all([
+                getCurrentUserProfile(),
+                getFriends()
             ]);
-            userInfos = resp.data as UserInfos;
-            friends = friendsRes.data;
+            userInfos = profileData as UserInfos;
+            friends = friendsData;
             console.log('Fetched /me:', userInfos);
 
             user.update(u => ({ ...(u as any), id: userInfos!.id, role: userInfos!.role, created_at: userInfos!.created_at }));
@@ -62,10 +66,10 @@
         }
     });
 
-    async function removeFriend(friendId: number) {
+    async function handleRemoveFriend(friendId: number) {
         if (!confirm("Voulez-vous vraiment retirer cette personne de vos amis ?")) return;
         try {
-            await api.delete(`/users/friends/${friendId}`);
+            await apiRemoveFriend(friendId);
             friends = friends.filter(f => f.id !== friendId);
         } catch (e) {
             console.error('failed to remove friend:', e);
@@ -259,7 +263,7 @@
 
                                         <button
                                             type="button"
-                                            onclick={() => removeFriend(friend.id)}
+                                            onclick={() => handleRemoveFriend(friend.id)}
                                             class="shrink-0 w-6 h-6 rounded-full border border-stone-200 hover:border-red-200 bg-white hover:bg-rose-50 text-stone-400 hover:text-rose-600 flex items-center justify-center text-[10px] transition active:scale-90 cursor-pointer"
                                             title="Retirer de mes amis"
                                         >
@@ -404,7 +408,7 @@
 
                                 <button
                                     type="button"
-                                    onclick={() => removeFriend(friend.id)}
+                                    onclick={() => handleRemoveFriend(friend.id)}
                                     class="shrink-0 w-8 h-8 rounded-full border border-stone-200 hover:border-red-200 bg-white hover:bg-rose-50 text-stone-400 hover:text-rose-600 flex items-center justify-center transition active:scale-90 cursor-pointer"
                                     title="Retirer de mes amis"
                                     aria-label="Retirer de mes amis"

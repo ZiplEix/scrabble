@@ -1,5 +1,5 @@
 import { env } from "$env/dynamic/public";
-import { api } from "./api";
+import { subscribeToPush as apiSubscribeToPush } from "./api";
 
 const VAPID_PUBLIC_KEY = env.PUBLIC_VAPID_PUBLIC_KEY
 
@@ -15,7 +15,7 @@ export async function subscribeToPush() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer
     });
 
-    await api.post('/notifications/push-subscribe', JSON.stringify(subscription));
+    await apiSubscribeToPush(subscription);
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {

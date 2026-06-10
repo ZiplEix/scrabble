@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api';
+	import { getPuzzleLeaderboard } from '$lib/api';
 	import type { PuzzleDailyLeaderboard } from '$lib/types/puzzle';
 	import type { GameInfo } from '$lib/types/game_infos';
 	import Board from '$lib/components/Board.svelte';
@@ -33,8 +33,7 @@
 	onMount(async () => {
 		try {
 			loading = true;
-			const res = await api.get(`/puzzles/${puzzleId}/leaderboard?limit=50&offset=0`);
-			leaderboard = res.data ?? [];
+			leaderboard = await getPuzzleLeaderboard(puzzleId);
 		} catch (e: any) {
 			error = e?.response?.data?.message || 'Erreur lors du chargement du classement';
 		} finally {

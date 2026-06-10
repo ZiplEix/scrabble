@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
-    import { api } from '$lib/api';
+    import { getUserProfile, getUserRatingHistory, addFriend, removeFriend } from '$lib/api';
     import { goto } from '$app/navigation';
     import { user } from '$lib/stores/user';
     import { defaultUserInfos, type UserInfos, type RatingHistoryResponse } from '$lib/types/user_infos';
@@ -38,8 +38,7 @@
         if (!userInfos || userInfos.id === 0) return;
         isLoadingHistory = true;
         try {
-            const resp = await api.get(`/user/${userInfos.id}/rating-history?limit=${lim}`);
-            ratingHistory = resp.data as RatingHistoryResponse[];
+            ratingHistory = await getUserRatingHistory(userInfos.id, lim);
         } catch (e) {
             console.error('Failed to load rating history:', e);
         } finally {
@@ -57,10 +56,10 @@
         togglingFriend = true;
         try {
             if (userInfos.is_friend) {
-                await api.delete(`/users/friends/${userInfos.id}`);
+                await removeFriend(userInfos.id);
                 userInfos.is_friend = false;
             } else {
-                await api.post(`/users/friends/${userInfos.id}`);
+                await addFriend(userInfos.id);
                 userInfos.is_friend = true;
             }
         } catch (e) {
@@ -79,8 +78,7 @@
     onMount(async () => {
         const id = $page.params.ID;
         try {
-            const res = await api.get(`/user/${id}`);
-            userInfos = res.data as UserInfos;
+            userInfos = await getUserProfile(Number(id));
         } catch (e: any) {
             console.error('failed to fetch user public:', e);
             error = e?.response?.data?.error || 'Erreur lors du chargement';

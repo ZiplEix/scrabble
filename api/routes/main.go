@@ -6,18 +6,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-var nonImplementedHandler = func(c echo.Context) error {
-	return c.String(http.StatusNotImplemented, "Not implemented")
+func SetupRoutes(e *echo.Echo) {
+	// Disable all HTTP routes as SvelteKit now communicates directly with Supabase.
+	// We only keep a health check route for monitoring.
+	e.GET("/healthz", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
 }
 
-func SetupRoutes(e *echo.Echo) {
-	setupAuthRoutes(e)
-	setupGameRoutes(e)
-	setupPuzzleRoutes(e)
-	setupReportRoutes(e)
-	setupUsersRoutes(e)
-	setupNotificationsRoutes(e)
-	SetupMeRoutes(e)
-	setupAdminRoutes(e)
-	setupDictionaryRoutes(e)
-}

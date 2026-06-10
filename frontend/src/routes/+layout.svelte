@@ -4,8 +4,40 @@
     import { user } from '$lib/stores/user';
     import { goto } from '$app/navigation';
     import { hideTabBar } from '$lib/stores/ui';
+    import { onMount } from 'svelte';
+    import { supabase } from '$lib/supabase';
+    import { get } from 'svelte/store';
 
     const { children } = $props();
+
+    onMount(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session) {
+                const currentUser = get(user);
+                if (!currentUser || currentUser.token !== session.access_token) {
+                    const { data: profile } = await supabase
+                        .from('users')
+                        .select('id, username')
+                        .eq('uuid', session.user.id)
+                        .maybeSingle();
+
+                    if (profile) {
+                        user.set({
+                            id: profile.id,
+                            username: profile.username,
+                            token: session.access_token
+                        });
+                    }
+                }
+            } else {
+                user.set(null);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    });
 
     // Cacher la Tab Bar si l'utilisateur n'est pas connecté OU s'il est dans une partie (/games/[id]) OU si cache demandé par l'UI
     let showTabBar = $derived(

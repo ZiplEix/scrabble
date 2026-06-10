@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { supabase } from '$lib/supabase';
 	import { user } from '$lib/stores/user';
 	import { goto } from '$app/navigation';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
@@ -12,12 +12,43 @@
 	async function handleLogin() {
 		error = '';
 		try {
-			const userNameToStore = username.trim().toLowerCase();
-			const res = await api.post('/auth/login', { username: userNameToStore, password });
-			user.set({ username: userNameToStore, token: res.data.token });
-			goto('/');
+			const userNameToStore = username.trim();
+			if (!userNameToStore || !password) {
+				error = "Nom d'utilisateur et mot de passe requis";
+				return;
+			}
+
+			const { data, error: funcError } = await supabase.functions.invoke('migrate-user', {
+				body: { username: userNameToStore, password }
+			});
+
+			if (funcError) {
+				error = funcError.message || 'Échec de la connexion';
+				return;
+			}
+
+			if (data?.error) {
+				error = data.error;
+				return;
+			}
+
+			if (data?.session) {
+				const { error: sessionError } = await supabase.auth.setSession({
+					access_token: data.session.access_token,
+					refresh_token: data.session.refresh_token
+				});
+
+				if (sessionError) {
+					error = sessionError.message;
+					return;
+				}
+
+				goto('/');
+			} else {
+				error = 'Aucune session retournée par le serveur';
+			}
 		} catch (err: any) {
-			error = err?.response?.data?.message || 'Échec de la connexion';
+			error = err?.message || 'Échec de la connexion';
 		}
 	}
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { createReport } from '$lib/api';
 	import { goto } from '$app/navigation';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
 
@@ -22,7 +22,7 @@
 		}
 
 		try {
-			await api.post('/report', { title, content, type });
+			await createReport(title, content, type);
 			success = true;
 			title = '';
 			content = '';

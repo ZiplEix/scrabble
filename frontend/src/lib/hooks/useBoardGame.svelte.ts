@@ -9,7 +9,6 @@
  *  - la soumission (via un callback `onSubmit` injecté par la page)
  */
 import { writable, derived, get, type Readable } from 'svelte/store';
-import { api } from '$lib/api';
 import { pendingMove, type PendingMove } from '$lib/stores/pendingMove';
 
 export type RackLetter = { id: string; char: string };
@@ -24,8 +23,8 @@ export type SubmitPayload = {
 };
 
 export type BoardGameOptions = {
-	/** Endpoint pour simuler le score (ex. /game/:id/simulate_score). Peut être un getter pour supporter les valeurs réactives. */
-	readonly simulateScoreEndpoint: string;
+	/** Fonction pour simuler le score d'un coup. */
+	simulateScore: (letters: { x: number; y: number; char: string; blank: boolean }[]) => Promise<number>;
 	/** Callback appelé à la soumission d'un coup.  Doit lancer l'appel API et retourner le rack mis à jour, ou null si pas de rack (puzzle). */
 	onSubmit: (payload: SubmitPayload) => Promise<string[] | null>;
 };
@@ -68,16 +67,16 @@ export function useBoardGame(options: BoardGameOptions) {
 		pendingMove,
 		($moves, set) => {
 			if (!$moves.length) return set(0);
-			api
-				.post(options.simulateScoreEndpoint, {
-					letters: $moves.map((m) => ({
+			options
+				.simulateScore(
+					$moves.map((m) => ({
 						x: m.x,
 						y: m.y,
 						char: m.letter.toUpperCase(),
 						blank: !!m.blank
 					}))
-				})
-				.then((res) => set(res.data.score))
+				)
+				.then((score) => set(score))
 				.catch(() => set(0));
 		},
 		0

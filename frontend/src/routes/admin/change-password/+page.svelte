@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { adminChangePassword } from '$lib/api';
 	import { user } from '$lib/stores/user';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -21,10 +21,7 @@
 		error = '';
 		success = '';
 		try {
-			await api.post(
-				'/auth/change-password',
-				{ username, new_password: newPassword },
-			);
+			await adminChangePassword(username, newPassword);
 			success = 'Mot de passe changé avec succès !';
 			username = '';
 			newPassword = '';

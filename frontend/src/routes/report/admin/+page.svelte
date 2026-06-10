@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api';
+	import { getAllReports } from '$lib/api';
 	import { goto } from '$app/navigation';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
 
@@ -18,8 +18,7 @@
 
 	onMount(async () => {
 		try {
-			const res = await api.get('/report');
-			reports = res.data;
+			reports = await getAllReports();
 		} catch (err: any) {
 			error = 'Impossible de charger les tickets.';
 			console.error(err);

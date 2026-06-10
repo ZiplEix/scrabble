@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { api } from '$lib/api';
+	import {
+		getGame,
+		getUnreadMessagesCount,
+		playWord,
+		getNewRack,
+		passTurn,
+		createGame,
+		simulateScore
+	} from '$lib/api';
 	import { page } from '$app/stores';
 	import { get, writable } from 'svelte/store';
 	import { pendingMove } from '$lib/stores/pendingMove';
@@ -37,8 +45,7 @@
 			return;
 		}
 		try {
-			const res = await api.get(`/game/${gameId}/unread_messages_count`);
-			unreadCount = Number(res.data?.unread_count || 0);
+			unreadCount = await getUnreadMessagesCount(gameId);
 		} catch (e) {
 			console.error('Failed to fetch unread count', e);
 		}
@@ -47,11 +54,15 @@
 	let sortedPlayers = $derived(game ? [...game.players].sort((a, b) => b.score - a.score) : []);
 
 	const boardGame = useBoardGame({
-		get simulateScoreEndpoint() { return gameId ? `/game/${gameId}/simulate_score` : ''; },
+		simulateScore: async (letters) => {
+			if (!gameId) return 0;
+			const res = await simulateScore(gameId, letters);
+			return Number(res?.score || 0);
+		},
 		onSubmit: async (payload) => {
-			await api.post(`/game/${gameId}/play`, payload);
-			const res = await api.get(`/game/${gameId}`);
-			game = res.data;
+			await playWord(gameId!, payload);
+			const updatedGame = await getGame(gameId!);
+			game = updatedGame;
 			gameStore.set(game);
 			if (game?.status === 'ended') showScores.set(true);
 			return game!.your_rack.split('');
@@ -66,8 +77,7 @@
 			if (gameStore && $gameStore?.id === gameId) {
 				game = $gameStore;
 			} else {
-				const res = await api.get(`/game/${gameId}`);
-				game = res.data;
+				game = await getGame(gameId);
 				gameStore.set(game);
 			}
 
@@ -96,8 +106,7 @@
 		loading = true;
 		error = '';
 		try {
-			const res = await api.get(`/game/${gameId}`);
-			game = res.data;
+			game = await getGame(gameId);
 			gameStore.set(game);
 			pendingMove.set([]);
 			boardGame.setRackFromString(game!.your_rack);
@@ -119,8 +128,7 @@
 		const ok = confirm('Êtes-vous sûr de vouloir changer toutes vos lettres ? Cela remplacera vos lettres actuelles et passera votre tour.');
 		if (!ok) return;
 		try {
-			const res = await api.get(`/game/${gameId}/new_rack`);
-			const newRack = res.data as string[];
+			const newRack = await getNewRack(gameId!);
 			if (newRack.length === 0) {
 				alert('Plus de lettres disponibles dans le sac.');
 				return;
@@ -132,13 +140,12 @@
 		}
 	}
 
-	async function passTurn() {
+	async function handlePassTurn() {
 		const ok = confirm('Êtes-vous sûr de vouloir passer votre tour ?');
 		if (!ok) return;
 		try {
-			await api.post(`/game/${gameId}/pass`);
-			const res = await api.get(`/game/${gameId}`);
-			game = res.data;
+			await passTurn(gameId!);
+			game = await getGame(gameId!);
 			gameStore.set(game);
 		} catch (e: any) {
 			alert(e?.response?.data?.message || 'Erreur lors du passage du tour.');
@@ -158,8 +165,8 @@
 		const opponents = game!.players.map((p) => p.username).filter((u) => u && u !== currentUsername);
 
 		try {
-			const res = await api.post('/game', { name: newName, players: opponents });
-			window.location.href = `/games/${res.data.game_id}`;
+			const newGameId = await createGame(newName, opponents);
+			window.location.href = `/games/${newGameId}`;
 		} catch (err: any) {
 			alert(err?.response?.data?.message || 'Impossible de créer la revanche.');
 		}
@@ -261,7 +268,7 @@
 						<!-- Passer -->
 						<button
 							class="h-12 px-2 flex flex-col items-center justify-center text-[11px] font-bold text-stone-600 active:scale-[0.95] transition-all cursor-pointer"
-							onclick={passTurn}
+							onclick={handlePassTurn}
 							aria-label="Passer le tour"
 						>
 							<svg class="w-4.5 h-4.5 mb-0.5 text-stone-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">

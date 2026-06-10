@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { api } from "$lib/api";
+    import { getGames, getTodayPuzzle, deleteGame, renameGame } from "$lib/api";
     import GameList from "$lib/components/GameList.svelte";
     import { user } from "$lib/stores/user";
     import type { GameSummary } from "$lib/types/game_summary";
@@ -14,13 +14,13 @@
     onMount(async () => {
         if ($user) {
             try {
-				const [gamesRes, puzzleRes] = await Promise.all([
-					api.get('/game'),
-					api.get('/puzzles/today')
+				const [gamesList, puzzleToday] = await Promise.all([
+					getGames(),
+					getTodayPuzzle()
 				]);
 
-				games = gamesRes.data.games;
-				showDailyChallenge = puzzleRes.data?.has_player_attempted === false;
+				games = gamesList;
+				showDailyChallenge = puzzleToday?.has_player_attempted === false;
             } catch (err) {
                 console.error('Erreur en récupérant les parties', err);
 				showDailyChallenge = false;
@@ -41,7 +41,7 @@
     async function onDelete(id: string) {
         if (!confirm('Voulez-vous vraiment supprimer cette partie ?')) return;
         try {
-            await api.delete(`/game/${id}`);
+            await deleteGame(id);
             games = games.filter(g => g.id !== id);
         } catch (err) {
             alert('Erreur lors de la suppression de la partie');
@@ -57,7 +57,7 @@
         const newName = await renameGamePrompt(currentName);
         if (!newName) return;
         try {
-            await api.put(`/game/${id}/rename`, { new_name: newName });
+            await renameGame(id, newName);
             games = games.map(g => (g.id === id ? { ...g, name: newName } : g));
         } catch (err) {
             alert('Erreur lors du renommage de la partie');

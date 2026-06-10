@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
-	import { api } from '$lib/api';
+	import { getPuzzle } from '$lib/api';
 	import PuzzleLeaderboard from '$lib/components/PuzzleLeaderboard.svelte';
 	import type { PuzzleInfo } from '$lib/types/puzzle';
 	import { page } from '$app/stores';
@@ -12,10 +12,14 @@
 
 	onMount(async () => {
 		const puzzleId = $page.params.id;
+		if (!puzzleId) {
+			error = 'Aucun ID de puzzle fourni.';
+			loading = false;
+			return;
+		}
 		try {
 			loading = true;
-			const res = await api.get(`/puzzles/${puzzleId}`);
-			puzzle = res.data;
+			puzzle = await getPuzzle(puzzleId);
 		} catch (e: any) {
 			error = e?.response?.data?.message || 'Erreur lors du chargement du puzzle';
 		} finally {

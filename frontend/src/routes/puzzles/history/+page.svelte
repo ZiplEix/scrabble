@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import HeaderBar from '$lib/components/HeaderBar.svelte';
-	import { api } from '$lib/api';
+	import { getPuzzles } from '$lib/api';
 	import type { PuzzleHistory } from '$lib/types/puzzle';
 
 	let loading = $state(true);
@@ -16,8 +16,7 @@
 		try {
 			loading = true;
 			error = null;
-			const res = await api.get('/puzzles?limit=50&offset=0');
-			history = res.data ?? [];
+			history = await getPuzzles(50);
 		} catch (e: any) {
 			error = e?.response?.data?.message || 'Erreur lors du chargement de l\'historique';
 		} finally {

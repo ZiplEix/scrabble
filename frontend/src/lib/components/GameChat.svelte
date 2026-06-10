@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
-    import { api } from '$lib/api';
+    import { getMessages, markMessagesAsRead, sendMessage, deleteChatMessage } from '$lib/api';
     import { user } from '$lib/stores/user';
     import { tick } from 'svelte';
     import ChatBubble from '$lib/components/ChatBubble.svelte';
@@ -31,8 +31,7 @@
     async function loadMessages(silent = false) {
         if (!silent) loading = true;
         try {
-            const res = await api.get(`/game/${gameId}/messages`);
-            const newMessages = res.data || [];
+            const newMessages = await getMessages(gameId);
             
             // Check if there are new messages
             if (newMessages.length > messages.length) {
@@ -56,11 +55,7 @@
     async function markMessagesRead() {
         try {
             const lastId = messages.length ? messages[messages.length - 1].id : 0;
-            if (lastId) {
-                await api.post(`/game/${gameId}/messages/read`, { last_message_id: lastId });
-            } else {
-                await api.post(`/game/${gameId}/messages/read`, {});
-            }
+            await markMessagesAsRead(gameId, lastId);
         } catch (e) {
             console.warn('failed to mark messages read', e);
         }
@@ -71,7 +66,7 @@
         if (!trimmed) return;
         sending = true;
         try {
-            await api.post(`/game/${gameId}/message`, { content: trimmed, meta: {} });
+            await sendMessage(gameId, trimmed);
             content = '';
             await loadMessages(true);
             await markMessagesRead();
@@ -86,7 +81,7 @@
 
     async function removeMessage(msgId: number) {
         try {
-            await api.delete(`/game/${gameId}/messages/${msgId}`);
+            await deleteChatMessage(gameId, msgId);
             await loadMessages(true);
             await markMessagesRead();
             await tick();

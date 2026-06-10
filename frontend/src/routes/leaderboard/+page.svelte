@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import HeaderBar from '$lib/components/HeaderBar.svelte';
-    import { api } from '$lib/api';
+    import { getLeaderboard } from '$lib/api';
     import RankBadge from '$lib/components/RankBadge.svelte';
     import { user } from '$lib/stores/user';
 
@@ -20,9 +20,8 @@
 
     onMount(async () => {
         try {
-            const res = await api.get('/leaderboard?limit=100&offset=0');
-            entries = res.data?.entries ?? [];
-            total = res.data?.total ?? entries.length;
+            entries = await getLeaderboard(100, 0);
+            total = entries.length;
         } catch (e: any) {
             error = e?.response?.data?.message || 'Erreur lors du chargement du classement';
         } finally {

@@ -58,6 +58,23 @@ func main() {
 	services.InitBot()
 	services.StartBotWorker(5) // poll toutes les 5 secondes
 
+	// Démarrer le worker de génération des puzzles (toutes les heures)
+	go func() {
+		ctx := context.Background()
+		// Générer le puzzle du jour immédiatement
+		_, err := services.GenerateDailyPuzzle(ctx, 0)
+		if err != nil {
+			fmt.Printf("Worker error generating daily puzzle on startup: %v\n", err)
+		}
+		ticker := time.NewTicker(1 * time.Hour)
+		for range ticker.C {
+			_, err := services.GenerateDailyPuzzle(ctx, 0)
+			if err != nil {
+				fmt.Printf("Worker error generating daily puzzle: %v\n", err)
+			}
+		}
+	}()
+
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

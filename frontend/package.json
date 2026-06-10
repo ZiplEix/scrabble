@@ -26,8 +26,10 @@
 		"vite-plugin-devtools-json": "^1.0.0"
 	},
 	"dependencies": {
+		"@supabase/supabase-js": "^2.107.0",
 		"@vite-pwa/sveltekit": "^1.0.0",
 		"axios": "^1.10.0",
+		"supabase": "^2.104.0",
 		"svelte-dnd-action": "^0.9.63",
 		"vite-plugin-pwa": "^1.0.1"
 	}

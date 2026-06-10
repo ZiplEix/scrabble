@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { impersonateUser } from '$lib/api';
 	import { user } from '$lib/stores/user';
 	import { goto } from '$app/navigation';
 
@@ -9,9 +9,9 @@
 	async function handleImpersonate() {
 		error = '';
 		try {
-			const res = await api.get(`/auth/connect-as?user=${username}`);
+			const res = await impersonateUser(username);
 			const userNameToStore = username.trim().toLowerCase();
-			user.set({ username: userNameToStore, token: res.data.token });
+			user.set({ username: userNameToStore, token: res.token });
 			goto('/');
 		} catch (err: any) {
 			error = err?.response?.data?.message || 'Échec de la connexion';

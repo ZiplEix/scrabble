@@ -1,4 +1,4 @@
-import { api } from "$lib/api";
+import { getWordDefinition, addWordDefinition } from "$lib/api";
 
 export type WiktionaryDefinition = {
     title: string;
@@ -16,15 +16,15 @@ export async function getDefinition(
 
     // 1) Tentative d'interrogation du cache de l'API Go
     try {
-        const cacheRes = await api.get(`/dictionary/${encodeURIComponent(cleanWord)}`);
-        if (cacheRes.status === 200 && cacheRes.data) {
+        const cacheData = await getWordDefinition(cleanWord);
+        if (cacheData) {
             // Cache Hit !
             return {
                 title: cleanWord,
                 extract: "",
-                url: cacheRes.data.url || "",
+                url: cacheData.url || "",
                 is_parsed: true,
-                def: cacheRes.data.def || []
+                def: cacheData.def || []
             };
         }
     } catch (err: any) {
@@ -53,10 +53,7 @@ export async function getDefinition(
                         
                         // Sauvegarde asynchrone dans le cache DB
                         try {
-                            await api.post('/dictionary', {
-                                word: cleanWord,
-                                definitions: { url, def: defGroups }
-                            });
+                            await addWordDefinition(cleanWord, { url, def: defGroups });
                         } catch (saveErr) {
                             console.error(`Failed to save definition cache for ${cleanWord} from Wiktionnaire`, saveErr);
                         }
@@ -87,10 +84,7 @@ export async function getDefinition(
                 
                 // Sauvegarde asynchrone dans le cache DB
                 try {
-                    await api.post('/dictionary', {
-                        word: cleanWord,
-                        definitions: { url, def: defGroups }
-                    });
+                    await addWordDefinition(cleanWord, { url, def: defGroups });
                 } catch (saveErr) {
                     console.error(`Failed to save definition cache for ${cleanWord} from Larousse`, saveErr);
                 }
@@ -120,10 +114,7 @@ export async function getDefinition(
                     
                     // Sauvegarde asynchrone dans le cache DB
                     try {
-                        await api.post('/dictionary', {
-                            word: cleanWord,
-                            definitions: { url, def: defGroups }
-                        });
+                        await addWordDefinition(cleanWord, { url, def: defGroups });
                     } catch (saveErr) {
                         console.error(`Failed to save definition cache for ${cleanWord} from 1mot.net`, saveErr);
                     }
@@ -145,10 +136,7 @@ export async function getDefinition(
     // Étape D : Aucun dictionnaire ne connaît le mot (Mot invalide).
     // On met en cache un tableau vide pour éviter de répéter ces requêtes lentes à l'avenir !
     try {
-        await api.post('/dictionary', {
-            word: cleanWord,
-            definitions: { url: "", def: [] }
-        });
+        await addWordDefinition(cleanWord, { url: "", def: [] });
     } catch (saveErr) {
         console.error(`Failed to save empty/invalid definition cache for ${cleanWord}`, saveErr);
     }
