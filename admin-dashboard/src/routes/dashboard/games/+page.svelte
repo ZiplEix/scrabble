@@ -17,6 +17,8 @@
         moves_count: number;
         last_play_time: string; // ISO
         created_by_username?: string;
+        difficulty: string;
+        contains_scrabby: boolean;
     };
 
     // data
@@ -91,7 +93,9 @@
                 players_count: g.players_count ?? 0,
                 moves_count: g.moves_count ?? 0,
                 last_play_time: g.last_play_time ?? g.created_at,
-                created_by_username: g.created_by_username ?? ''
+                created_by_username: g.created_by_username ?? '',
+                difficulty: g.difficulty ?? '',
+                contains_scrabby: g.contains_scrabby ?? false
             })) as AdminGame[];
             filtered = games.slice();
             applyFilters();
@@ -169,14 +173,15 @@
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm table-fixed w-full">
                 <colgroup>
+                    <col style="width:15%" />
                     <col style="width:16%" />
-                    <col style="width:18%" />
                     <col style="width:10%" />
                     <col style="width:8%" />
                     <col style="width:8%" />
                     <col style="width:8%" />
-                    <col style="width:16%" />
-                    <col style="width:16%" />
+                    <col style="width:13%" />
+                    <col style="width:11%" />
+                    <col style="width:11%" />
                 </colgroup>
                 <thead>
                     <tr class="text-left text-xs text-white/60">
@@ -187,12 +192,13 @@
                         <th class="px-3 py-2 cursor-pointer" onclick={() => toggleSort('moves_count')}>Coups {sortField==='moves_count'? (sortDir==='asc'?'▲':'▼') : ''}</th>
                         <th class="px-3 py-2 cursor-pointer" onclick={() => toggleSort('pass_count')}>Pass {sortField==='pass_count'? (sortDir==='asc'?'▲':'▼') : ''}</th>
                         <th class="px-3 py-2">Créée par</th>
+                        <th class="px-3 py-2">Robot / IA</th>
                         <th class="px-3 py-2">Tour / Gagnant</th>
                     </tr>
                 </thead>
                 <tbody>
                     {#if loading}
-                        <tr><td colspan="8" class="px-3 py-4 text-center text-white/60">Chargement...</td></tr>
+                        <tr><td colspan="9" class="px-3 py-4 text-center text-white/60">Chargement...</td></tr>
                     {:else}
                         {#each filtered as g}
                             <tr
@@ -214,6 +220,15 @@
                                 <td class="px-3 py-2 align-top text-xs text-white/70">{g.moves_count}</td>
                                 <td class="px-3 py-2 align-top text-xs text-white/70">{g.pass_count}</td>
                                 <td class="px-3 py-2 align-top text-xs text-white/70">{g.created_by_username}</td>
+                                <td class="px-3 py-2 align-top text-xs">
+                                    {#if g.contains_scrabby}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-600/30 text-purple-200 border border-purple-500/30" title="Scrabby (IA)">
+                                            🤖 {g.difficulty.toUpperCase()}
+                                        </span>
+                                    {:else}
+                                        <span class="text-white/40">—</span>
+                                    {/if}
+                                </td>
                                 <td class="px-3 py-2 align-top text-xs text-white/80">
                                     {#if g.status === 'ended'}
                                         <div>Gagnant: <span class="text-white">{g.winner_username || '—'}</span></div>
@@ -225,7 +240,7 @@
                             </tr>
                         {/each}
                         {#if filtered.length === 0}
-                            <tr><td colspan="8" class="px-3 py-4 text-center text-white/60">Aucune partie trouvée</td></tr>
+                            <tr><td colspan="9" class="px-3 py-4 text-center text-white/60">Aucune partie trouvée</td></tr>
                         {/if}
                     {/if}
                 </tbody>

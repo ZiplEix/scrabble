@@ -5,7 +5,7 @@
     import { derived } from 'svelte/store';
 
     type BoardBlank = { x: number; y: number };
-    type PlayerInfo = { id: number; username: string; score: number; position: number; rack?: string };
+    type PlayerInfo = { id: number; username: string; score: number; position: number; rack?: string; is_bot?: boolean };
     type MoveInfo = { player_id: number; move: any; played_at: string };
     type GameInfo = {
         id: string;
@@ -23,6 +23,7 @@
         blank_tiles?: BoardBlank[];
         pass_count: number;
         available_letters?: string;
+        difficulty?: string;
     };
 
     let game: GameInfo | null = null;
@@ -143,6 +144,14 @@
                 {#if game.ended_at}
                     <div><span class="text-white/60">Fin:</span> <span class="text-white">{new Date(game.ended_at).toLocaleString()}</span></div>
                 {/if}
+                {#if game.players.some(p => p.username === 'Scrabby' || p.is_bot)}
+                    <div>
+                        <span class="text-white/60">Niveau de Scrabby 🤖:</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-600/30 text-purple-200 border border-purple-500/30">
+                            {game.difficulty ? game.difficulty.toUpperCase() : 'HARD'}
+                        </span>
+                    </div>
+                {/if}
             </div>
             {#if game.available_letters}
             <div class="mt-3">
@@ -176,7 +185,14 @@
                     {#each game.players as p}
                         <tr class="border-t border-white/6">
                             <td class="px-2 py-1">{p.position}</td>
-                            <td class="px-2 py-1">{p.username}</td>
+                            <td class="px-2 py-1">
+                                <span>{p.username}</span>
+                                {#if p.username === 'Scrabby' || p.is_bot}
+                                    <span class="inline-flex items-center gap-1 ml-1 px-1.5 py-0.2 rounded bg-purple-600/30 text-purple-200 text-[10px] font-bold border border-purple-500/20">
+                                        🤖 {game.difficulty ? game.difficulty.toUpperCase() : 'HARD'}
+                                    </span>
+                                {/if}
+                            </td>
                             <td class="px-2 py-1">{p.score}</td>
                             <td class="px-2 py-1">
                                 {#if p.rack}
