@@ -21,6 +21,7 @@ type GameInfo struct {
 	IsYourGame       bool         `json:"is_your_game"`
 	BlankTiles       []BoardBlank `json:"blank_tiles,omitempty"`
 	PassCount        int          `json:"pass_count"`
+	Difficulty       string       `json:"difficulty,omitempty"`
 }
 
 type PlayerInfo struct {
@@ -73,6 +74,8 @@ type AdminGameSummary struct {
 	MovesCount          int        `json:"moves_count"`
 	LastPlayTime        time.Time  `json:"last_play_time"`
 	CreatedByUsername   string     `json:"created_by_username,omitempty"`
+	Difficulty          string     `json:"difficulty,omitempty"`
+	ContainsScrabby     bool       `json:"contains_scrabby"`
 }
 
 type AdminGamesListResponse struct {

@@ -203,7 +203,8 @@ func GetAdminGameDetail(gameID string) (*response.GameInfo, error) {
 	gameQuery := `
 	   SELECT id, name, board, available_letters,
 			current_turn, status, created_by,
-			winner_username, ended_at, pass_count
+			winner_username, ended_at, pass_count,
+			difficulty
 	   FROM games
 	   WHERE id = $1
 	`
@@ -219,6 +220,7 @@ func GetAdminGameDetail(gameID string) (*response.GameInfo, error) {
 		&game.ID, &game.Name, &boardJSON, &avail,
 		&game.CurrentTurn, &game.Status, &createdBy,
 		&winnerUsername, &endedAt, &game.PassCount,
+		&game.Difficulty,
 	)
 	if err != nil {
 		return nil, err
@@ -339,7 +341,8 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 	gameQuery := `
        SELECT id, name, board, available_letters,
 			 current_turn, status, created_by,
-			 winner_username, ended_at, pass_count
+			 winner_username, ended_at, pass_count,
+			 difficulty
        FROM games
        WHERE id = $1
     `
@@ -355,6 +358,7 @@ func GetGameDetails(userID int64, gameID string) (*response.GameInfo, error) {
 		&game.ID, &game.Name, &boardJSON, &avail,
 		&game.CurrentTurn, &game.Status, &createdBy,
 		&winnerUsername, &endedAt, &game.PassCount,
+		&game.Difficulty,
 	)
 	if err != nil {
 		return nil, err
@@ -828,7 +832,13 @@ func GetAllGamesAdmin() ([]response.AdminGameSummary, error) {
 			COALESCE(p.players_count, 0) AS players_count,
 			COALESCE(m.moves_count, 0)   AS moves_count,
 			COALESCE(m.last_play_time, g.created_at) AS last_play_time,
-			COALESCE(cb.username, '') AS created_by_username
+			COALESCE(cb.username, '') AS created_by_username,
+			g.difficulty,
+			EXISTS(
+				SELECT 1 FROM game_players gp2
+				JOIN users u2 ON gp2.player_id = u2.id
+				WHERE gp2.game_id = g.id AND u2.username = 'Scrabby'
+			) AS contains_scrabby
 		FROM games g
 		LEFT JOIN users ct ON ct.id = g.current_turn
 		LEFT JOIN users cb ON cb.id = g.created_by
@@ -872,6 +882,8 @@ func GetAllGamesAdmin() ([]response.AdminGameSummary, error) {
 			&g.MovesCount,
 			&g.LastPlayTime,
 			&createdByUsername,
+			&g.Difficulty,
+			&g.ContainsScrabby,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan admin games: %w", err)
 		}
