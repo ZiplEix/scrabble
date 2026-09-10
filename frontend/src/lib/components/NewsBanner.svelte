@@ -15,6 +15,15 @@
 
     const announcements: Announcement[] = [
         {
+            id: '2026-10-19-maintenance',
+            title: '🛠️ Maintenance programmée',
+            message:
+                "Le site sera temporairement indisponible pour cause de maintenance pour une durée indéterminée à partir du jeudi 19 octobre 2026 à 16h00.\n\n" +
+                "L'accès au jeu et à l'ensemble des services sera suspendu durant cette intervention. Merci pour votre compréhension et votre patience !",
+            date: '10 septembre 2026',
+            level: 'important'
+        },
+        {
             id: '2026-05-23-scrabby-bot',
             title: '🤖 Nouveau : Défiez notre IA Scrabby !',
             message:
