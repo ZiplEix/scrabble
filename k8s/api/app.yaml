@@ -18,7 +18,7 @@ spec:
         image: ghcr.io/zipleix/scrabble-api:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080
+        - containerPort: 8888
           name: http
         envFrom:
         - secretRef:
@@ -31,8 +31,8 @@ metadata:
   namespace: default
 spec:
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 8888
+    targetPort: 8888
     name: http
   selector:
     app: scrabble-api
@@ -59,7 +59,7 @@ spec:
           service:
             name: scrabble-api-svc
             port:
-              number: 8080
+              number: 8888
   tls:
   - hosts:
     - api.scrabble.baptiste.zip
